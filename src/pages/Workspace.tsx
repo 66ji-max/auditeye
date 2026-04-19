@@ -238,31 +238,30 @@ export default function Workspace() {
             
             {logs.length > 0 ? (
               <>
-                <WorkflowStep 
-                  icon={<Database className="w-3 h-3 text-gray-400" />} 
-                  title="多源数据检索完成" 
-                  desc="已完成内部网盘文档与外部公开工商库的数据融合提取。"
-                  status="done" time="10:01" entities={entities.length} 
-                />
-                <WorkflowStep 
-                  icon={<Network className="w-3 h-3 text-gray-400" />} 
-                  title="隐蔽网络图谱构建" 
-                  desc="构建高维实体映射矩阵，计算同构重叠度。"
-                  status="done" time="10:02" 
-                />
+                {logs.filter((l:any) => l.action !== 'RED_FLAG').map((l:any, i:number) => {
+                  const details = typeof l.details === 'string' ? JSON.parse(l.details) : l.details;
+                  return (
+                    <WorkflowStep 
+                      key={i}
+                      icon={<CheckSquare className="w-3 h-3 text-gray-400" />} 
+                      title={details.message || '系统日志'}
+                      status="done" time={new Date(l.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    />
+                  )
+                })}
                 {rulesHit.length > 0 && (
                   <WorkflowStep 
                     icon={<AlertTriangle className="w-3 h-3 text-red-500" />} 
                     title="风险规则命中警告" 
                     desc={`检测到 ${rulesHit.length} 项高亮风险，涉及强关系证据链。段落证据已落至工作底稿。`}
-                    status="alert" time="10:02" rules={rulesHit.length}
+                    status="alert" time={new Date(rulesHit[0].createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} rules={rulesHit.length}
                   />
                 )}
                 <WorkflowStep 
                   icon={<FileText className="w-3 h-3 text-gray-400" />} 
                   title="生成专项审计建议" 
                   desc="根据规则命中情况，已自动生成扩大抽样与业务核查指南。"
-                  status="done" time="10:03" 
+                  status="done" time={new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} 
                 />
                 <WorkflowStep 
                   icon={<User className="w-3 h-3 text-gray-500" />} 

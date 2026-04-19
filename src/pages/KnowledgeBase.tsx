@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, Search, FileText, Database, Calendar, Tag, ChevronDown } from 'lucide-react';
 
 export default function KnowledgeBase() {
   const [query, setQuery] = useState('');
+  const [documents, setDocuments] = useState<any[]>([]);
 
-  const documents = [
-    { id: 'DOC-1029', name: 'A公司 2025 年度审计报告.pdf', status: '解析完成', chunks: 145, entities: 32, type: '财务文书', date: '2026-04-18' },
-    { id: 'DOC-1030', name: '供应商采购协议-B公司.docx', status: '解析完成', chunks: 42, entities: 8, type: '业务合同', date: '2026-04-18' },
-    { id: 'DOC-1031', name: '高管名册及履历表.xlsx', status: '解析完成', chunks: 86, entities: 54, type: '人事档案', date: '2026-04-17' },
-    { id: 'DOC-1032', name: '尽职调查初步问卷.md', status: '解析中...', chunks: '-', entities: '-', type: '工作底稿', date: '2026-04-19' }
-  ];
+  useEffect(() => {
+    fetch('/api/kb')
+      .then(res => res.json())
+      .then(data => setDocuments(data));
+  }, []);
 
   return (
     <div className="h-full w-full bg-[#1A1A1A] p-6 text-gray-200 overflow-y-auto custom-scrollbar">

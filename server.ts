@@ -28,8 +28,14 @@ async function startServer() {
   app.use(express.json());
 
   // API Routes
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
+  app.get("/api/health", async (req, res) => {
+    try {
+      const { llm } = await import("./src/services/llmProvider.ts");
+      const llmStatus = await llm.checkStatus();
+      res.json({ status: "ok", llm: llmStatus });
+    } catch (e: any) {
+      res.json({ status: "ok", llm: { status: "error", message: e.message } });
+    }
   });
 
   // Projects API
@@ -151,6 +157,24 @@ async function startServer() {
       res.json({ status: "success", result });
     } catch (e: any) {
       console.error(e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/rules", (req, res) => {
+    try {
+      const rules = db.prepare('SELECT * FROM rules').all();
+      res.json(rules);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/kb", (req, res) => {
+    try {
+      const kb = db.prepare('SELECT * FROM kb_documents').all();
+      res.json(kb);
+    } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
   });

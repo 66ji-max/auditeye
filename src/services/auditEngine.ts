@@ -1,7 +1,8 @@
 import path from 'path';
 import db from '../db.ts';
 import { parseDocument } from './documentParser.ts';
-import { CorporateRegistryProvider, ExtractedEntity, Relationship } from './providers.js';
+import { CorporateRegistryProvider, ExtractedEntity, Relationship } from './providers.ts';
+import { llm } from './llmProvider.ts';
 
 export interface AuditRecommendation {
   ruleId: string;
@@ -45,17 +46,45 @@ export class AuditEngine {
             logs.push(`Warning: ${doc.originalName} - ${blockText.substring(0, 100)}`);
           } else {
             logs.push(`Successfully extracted ${blockText.length} characters from ${doc.originalName}`);
-            // Mock Simple NLP entity extraction mapping based on text presence
-            if (blockText.includes('风险') || blockText.includes('异常')) {
-              score += 15;
-              recommendations.push({
-                ruleId: 'R-DOC-01',
-                ruleName: '文件关键字预警',
-                description: `在 ${doc.originalName} 中识别到风险关键字`,
-                severity: 'medium',
-                scoreImpact: 15
-              });
-              logs.push(`Triggered Document Rule R-DOC-01 on ${doc.originalName}`);
+            
+            // AI Analysis
+            try {
+              logs.push(`Running LLM extraction on ${doc.originalName}...`);
+              const prompt = `Analyze the following document text and extract any companies, people, and their relationships. Also identify any audit risk anomalies (like related party transactions, suspicious overlap, etc.).
+Return ONLY a JSON object with this exact structure:
+{
+  "entities": [{"type": "COMPANY"|"PERSON", "name": "...", "normalizedName": "...", "attributes": {}}],
+  "relationships": [{"source": "...", "target": "...", "type": "...", "evidence": "..."}],
+  "risks": [{"ruleName": "...", "description": "...", "severity": "high"|"medium"|"low", "scoreImpact": 15}]
+}
+Text to analyze:
+${blockText.substring(0, 10000)} /* Truncated for safety */`;
+              
+              const jsonStr = await llm.generate(prompt, { jsonMode: true, systemPrompt: "You are a senior audit intelligence engine. Extract exact entities and identify fraud risks." });
+              const result = JSON.parse(jsonStr);
+              
+              if (result.entities && Array.isArray(result.entities)) {
+                allEntities = allEntities.concat(result.entities);
+                logs.push(`Extracted ${result.entities.length} entities from ${doc.originalName}`);
+              }
+              if (result.relationships && Array.isArray(result.relationships)) {
+                allRels = allRels.concat(result.relationships);
+                logs.push(`Extracted ${result.relationships.length} relationships from ${doc.originalName}`);
+              }
+              if (result.risks && Array.isArray(result.risks)) {
+                result.risks.forEach((r: any) => {
+                  score += r.scoreImpact || 10;
+                  recommendations.push({
+                    ruleId: 'R-AI-DOC',
+                    ruleName: r.ruleName || 'AI预警规则',
+                    description: r.description,
+                    severity: r.severity || 'medium',
+                    scoreImpact: r.scoreImpact || 10
+                  });
+                });
+              }
+            } catch (err: any) {
+              logs.push(`LLM parsing failed for ${doc.originalName}: ${err.message}`);
             }
           }
         }

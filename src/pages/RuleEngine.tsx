@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Plus, Activity, Edit3, Trash2, Shield, Calendar, User } from 'lucide-react';
 
 export default function RuleEngine() {
-  const [rules, setRules] = useState([
-    { id: 'R-ADDR-01', name: '地址异常重合', category: '关联关系风险', weight: 35, status: 'enabled', updatedAt: '2026-04-10', owner: 'System' },
-    { id: 'R-EXEC-02', name: '高管履历交叉', category: '关联关系风险', weight: 20, status: 'enabled', updatedAt: '2026-04-11', owner: 'System' },
-    { id: 'R-FIN-01', name: '存贷双高模型', category: '财务异常风险', weight: 40, status: 'enabled', updatedAt: '2026-04-12', owner: 'Risk Dept' },
-    { id: 'R-FIN-02', name: '毛利率显著背离', category: '财务异常风险', weight: 30, status: 'enabled', updatedAt: '2026-04-12', owner: 'Risk Dept' },
-    { id: 'R-BEH-01', name: '频繁更换事务所', category: '行为异动风险', weight: 25, status: 'disabled', updatedAt: '2026-04-15', owner: 'Compliance' },
-    { id: 'R-BEH-02', name: '上市前夕突击分红', category: '行为异动风险', weight: 45, status: 'enabled', updatedAt: '2026-04-16', owner: 'Compliance' },
-    { id: 'R-DOC-01', name: '文件关键字预警', category: '关联关系风险', weight: 15, status: 'enabled', updatedAt: '2026-04-18', owner: 'System' },
-  ]);
+  const [rules, setRules] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/rules')
+      .then(res => res.json())
+      .then(data => setRules(data));
+  }, []);
 
   return (
     <div className="h-full w-full bg-[#1A1A1A] p-6 text-gray-200 overflow-y-auto custom-scrollbar">
