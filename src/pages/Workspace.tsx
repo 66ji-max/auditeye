@@ -281,7 +281,7 @@ export default function Workspace() {
           {/* Quick Actions Base */}
           <div className="p-3 border-t border-[#333333] bg-[#242424] shrink-0 grid grid-cols-2 gap-2 relative">
              <button className="px-3 py-2 bg-[#1A1A1A] border border-[#333333] hover:border-[#D4AF37] text-gray-300 text-[11px] rounded transition-colors"
-                onClick={() => toast('请前往【项目管理】面板追加上传数据源', 'info')}>+ 追加数据源</button>
+                onClick={() => toast('请重新点击上方菜单栏【项目工作区】按钮前往项目面板追加上传数据源', 'info')}>+ 追加数据源</button>
              <button className="px-3 py-2 bg-[#1A1A1A] border border-[#333333] hover:border-[#D4AF37] text-gray-300 text-[11px] rounded transition-colors"
                 onClick={() => setShowRuleSet(!showRuleSet)}>切换规则集</button>
              

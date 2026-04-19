@@ -8,7 +8,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   const navItems = [
-    { label: '项目管理', path: '/', icon: <Folder className="w-4 h-4" /> },
+    { label: '项目工作区', path: '/', icon: <Folder className="w-4 h-4" /> },
     { label: '知识库', path: '/knowledge', icon: <BookOpen className="w-4 h-4" /> },
     { label: '规则引擎', path: '/rules', icon: <Settings className="w-4 h-4" /> },
   ];

@@ -5,6 +5,7 @@ import multer from "multer";
 import fs from "fs";
 import db, { initDB } from "./src/db.ts";
 import { AuditEngine } from "./src/services/auditEngine.ts";
+import fs from "node:fs";
 
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
@@ -183,9 +184,31 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: "custom",
     });
+
     app.use(vite.middlewares);
+
+    app.use("*", async (req, res, next) => {
+      if (req.originalUrl.startsWith("/api")) return next();
+
+      try {
+        let template = fs.readFileSync(
+            path.resolve(process.cwd(), "index.html"),
+            "utf-8"
+        );
+
+        template = await vite.transformIndexHtml(req.originalUrl, template);
+
+        res
+            .status(200)
+            .set({ "Content-Type": "text/html" })
+            .end(template);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
