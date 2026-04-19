@@ -1,3 +1,6 @@
+import path from 'path';
+import db from '../db.ts';
+import { parseDocument } from './documentParser.ts';
 import { CorporateRegistryProvider, ExtractedEntity, Relationship } from './providers.js';
 
 export interface AuditRecommendation {
@@ -19,13 +22,49 @@ export interface AuditResult {
 export class AuditEngine {
   providers = [new CorporateRegistryProvider()];
   
-  async runAnalysis(targetCompany: string): Promise<AuditResult> {
+  async runAnalysis(targetCompany: string, projectId?: string): Promise<AuditResult> {
     const logs: string[] = [];
     logs.push(`Starting analysis for target: ${targetCompany}`);
     
     let allEntities: ExtractedEntity[] = [];
     let allRels: Relationship[] = [];
+    let score = 0;
+    const recommendations: AuditRecommendation[] = [];
+
+    // 1. Process Uploaded Documents
+    if (projectId) {
+      logs.push(`Inspecting uploaded documents for Project ${projectId}...`);
+      const docs = db.prepare('SELECT * FROM documents WHERE projectId = ?').all(projectId) as any[];
+      if (docs.length > 0) {
+        for (const doc of docs) {
+          logs.push(`Extracting text from: ${doc.originalName}`);
+          const filePath = path.join(process.cwd(), 'uploads', doc.fileName);
+          const blockText = await parseDocument(filePath, doc.originalName);
+          
+          if (blockText.includes('System]')) {
+            logs.push(`Warning: ${doc.originalName} - ${blockText.substring(0, 100)}`);
+          } else {
+            logs.push(`Successfully extracted ${blockText.length} characters from ${doc.originalName}`);
+            // Mock Simple NLP entity extraction mapping based on text presence
+            if (blockText.includes('风险') || blockText.includes('异常')) {
+              score += 15;
+              recommendations.push({
+                ruleId: 'R-DOC-01',
+                ruleName: '文件关键字预警',
+                description: `在 ${doc.originalName} 中识别到风险关键字`,
+                severity: 'medium',
+                scoreImpact: 15
+              });
+              logs.push(`Triggered Document Rule R-DOC-01 on ${doc.originalName}`);
+            }
+          }
+        }
+      } else {
+        logs.push(`No user documents attached. Falling back to public providers.`);
+      }
+    }
     
+    // 2. Query Public Providers
     for (const provider of this.providers) {
       logs.push(`Querying provider: ${provider.name}`);
       const data = await provider.fetchData(targetCompany);
@@ -36,8 +75,6 @@ export class AuditEngine {
 
     // Run Rule Engine
     logs.push(`Running Risk Rule Engine...`);
-    let score = 0;
-    const recommendations: AuditRecommendation[] = [];
 
     // Red Flag 1: Address Overlap
     const addressMap = new Map<string, string[]>();

@@ -2,10 +2,22 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import multer from "multer";
+import fs from "fs";
 import db, { initDB } from "./src/db.ts";
 import { AuditEngine } from "./src/services/auditEngine.ts";
 
-const upload = multer({ dest: 'uploads/' });
+const uploadDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    // Handle utf-8 filenames in multer
+    const finalName = Date.now() + '-' + Buffer.from(file.originalname, 'latin1').toString('utf8');
+    cb(null, finalName);
+  }
+});
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 async function startServer() {
   initDB();
@@ -34,8 +46,55 @@ async function startServer() {
   
   app.get("/api/projects", (req, res) => {
     try {
-      const projects = db.prepare('SELECT * FROM projects ORDER BY createdAt DESC').all();
+      const projects = db.prepare(`
+        SELECT p.*, COUNT(d.id) as docCount 
+        FROM projects p 
+        LEFT JOIN documents d ON p.id = d.projectId 
+        GROUP BY p.id 
+        ORDER BY p.createdAt DESC
+      `).all();
       res.json(projects);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/projects/:id/documents", upload.array('files'), (req, res) => {
+    try {
+      const projectId = req.params.id;
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) return res.status(400).json({ error: "No files uploaded" });
+
+      const insertedDocs = [];
+      const stmt = db.prepare('INSERT INTO documents (projectId, fileName, originalName, sourceType) VALUES (?, ?, ?, ?)');
+      
+      for (const file of files) {
+        // Decode filename one more time in case of deep ascii issues, or rely on our storage config
+        const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        const ext = path.extname(originalName).toLowerCase();
+        const info = stmt.run(projectId, file.filename, originalName, ext);
+        insertedDocs.push({ id: info.lastInsertRowid, originalName, fileName: file.filename });
+      }
+
+      res.json({ status: "success", documents: insertedDocs });
+    } catch (e: any) {
+      console.error("Upload error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/documents/:id", (req, res) => {
+    try {
+      const doc: any = db.prepare('SELECT * FROM documents WHERE id = ?').get(req.params.id);
+      if (!doc) return res.status(404).json({ error: "Document not found" });
+
+      const filePath = path.join(uploadDir, doc.fileName);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+
+      db.prepare('DELETE FROM documents WHERE id = ?').run(req.params.id);
+      res.json({ status: "success" });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -64,7 +123,7 @@ async function startServer() {
       const { targetCompany } = req.body;
 
       const engine = new AuditEngine();
-      const result = await engine.runAnalysis(targetCompany);
+      const result = await engine.runAnalysis(targetCompany, projectId);
 
       // Save overall score
       db.prepare('UPDATE projects SET riskScore = ? WHERE id = ?').run(result.score, projectId);

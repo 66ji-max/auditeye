@@ -9,7 +9,7 @@ import {
   ShieldAlert, Bot, User, Database, FileText, Users, AlertTriangle, 
   Activity, Network, TrendingDown, Link as LinkIcon, AlertOctagon, 
   Download, FileSearch, Clock, CheckSquare, Maximize, DownloadCloud,
-  Search, Bell, Settings, ChevronRight, Menu, ArrowLeft, Send
+  Search, Bell, Settings, ChevronRight, Menu, ArrowLeft, Send, X
 } from 'lucide-react';
 import * as d3 from 'd3';
 
@@ -278,7 +278,7 @@ export default function Workspace() {
             </div>
             
             {/* User Query Form */}
-            <div className="bg-[#1A1A1A] border border-[#333333] rounded p-2 mb-5">
+            <div className="bg-[#1A1A1A] border border-[#333333] rounded p-2 mb-4">
               <div className="flex">
                 <input 
                   type="text" 
@@ -290,6 +290,53 @@ export default function Workspace() {
                 <button onClick={handleAnalyze} disabled={loading} className="w-8 h-8 bg-[#D4AF37] rounded flex items-center justify-center text-black hover:bg-[#E5C048] disabled:opacity-50">
                   <Send className="w-4 h-4" />
                 </button>
+              </div>
+            </div>
+
+            {/* Project Files Area */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] text-gray-400 font-medium">项目文件 ({data.documents.length})</span>
+                <label className="text-[10px] text-[#D4AF37] cursor-pointer hover:underline">
+                  + 上传文件
+                  <input type="file" multiple className="hidden" onChange={async (e) => {
+                    const files = e.target.files;
+                    if (!files || files.length === 0) return;
+                    
+                    const formData = new FormData();
+                    Array.from(files).forEach((f: File) => formData.append('files', f));
+                    
+                    try {
+                      await fetch(`/api/projects/${id}/documents`, { method: 'POST', body: formData });
+                      fetchProject();
+                    } catch (err) {
+                      console.error(err);
+                      alert('上传失败');
+                    }
+                  }} />
+                </label>
+              </div>
+              <div className="space-y-1 max-h-[100px] overflow-y-auto custom-scrollbar">
+                {data.documents.map((doc: any) => (
+                  <div key={doc.id} className="flex items-center justify-between bg-[#1A1A1A] border border-[#333333] p-1.5 rounded">
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                      <FileText className="w-3 h-3 text-gray-400 shrink-0" />
+                      <span className="text-[10px] text-gray-300 truncate">{doc.originalName}</span>
+                    </div>
+                    <button 
+                      onClick={async () => {
+                        if (confirm('确认删除?')) {
+                          await fetch(`/api/documents/${doc.id}`, { method: 'DELETE' });
+                          fetchProject();
+                        }
+                      }}
+                      className="text-gray-500 hover:text-red-400 pl-1 shrink-0"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {data.documents.length === 0 && <div className="text-[10px] text-gray-500 italic">暂无上传文件</div>}
               </div>
             </div>
 
