@@ -201,7 +201,12 @@ export default function ProjectList() {
                     <div className="text-[11px] text-gray-400 flex items-center justify-end gap-1"><Clock className="w-3 h-3"/> {new Date(p.createdAt).toLocaleDateString()}</div>
                   </td>
                   <td className="px-5 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="text-[#D4AF37] hover:text-[#E5C048]"><MoreHorizontal className="w-5 h-5" /></button>
+                    <div className="relative inline-block text-left" onClick={e => e.stopPropagation()}>
+                      <button onClick={(e) => {
+                        const evt = new CustomEvent('show-toast', {detail: {message: '暂无编辑或删除该项目的权限', type: 'error'}});
+                        window.dispatchEvent(evt);
+                      }} className="text-gray-500 hover:text-white p-1 rounded-full hover:bg-[#333] transition-colors"><MoreHorizontal className="w-5 h-5" /></button>
+                    </div>
                   </td>
                 </tr>
               ))}

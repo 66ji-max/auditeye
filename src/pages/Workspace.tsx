@@ -8,6 +8,7 @@ import {
   ChevronDown, Filter, GitBranch, Share2
 } from 'lucide-react';
 import * as d3 from 'd3';
+import { toast } from '../components/Toast.tsx';
 
 const WorkflowStep: React.FC<{ icon: React.ReactNode, title: string, desc?: string, status: 'done' | 'active' | 'alert' | 'pending', time: string, entities?: number, rules?: number }> = ({ icon, title, desc, status, time, entities, rules }) => {
   const [expanded, setExpanded] = useState(status !== 'pending');
@@ -147,6 +148,9 @@ export default function Workspace() {
   const [loading, setLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [selectedEdge, setSelectedEdge] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'doc'|'fin'|'graph'>('doc');
+  const [graphMode, setGraphMode] = useState<'all'|'minimal'>('all');
+  const [showRuleSet, setShowRuleSet] = useState(false);
 
   const fetchProject = async () => {
     const res = await fetch(`/api/projects/${id}`);
@@ -275,10 +279,25 @@ export default function Workspace() {
           </div>
 
           {/* Quick Actions Base */}
-          <div className="p-3 border-t border-[#333333] bg-[#242424] shrink-0 grid grid-cols-2 gap-2">
+          <div className="p-3 border-t border-[#333333] bg-[#242424] shrink-0 grid grid-cols-2 gap-2 relative">
              <button className="px-3 py-2 bg-[#1A1A1A] border border-[#333333] hover:border-[#D4AF37] text-gray-300 text-[11px] rounded transition-colors"
-                onClick={() => alert('已打开数据源面板')}>+ 追加数据源</button>
-             <button className="px-3 py-2 bg-[#1A1A1A] border border-[#333333] hover:border-[#D4AF37] text-gray-300 text-[11px] rounded transition-colors">切换规则集</button>
+                onClick={() => toast('请前往【项目管理】面板追加上传数据源', 'info')}>+ 追加数据源</button>
+             <button className="px-3 py-2 bg-[#1A1A1A] border border-[#333333] hover:border-[#D4AF37] text-gray-300 text-[11px] rounded transition-colors"
+                onClick={() => setShowRuleSet(!showRuleSet)}>切换规则集</button>
+             
+             {showRuleSet && (
+               <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-[90%] mb-2 bg-[#1A1A1A] border border-[#333333] rounded shadow-2xl p-2 z-50">
+                 <div className="text-[10px] text-gray-500 mb-2 uppercase">选择规则组合</div>
+                 <div className="space-y-1">
+                   <button className="w-full text-left px-2 py-1.5 bg-[#D4AF37]/10 text-[#D4AF37] rounded text-[11px] font-medium border border-[#D4AF37]/30">标准审计预警 (v1.4.2)</button>
+                   <button className="w-full text-left px-2 py-1.5 text-gray-400 hover:bg-[#333] rounded text-[11px] transition-colors" onClick={() => {toast('暂无穿透关联黑盒权限', 'warning'); setShowRuleSet(false);}}>极度穿透关联模型</button>
+                   <button className="w-full text-left px-2 py-1.5 text-gray-400 hover:bg-[#333] rounded text-[11px] transition-colors flex items-center justify-between" disabled>
+                     <span className="opacity-50">快消行业专用模板</span>
+                     <span className="bg-gray-800 text-[9px] px-1 rounded">不可用</span>
+                   </button>
+                 </div>
+               </div>
+             )}
           </div>
         </div>
 
@@ -376,14 +395,14 @@ export default function Workspace() {
           
           <div className="h-[60%] border-b border-[#333333] relative">
             <div className="absolute top-4 left-4 z-10 flex gap-2">
-               <button className="px-3 py-1.5 bg-[#242424] border border-[#333333] hover:border-[#D4AF37] rounded text-[11px] shadow-lg flex items-center gap-1.5 transition-colors"><Filter className="w-3 h-3"/> 全部关系</button>
-               <button className="px-3 py-1.5 bg-[#242424] border border-[#333333] hover:border-[#D4AF37] rounded text-[11px] shadow-lg flex items-center gap-1.5 transition-colors"><Network className="w-3 h-3"/> 极简视图</button>
-               <button className="px-3 py-1.5 bg-[#242424] border border-[#333333] hover:border-[#D4AF37] rounded text-[11px] shadow-lg flex items-center gap-1.5 transition-colors" onClick={()=>fetchProject()}><Maximize className="w-3 h-3"/> 重置画布</button>
+               <button onClick={() => setGraphMode('all')} className={`px-3 py-1.5 border hover:border-[#D4AF37] rounded text-[11px] shadow-lg flex items-center gap-1.5 transition-colors ${graphMode === 'all' ? 'bg-[#333333] border-[#333333] text-white' : 'bg-[#242424] border-[#333333] text-gray-300'}`}><Filter className="w-3 h-3"/> 全部关系</button>
+               <button onClick={() => setGraphMode('minimal')} className={`px-3 py-1.5 border hover:border-[#D4AF37] rounded text-[11px] shadow-lg flex items-center gap-1.5 transition-colors ${graphMode === 'minimal' ? 'bg-[#333333] border-[#333333] text-white' : 'bg-[#242424] border-[#333333] text-gray-300'}`}><Network className="w-3 h-3"/> 极简视图</button>
+               <button className="px-3 py-1.5 bg-[#242424] border border-[#333333] hover:border-[#D4AF37] rounded text-[11px] shadow-lg flex items-center gap-1.5 transition-colors text-gray-300" onClick={()=>{fetchProject(); toast('画布已重置并拉取最新数据', 'success');}}><Maximize className="w-3 h-3"/> 重置画布</button>
             </div>
             
             {/* Graph Legend */}
             <div className="absolute bottom-4 left-4 z-10 bg-[#242424]/80 backdrop-blur border border-[#333333] p-2 rounded shadow-lg">
-              <div className="text-[9px] text-gray-500 mb-1.5 uppercase font-semibold tracking-wider">实体图例</div>
+              <div className="text-[9px] text-gray-500 mb-1.5 uppercase font-semibold tracking-wider">实体图例 (模式: {graphMode === 'all' ? '全部' : '极简'})</div>
               <div className="flex gap-4">
                 <div className="flex items-center gap-1.5 text-[10px]"><span className="w-2.5 h-2.5 rounded-full border border-[#D4AF37] bg-[#242424]"></span> 公司企业</div>
                 <div className="flex items-center gap-1.5 text-[10px]"><span className="w-2.5 h-2.5 rounded-full border border-red-500 bg-[#242424]"></span> 异常高危节点</div>
@@ -393,7 +412,7 @@ export default function Workspace() {
 
             {/* Core Graph Component */}
             {entities.length > 0 ? (
-              <D3Graph entities={entities} relationships={rels} onNodeClick={setSelectedNode} onEdgeClick={setSelectedEdge}/>
+              <D3Graph entities={graphMode === 'minimal' ? entities.slice(0, 5) : entities} relationships={graphMode === 'minimal' ? rels.slice(0, 3) : rels} onNodeClick={setSelectedNode} onEdgeClick={setSelectedEdge}/>
             ) : (
               <div className="flex items-center justify-center w-full h-full text-xs text-gray-500">暂无图谱数据</div>
             )}
@@ -420,7 +439,7 @@ export default function Workspace() {
                         ))}
                         <div>
                           <div className="text-[10px] text-gray-500 mb-1">规则验证</div>
-                          <div className="text-[11px] text-red-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> 已命中 R-ADDR-01</div>
+                          <div className="text-[11px] text-red-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> 系统智能探测节点</div>
                         </div>
                      </>
                   )}
@@ -428,7 +447,7 @@ export default function Workspace() {
                      <>
                         <div>
                           <div className="text-[10px] text-gray-500 mb-1">关系类型</div>
-                          <div className="text-[12px] font-medium text-gray-200">{selectedEdge.relationType}</div>
+                          <div className="text-[12px] font-medium text-gray-200">{selectedEdge.relationType || selectedEdge.type}</div>
                         </div>
                         <div>
                           <div className="text-[10px] text-gray-500 mb-1">关联置信度</div>
@@ -438,14 +457,14 @@ export default function Workspace() {
                           <div className="text-[10px] text-gray-500 mb-2">证据溯源</div>
                           <div className="p-2 bg-[#1A1A1A] border border-[#333333] rounded">
                              <div className="text-[10px] font-medium text-[#D4AF37] mb-1 flex items-center gap-1"><FileText className="w-3 h-3"/> 系统提取片段</div>
-                             <p className="text-[11px] text-gray-400 font-serif leading-relaxed line-clamp-4">{selectedEdge.evidenceSnippet}</p>
+                             <p className="text-[11px] text-gray-400 font-serif leading-relaxed line-clamp-4">{selectedEdge.evidenceSnippet || selectedEdge.evidence}</p>
                           </div>
                         </div>
                      </>
                   )}
                 </div>
                 <div className="p-3 border-t border-[#333333] bg-[#1A1A1A]">
-                   <button className="w-full py-2 bg-[#333333] hover:bg-[#444] text-xs font-medium rounded transition-colors text-gray-200">查看完整画像</button>
+                   <button onClick={() => toast('完整穿透画像功能敬请期待', 'info')} className="w-full py-2 bg-[#333333] hover:bg-[#444] text-xs font-medium rounded transition-colors text-gray-200">查看完整画像</button>
                 </div>
               </div>
             )}
@@ -453,35 +472,60 @@ export default function Workspace() {
 
           <div className="flex-1 overflow-hidden flex flex-col bg-[#1A1A1A]">
             <div className="flex items-center gap-1 px-4 pt-3 border-b border-[#333333]">
-              <div className="px-4 py-2 border-b-2 border-[#D4AF37] text-sm font-medium text-[#D4AF37]">文档证据</div>
-              <div className="px-4 py-2 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-300">财务证据</div>
-              <div className="px-4 py-2 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-300">图谱溯源证据</div>
+              <button 
+                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors ${activeTab === 'doc' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                onClick={() => setActiveTab('doc')}
+              >文档证据 ({docsCount})</button>
+              <button 
+                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors ${activeTab === 'fin' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                onClick={() => setActiveTab('fin')}
+              >财务证据</button>
+              <button 
+                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors ${activeTab === 'graph' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                onClick={() => setActiveTab('graph')}
+              >图谱溯源证据 ({rels.length})</button>
             </div>
             
             <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-               {rels.map((r: any, i: number) => (
-                  <div key={i} className="bg-[#242424] border border-[#333333] rounded hover:border-[#D4AF37]/50 transition-colors flex flex-col">
-                    <div className="p-3 border-b border-[#333333] flex justify-between items-start">
-                      <div>
-                        <div className="text-[10px] font-medium text-[#D4AF37] flex items-center gap-1 mb-1"><FileText className="w-3 h-3" /> API 数据 / 公开库</div>
-                        <div className="text-xs text-gray-200 font-medium">段落锚点 #{i+102}</div>
+              {activeTab === 'doc' && (
+                 <div className="text-center py-8 text-gray-500 text-xs">项目共挂载 {docsCount} 份文档。请前往项目库查看详情。</div>
+              )}
+              {activeTab === 'fin' && (
+                 <div className="text-center py-8 text-gray-500 text-xs flex flex-col items-center gap-2">
+                   <Activity className="w-6 h-6 text-gray-600 opacity-50" />
+                   暂无财务流转或水单证据
+                 </div>
+              )}
+              {activeTab === 'graph' && (
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                 {rels.map((r: any, i: number) => (
+                    <div key={i} className="bg-[#242424] border border-[#333333] rounded hover:border-[#D4AF37]/50 transition-colors flex flex-col">
+                      <div className="p-3 border-b border-[#333333] flex justify-between items-start">
+                        <div>
+                          <div className="text-[10px] font-medium text-[#D4AF37] flex items-center gap-1 mb-1"><FileText className="w-3 h-3" /> API 数据 / 公开库</div>
+                          <div className="text-xs text-gray-200 font-medium">段落锚点 #{i+102}</div>
+                        </div>
+                        <span className="text-[9px] text-gray-500 bg-[#1A1A1A] px-1.5 py-0.5 rounded border border-[#333333]">Page 1</span>
                       </div>
-                      <span className="text-[9px] text-gray-500 bg-[#1A1A1A] px-1.5 py-0.5 rounded border border-[#333333]">Page 1</span>
+                      <div className="p-3 flex-1 flex flex-col">
+                         <p className="text-[11px] text-gray-400 font-serif leading-relaxed line-clamp-3 mb-3">
+                           ... {r.source} 与 {r.target} 存在 {r.type || r.relationType} 证据: "{r.evidenceSnippet || r.evidence}" ...
+                         </p>
+                   <div className="mt-auto flex justify-end gap-2">
+                     <button onClick={() => toast(`原文节选: \n${r.evidenceSnippet || r.evidence}`, 'info')} className="text-[10px] text-gray-500 hover:text-[#D4AF37]">阅读原文</button>
+                     <button onClick={(e) => {
+                       toast('已摘录入底稿', 'success');
+                             (e.target as HTMLButtonElement).innerText = '已添加';
+                             (e.target as HTMLButtonElement).classList.replace('text-blue-400', 'text-green-500');
+                             (e.target as HTMLButtonElement).disabled = true;
+                           }} className="text-[10px] text-blue-400 font-medium hover:opacity-80">加入底稿</button>
+                         </div>
+                      </div>
                     </div>
-                    <div className="p-3 flex-1 flex flex-col">
-                       <p className="text-[11px] text-gray-400 font-serif leading-relaxed line-clamp-3 mb-3">
-                         ... {r.source} 与 {r.target} 存在 {r.relationType} 证据: "{r.evidenceSnippet}" ...
-                       </p>
-                       <div className="mt-auto flex justify-end gap-2">
-                         <button className="text-[10px] text-gray-500 hover:text-[#D4AF37]">阅读原文</button>
-                         <button className="text-[10px] text-blue-400 font-medium">加入底稿</button>
-                       </div>
-                    </div>
-                  </div>
-                ))}
-                {rels.length === 0 && <div className="col-span-full py-8 text-center text-xs text-gray-500">关联图谱暂无有效证据片段</div>}
-              </div>
+                  ))}
+                  {rels.length === 0 && <div className="col-span-full py-8 text-center text-xs text-gray-500">关联图谱暂无有效证据片段</div>}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -518,18 +562,19 @@ export default function Workspace() {
          </div>
 
          <div className="p-4 bg-[#242424] flex flex-col justify-center gap-2">
-           <button className="w-full py-2 bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#E5C048] hover:to-[#D4AF37] text-black font-bold text-[11px] rounded shadow-md flex items-center justify-center gap-2 transition-all">
+           <button onClick={() => toast('审计报告及复核请求已发送至相关合伙人', 'success')} className="w-full py-2 bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#E5C048] hover:to-[#D4AF37] text-black font-bold text-[11px] rounded shadow-md flex items-center justify-center gap-2 transition-all">
              <Share2 className="w-3.5 h-3.5" /> 提交复核流转
            </button>
            <div className="grid grid-cols-2 gap-2">
-             <button className="py-1.5 bg-[#1A1A1A] border border-[#333333] hover:border-gray-500 text-gray-300 text-[10px] rounded flex items-center justify-center gap-1.5 transition-colors">
+             <button onClick={() => toast('底稿打包下载中...', 'warning')} className="py-1.5 bg-[#1A1A1A] border border-[#333333] hover:border-gray-500 text-gray-300 text-[10px] rounded flex items-center justify-center gap-1.5 transition-colors">
                <Download className="w-3 h-3" /> 下载底稿
              </button>
              <button onClick={()=>{
                  const a = document.createElement('a');
-                 a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent('<html><body><h1>AuditEye Report</h1><p>Demo Report Downloaded.</p></body></html>');
+                 a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(`<html><head><meta charset="utf-8"/><title>AuditEye Report - ${data.project?.name}</title></head><body><h1>AuditEye 专项审计简报</h1><h2>项目: ${data.project?.name}</h2><p>风险分: ${score}</p><h3>触发红旗规则:</h3><ul>${rulesHit.map((r:any)=>`<li>${JSON.parse(r.details).ruleName}: ${JSON.parse(r.details).description}</li>`).join('')}</ul></body></html>`);
                  a.download = `Audit_Report_${data.project.id}.html`;
                  a.click();
+                 toast('简报已下载', 'success');
                }} 
                className="py-1.5 bg-[#1A1A1A] border border-[#333333] hover:border-gray-500 text-gray-300 text-[10px] rounded flex items-center justify-center gap-1.5 transition-colors">
                <FileText className="w-3 h-3" /> 专项简报

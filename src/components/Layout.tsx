@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { ShieldAlert, Folder, BookOpen, Settings, User } from 'lucide-react';
+import ToastContainer from './Toast.tsx';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -58,6 +59,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-hidden relative">
         {children}
       </main>
+      
+      <ToastContainer />
     </div>
   );
 }

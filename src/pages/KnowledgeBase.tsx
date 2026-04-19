@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Search, FileText, Database, Calendar, Tag, ChevronDown } from 'lucide-react';
+import { toast } from '../components/Toast.tsx';
 
 export default function KnowledgeBase() {
   const [query, setQuery] = useState('');
@@ -36,7 +37,7 @@ export default function KnowledgeBase() {
               className="w-full bg-[#242424] border border-[#333333] rounded px-9 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] text-white"
             />
           </div>
-          <button className="px-6 bg-[#242424] border border-[#333333] hover:border-[#D4AF37] text-gray-300 rounded text-sm flex items-center gap-2 transition-colors">
+          <button onClick={() => toast('暂不支持分类筛选功能', 'info')} className="px-6 bg-[#242424] border border-[#333333] hover:border-[#D4AF37] text-gray-300 rounded text-sm flex items-center gap-2 transition-colors">
             筛选类型 <ChevronDown className="w-4 h-4" />
           </button>
         </div>
@@ -76,8 +77,8 @@ export default function KnowledgeBase() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#333333]">
-              {documents.map((doc, i) => (
-                <tr key={i} className="hover:bg-[#1f1f1f] transition-colors cursor-pointer">
+              {documents.filter(doc => (doc.name || '').toLowerCase().includes(query.toLowerCase())).map((doc, i) => (
+                <tr key={i} onClick={() => toast(`正在加载知识库分片: ${doc.name}`, 'info')} className="hover:bg-[#1f1f1f] transition-colors cursor-pointer">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-[#D4AF37]" />

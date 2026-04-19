@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Plus, Activity, Edit3, Trash2, Shield, Calendar, User } from 'lucide-react';
+import { toast } from '../components/Toast.tsx';
 
 export default function RuleEngine() {
   const [rules, setRules] = useState<any[]>([]);
@@ -21,7 +22,7 @@ export default function RuleEngine() {
             </h1>
             <p className="text-xs text-gray-500 mt-1">管理并调试用于实体交叉验证与风险评分的规则集版本。</p>
           </div>
-          <button className="px-4 py-2 bg-[#D4AF37] hover:bg-[#E5C048] text-[#1A1A1A] font-medium text-sm rounded shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center gap-2">
+          <button onClick={() => toast('审计规则编辑需管理员权限', 'warning')} className="px-4 py-2 bg-[#D4AF37] hover:bg-[#E5C048] text-[#1A1A1A] font-medium text-sm rounded shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center gap-2">
             <Plus className="w-4 h-4" /> 新建规则
           </button>
         </div>
@@ -70,8 +71,8 @@ export default function RuleEngine() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button className="p-1.5 text-gray-400 hover:text-[#D4AF37] transition-colors"><Edit3 className="w-4 h-4" /></button>
-                    <button className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => toast('审计规则编辑需管理员权限', 'warning')} className="p-1.5 text-gray-400 hover:text-[#D4AF37] transition-colors"><Edit3 className="w-4 h-4" /></button>
+                    <button onClick={() => toast('核心内置规则禁止删除', 'error')} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
