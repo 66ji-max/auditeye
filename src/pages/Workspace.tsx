@@ -191,7 +191,14 @@ export default function Workspace() {
       <div className="h-10 bg-[#1A1A1A] border-b border-[#333333] flex items-center px-4 justify-between shrink-0 text-xs text-gray-400 z-10">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <span className="bg-[#D4AF37]/10 text-[#D4AF37] px-1.5 py-0.5 rounded border border-[#D4AF37]/20 font-medium">项目</span>
+            <button 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-1 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded border border-[#D4AF37]/30 hover:border-[#D4AF37]/60 font-medium cursor-pointer transition-all active:scale-95 group"
+              title="返回项目管理"
+            >
+              <ArrowLeft className="w-3 h-3 opacity-70 group-hover:-translate-x-0.5 transition-all" />
+              <span>项目</span>
+            </button>
             <span className="text-gray-200 font-semibold">{data.project.name}</span>
           </div>
           <div className="w-px h-3 bg-[#333333]"></div>
@@ -281,7 +288,7 @@ export default function Workspace() {
           {/* Quick Actions Base */}
           <div className="p-3 border-t border-[#333333] bg-[#242424] shrink-0 grid grid-cols-2 gap-2 relative">
              <button className="px-3 py-2 bg-[#1A1A1A] border border-[#333333] hover:border-[#D4AF37] text-gray-300 text-[11px] rounded transition-colors"
-                onClick={() => toast('请重新点击上方菜单栏【项目工作区】按钮前往项目面板追加上传数据源', 'info')}>+ 追加数据源</button>
+                onClick={() => toast('请前往【项目管理】面板追加上传数据源', 'info')}>+ 追加数据源</button>
              <button className="px-3 py-2 bg-[#1A1A1A] border border-[#333333] hover:border-[#D4AF37] text-gray-300 text-[11px] rounded transition-colors"
                 onClick={() => setShowRuleSet(!showRuleSet)}>切换规则集</button>
              
