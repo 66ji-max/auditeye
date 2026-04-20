@@ -152,10 +152,18 @@ export default function Workspace() {
   const [graphMode, setGraphMode] = useState<'all'|'minimal'>('all');
   const [showRuleSet, setShowRuleSet] = useState(false);
 
+  const [loadingProject, setLoadingProject] = useState(true);
+
   const fetchProject = async () => {
-    const res = await fetch(`/api/projects/${id}`);
-    if(res.ok) {
+    try {
+      const res = await fetch(`/api/projects/${id}`);
+      if (!res.ok) throw new Error('网络请求失败');
       setData(await res.json());
+      setLoadingProject(false);
+    } catch (err) {
+      console.error(err);
+      toast('工作流加载失败，请重试', 'error');
+      setLoadingProject(false);
     }
   };
 
@@ -174,7 +182,16 @@ export default function Workspace() {
     setLoading(false);
   };
 
-  if (!data) return <div className="h-screen flex items-center justify-center text-[#D4AF37]">加载中...</div>;
+  if (loadingProject) {
+    return (
+      <div className="h-full w-full bg-[#1A1A1A] flex flex-col justify-center items-center text-gray-400 gap-4">
+        <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm font-medium tracking-wide">正在同步项目档案分析结果...</p>
+      </div>
+    );
+  }
+
+  if (!data || !data.project) return <div className="h-screen flex items-center justify-center text-[#D4AF37]">数据解析失败/未找到该项目</div>;
 
   const logs = data.audit_logs || [];
   const entities = data.entities || [];

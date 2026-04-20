@@ -5,11 +5,23 @@ import { toast } from '../components/Toast.tsx';
 export default function KnowledgeBase() {
   const [query, setQuery] = useState('');
   const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/kb')
-      .then(res => res.json())
-      .then(data => setDocuments(data));
+      .then(res => {
+        if (!res.ok) throw new Error('网络请求失败');
+        return res.json();
+      })
+      .then(data => {
+        setDocuments(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+        toast('加载知识库失败，请稍后重试', 'error');
+      });
   }, []);
 
   return (
@@ -65,47 +77,59 @@ export default function KnowledgeBase() {
           <div className="px-4 py-3 border-b border-[#333333] flex items-center justify-between bg-[#1A1A1A]">
             <h3 className="text-sm font-medium">源文件解析列表</h3>
           </div>
-          <table className="w-full text-left text-sm">
-            <thead className="bg-[#1A1A1A] border-b border-[#333333] text-gray-400 text-xs">
-              <tr>
-                <th className="px-4 py-3 font-medium">文件名称</th>
-                <th className="px-4 py-3 font-medium">类型标签</th>
-                <th className="px-4 py-3 font-medium">解析状态</th>
-                <th className="px-4 py-3 font-medium text-right">语料切片</th>
-                <th className="px-4 py-3 font-medium text-right">提取实体</th>
-                <th className="px-4 py-3 font-medium text-right">入库时间</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#333333]">
-              {documents.filter(doc => (doc.name || '').toLowerCase().includes(query.toLowerCase())).map((doc, i) => (
-                <tr key={i} onClick={() => toast(`正在加载知识库分片: ${doc.name}`, 'info')} className="hover:bg-[#1f1f1f] transition-colors cursor-pointer">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-[#D4AF37]" />
-                      <div>
-                        <div className="font-medium text-gray-200 text-xs">{doc.name}</div>
-                        <div className="font-mono text-[10px] text-gray-500">{doc.id}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 bg-[#1A1A1A] border border-[#333333] rounded text-[10px] text-gray-300 flex items-center gap-1 w-max">
-                      <Tag className="w-3 h-3" /> {doc.type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`flex items-center gap-1.5 text-[11px] ${doc.status.includes('中') ? 'text-blue-400' : 'text-green-400'}`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${doc.status.includes('中') ? 'bg-blue-400 animate-pulse' : 'bg-green-400'}`}></div>
-                      {doc.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-gray-400">{doc.chunks}</td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-gray-400">{doc.entities}</td>
-                  <td className="px-4 py-3 text-right text-[11px] text-gray-500">{doc.date}</td>
+          {loading ? (
+            <div className="p-8 flex justify-center items-center text-gray-500 text-sm">
+              <div className="w-5 h-5 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin mr-3"></div>
+              正在加载知识库数据...
+            </div>
+          ) : (
+            <table className="w-full text-left text-sm">
+              <thead className="bg-[#1A1A1A] border-b border-[#333333] text-gray-400 text-xs">
+                <tr>
+                  <th className="px-4 py-3 font-medium">文件名称</th>
+                  <th className="px-4 py-3 font-medium">类型标签</th>
+                  <th className="px-4 py-3 font-medium">解析状态</th>
+                  <th className="px-4 py-3 font-medium text-right">语料切片</th>
+                  <th className="px-4 py-3 font-medium text-right">提取实体</th>
+                  <th className="px-4 py-3 font-medium text-right">入库时间</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#333333]">
+                {documents.filter(doc => (doc.name || '').toLowerCase().includes(query.toLowerCase())).map((doc, i) => (
+                  <tr key={i} onClick={() => toast(`正在加载知识库分片: ${doc.name}`, 'info')} className="hover:bg-[#1f1f1f] transition-colors cursor-pointer">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-[#D4AF37]" />
+                        <div>
+                          <div className="font-medium text-gray-200 text-xs">{doc.name}</div>
+                          <div className="font-mono text-[10px] text-gray-500">{doc.id}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-1 bg-[#1A1A1A] border border-[#333333] rounded text-[10px] text-gray-300 flex items-center gap-1 w-max">
+                        <Tag className="w-3 h-3" /> {doc.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`flex items-center gap-1.5 text-[11px] ${doc.status.includes('中') ? 'text-blue-400' : 'text-green-400'}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${doc.status.includes('中') ? 'bg-blue-400 animate-pulse' : 'bg-green-400'}`}></div>
+                        {doc.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-gray-400">{doc.chunks}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-gray-400">{doc.entities}</td>
+                    <td className="px-4 py-3 text-right text-[11px] text-gray-500">{doc.date}</td>
+                  </tr>
+                ))}
+                {documents.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500 text-xs">暂无解析数据</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

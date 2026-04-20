@@ -11,11 +11,22 @@ export default function ProjectList() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/projects')
-      .then(res => res.json())
-      .then(data => setProjects(data));
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load projects');
+        return res.json();
+      })
+      .then(data => {
+        setProjects(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
   }, []);
 
   const createProject = async () => {
@@ -150,22 +161,28 @@ export default function ProjectList() {
         </div>
 
         <div className="bg-[#242424] border border-[#333333] rounded-lg shadow-lg flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-[#1A1A1A] border-b border-[#333333] text-gray-400 text-xs sticky top-0 z-10">
-              <tr>
-                <th className="px-5 py-3 font-medium">项目名称</th>
-                <th className="px-5 py-3 font-medium">场景类型</th>
-                <th className="px-5 py-3 font-medium">状态</th>
-                <th className="px-5 py-3 font-medium">包含数据源</th>
-                <th className="px-5 py-3 font-medium text-right">综合风险评分</th>
-                <th className="px-5 py-3 font-medium">负责人</th>
-                <th className="px-5 py-3 font-medium text-right">时间</th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#333333]">
-              {filteredProjects.map((p, i) => (
-                <tr key={p.id} onClick={() => navigate(`/project/${p.id}`)} className="hover:bg-[#2A2A2A] transition-colors cursor-pointer group">
+          {loading ? (
+            <div className="p-12 flex justify-center items-center text-gray-500 text-sm h-full w-full">
+              <div className="w-5 h-5 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin mr-3"></div>
+              正在加载项目列表...
+            </div>
+          ) : (
+            <table className="w-full text-left text-sm">
+              <thead className="bg-[#1A1A1A] border-b border-[#333333] text-gray-400 text-xs sticky top-0 z-10">
+                <tr>
+                  <th className="px-5 py-3 font-medium">项目名称</th>
+                  <th className="px-5 py-3 font-medium">场景类型</th>
+                  <th className="px-5 py-3 font-medium">状态</th>
+                  <th className="px-5 py-3 font-medium">包含数据源</th>
+                  <th className="px-5 py-3 font-medium text-right">综合风险评分</th>
+                  <th className="px-5 py-3 font-medium">负责人</th>
+                  <th className="px-5 py-3 font-medium text-right">时间</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#333333]">
+                {filteredProjects.map((p, i) => (
+                  <tr key={p.id} onClick={() => navigate(`/project/${p.id}`)} className="hover:bg-[#2A2A2A] transition-colors cursor-pointer group">
                   <td className="px-5 py-4">
                     <div className="font-semibold text-gray-200 text-[13px]">{p.name}</div>
                     <div className="text-[10px] font-mono text-gray-500 mt-0.5">PRJ-{p.id.toString().padStart(4, '0')}</div>
@@ -220,6 +237,7 @@ export default function ProjectList() {
               )}
             </tbody>
           </table>
+          )}
         </div>
       </div>
     </div>
