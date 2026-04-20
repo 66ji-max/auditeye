@@ -5,6 +5,7 @@ import multer from "multer";
 import fs from "fs";
 import db, { initDB } from "./src/db.ts";
 import { AuditEngine } from "./src/services/auditEngine.ts";
+import { mockProjects, getMockProjectDetail, createNewMockProject, mockRules, mockKb } from "./src/lib/mockData.ts";
 
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
@@ -19,11 +20,15 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
+// File extensions allowed
+const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
+
 async function startServer() {
   initDB();
 
   const app = express();
   const PORT = process.env.PORT || 3000;
+  const DEMO_MODE = true; // Switch for using mock data APIs
 
   app.use(express.json());
 
@@ -44,7 +49,6 @@ async function startServer() {
       const { name, scenario } = req.body;
       
       if (DEMO_MODE) {
-        const { createNewMockProject } = await import('./src/lib/mockData.ts');
         const newProject = createNewMockProject(name, scenario || 'IPO审查');
         return res.json({ id: newProject.id, name, status: "created" });
       }
@@ -56,17 +60,10 @@ async function startServer() {
       res.status(500).json({ error: e.message });
     }
   });
-  
-  const DEMO_MODE = true; // Temporary flag for taking screenshots
 
   app.get("/api/projects", async (req, res) => {
     if (DEMO_MODE) {
-      try {
-        const { mockProjects } = await import('./src/lib/mockData.ts');
-        return res.json(mockProjects);
-      } catch (err) {
-        console.error("Failed to load mockProjects in server:", err);
-      }
+      return res.json(mockProjects);
     }
     
     try {
@@ -93,11 +90,24 @@ async function startServer() {
       const stmt = db.prepare('INSERT INTO documents (projectId, fileName, originalName, sourceType) VALUES (?, ?, ?, ?)');
       
       for (const file of files) {
-        // Decode filename one more time in case of deep ascii issues, or rely on our storage config
         const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
         const ext = path.extname(originalName).toLowerCase();
-        const info = stmt.run(projectId, file.filename, originalName, ext);
-        insertedDocs.push({ id: info.lastInsertRowid, originalName, fileName: file.filename });
+        
+        if (!ALLOWED_EXTS.includes(ext)) {
+          // Clean up all uploaded invalid files
+          files.forEach(f => {
+             const fp = path.join(uploadDir, f.filename);
+             if (fs.existsSync(fp)) fs.unlinkSync(fp);
+          });
+          return res.status(400).json({ error: `Unsupported file type: ${ext}. Only PDF, Word, and TXT are allowed.` });
+        }
+
+        if (!DEMO_MODE) {
+           const info = stmt.run(projectId, file.filename, originalName, ext);
+           insertedDocs.push({ id: info.lastInsertRowid, originalName, fileName: file.filename });
+        } else {
+           insertedDocs.push({ id: Date.now(), originalName, fileName: file.filename });
+        }
       }
 
       res.json({ status: "success", documents: insertedDocs });
@@ -109,15 +119,17 @@ async function startServer() {
 
   app.delete("/api/documents/:id", (req, res) => {
     try {
-      const doc: any = db.prepare('SELECT * FROM documents WHERE id = ?').get(req.params.id);
-      if (!doc) return res.status(404).json({ error: "Document not found" });
+      if (!DEMO_MODE) {
+        const doc: any = db.prepare('SELECT * FROM documents WHERE id = ?').get(req.params.id);
+        if (!doc) return res.status(404).json({ error: "Document not found" });
 
-      const filePath = path.join(uploadDir, doc.fileName);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+        const filePath = path.join(uploadDir, doc.fileName);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+
+        db.prepare('DELETE FROM documents WHERE id = ?').run(req.params.id);
       }
-
-      db.prepare('DELETE FROM documents WHERE id = ?').run(req.params.id);
       res.json({ status: "success" });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -126,14 +138,9 @@ async function startServer() {
 
   app.get("/api/projects/:id", async (req, res) => {
     if (DEMO_MODE) {
-      try {
-        const { getMockProjectDetail } = await import('./src/lib/mockData.ts');
-        const detail = getMockProjectDetail(req.params.id);
-        if (!detail) return res.status(404).json({ error: "Project not found" });
-        return res.json(detail);
-      } catch (err) {
-        console.error("Failed to load mockData in server:", err);
-      }
+      const detail = getMockProjectDetail(req.params.id);
+      if (!detail) return res.status(404).json({ error: "Project not found" });
+      return res.json(detail);
     }
 
     try {

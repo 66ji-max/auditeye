@@ -262,9 +262,9 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
     <div className="h-full w-full bg-[#121212] text-gray-200 font-sans flex flex-col overflow-hidden selection:bg-[#D4AF37]/30">
       
       {/* 1. Project Metadata Header */}
-      <div className="h-10 bg-[#1A1A1A] border-b border-[#333333] flex items-center px-4 justify-between shrink-0 text-xs text-gray-400 z-10">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
+      <div className="md:h-10 bg-[#1A1A1A] border-b border-[#333333] flex flex-col md:flex-row md:items-center px-4 py-2 md:py-0 justify-between shrink-0 text-xs text-gray-400 z-10 gap-2 md:gap-0">
+        <div className="flex items-center gap-2 md:gap-6 overflow-x-auto whitespace-nowrap min-h-[28px] custom-scrollbar pb-1 md:pb-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button 
               onClick={() => navigate('/')}
               className="flex items-center gap-1 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded border border-[#D4AF37]/30 hover:border-[#D4AF37]/60 font-medium cursor-pointer transition-all active:scale-95 group"
@@ -275,22 +275,22 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
             </button>
             <span className="text-gray-200 font-semibold">{data.project.name}</span>
           </div>
-          <div className="w-px h-3 bg-[#333333]"></div>
-          <div>类型: <span className="text-gray-200">{data.project.scenario}</span></div>
-          <div>负责人: <span className="text-gray-200">当前用户</span></div>
-          <div>状态: <span className="text-blue-400">分析中</span></div>
+          <div className="w-px h-3 bg-[#333333] hidden md:block shrink-0"></div>
+          <div className="shrink-0">类型: <span className="text-gray-200">{data.project.scenario}</span></div>
+          <div className="shrink-0 hidden md:block">负责人: <span className="text-gray-200">当前用户</span></div>
+          <div className="shrink-0">状态: <span className="text-blue-400">分析中</span></div>
         </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5"/> 规则集版本: v1.4.2</div>
-          <div className="flex items-center gap-1.5"><Database className="w-3.5 h-3.5"/> 引用数据源: 4</div>
-          <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5"/> 最新更新: {new Date(data.project.createdAt).toLocaleString()}</div>
+        <div className="flex items-center gap-4 md:gap-6 overflow-x-auto whitespace-nowrap min-h-[28px] custom-scrollbar pb-1 md:pb-0">
+          <div className="flex items-center gap-1.5 shrink-0"><Layers className="w-3.5 h-3.5"/> 规则集: v1.4.2</div>
+          <div className="flex items-center gap-1.5 shrink-0 hidden md:flex"><Database className="w-3.5 h-3.5"/> 数据源: 4</div>
+          <div className="flex items-center gap-1.5 shrink-0"><Clock className="w-3.5 h-3.5"/> {new Date(data.project.createdAt).toLocaleDateString()}</div>
         </div>
       </div>
 
-      <div className="flex-1 flex gap-px bg-[#333333] min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row gap-px bg-[#333333] min-h-0 overflow-y-auto lg:overflow-hidden">
         
         {/* 2. Left Panel: AI Audit Assistant & Workflow Log */}
-        <div className="w-[320px] bg-[#1A1A1A] flex flex-col shrink-0 flex-1 min-w-[320px] max-w-[320px]">
+        <div className="w-full lg:w-[320px] bg-[#1A1A1A] flex flex-col shrink-0 min-h-[400px] lg:min-h-0 lg:max-w-[320px]">
           <div className="p-4 border-b border-[#333333] shrink-0 bg-[#242424]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -383,7 +383,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
         </div>
 
         {/* 3. Center Panel: Detailed Risk Overview */}
-        <div className="w-[380px] bg-[#1A1A1A] flex flex-col shrink-0 flex-1 min-w-[380px] max-w-[380px] overflow-y-auto custom-scrollbar">
+        <div className="w-full lg:w-[380px] bg-[#1A1A1A] flex flex-col shrink-0 min-h-max lg:min-h-0 lg:max-w-[380px] border-y lg:border-y-0 lg:border-l border-[#333333] overflow-y-auto custom-scrollbar">
           <div className="p-4 border-b border-[#333333] flex items-center justify-between sticky top-0 bg-[#1A1A1A] z-20">
             <h2 className="text-sm font-semibold text-gray-200">全维风险评估报告</h2>
             <div className="text-[10px] text-gray-500 font-mono">模型置信度: 94.2%</div>
@@ -473,9 +473,9 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
         </div>
 
         {/* 4. Right Panel: Interative Graph, Drawers, Evidence Tabs */}
-        <div className="flex-1 flex flex-col bg-[#1A1A1A] relative min-w-0">
+        <div className="flex-1 flex flex-col bg-[#1A1A1A] relative min-w-0 min-h-[600px] lg:min-h-0 border-l lg:border-l-0 border-[#333333]">
           
-          <div className="h-[60%] border-b border-[#333333] relative">
+          <div className="h-[60%] min-h-[300px] border-b border-[#333333] relative">
             <div className="absolute top-4 left-4 z-10 flex gap-2">
                <button onClick={() => setGraphMode('all')} className={`px-3 py-1.5 border hover:border-[#D4AF37] rounded text-[11px] shadow-lg flex items-center gap-1.5 transition-colors ${graphMode === 'all' ? 'bg-[#333333] border-[#333333] text-white' : 'bg-[#242424] border-[#333333] text-gray-300'}`}><Filter className="w-3 h-3"/> 全部关系</button>
                <button onClick={() => setGraphMode('minimal')} className={`px-3 py-1.5 border hover:border-[#D4AF37] rounded text-[11px] shadow-lg flex items-center gap-1.5 transition-colors ${graphMode === 'minimal' ? 'bg-[#333333] border-[#333333] text-white' : 'bg-[#242424] border-[#333333] text-gray-300'}`}><Network className="w-3 h-3"/> 极简视图</button>
@@ -558,17 +558,17 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
           </div>
 
           <div className="flex-1 overflow-hidden flex flex-col bg-[#1A1A1A]">
-            <div className="flex items-center gap-1 px-4 pt-3 border-b border-[#333333]">
+            <div className="flex items-center gap-1 px-4 pt-3 border-b border-[#333333] overflow-x-auto whitespace-nowrap custom-scrollbar">
               <button 
-                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors ${activeTab === 'doc' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors shrink-0 ${activeTab === 'doc' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
                 onClick={() => setActiveTab('doc')}
               >文档证据 ({docsCount})</button>
               <button 
-                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors ${activeTab === 'fin' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors shrink-0 ${activeTab === 'fin' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
                 onClick={() => setActiveTab('fin')}
               >财务证据</button>
               <button 
-                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors ${activeTab === 'graph' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors shrink-0 ${activeTab === 'graph' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
                 onClick={() => setActiveTab('graph')}
               >图谱溯源证据 ({rels.length})</button>
             </div>
@@ -629,7 +629,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
       </div>
 
       {/* 5. Bottom Panel: Structured Suggestions & Exports */}
-      <div className="h-[120px] bg-[#1A1A1A] border-t border-[#333333] grid grid-cols-4 gap-px shrink-0 overflow-hidden divide-x divide-[#333333]">
+      <div className="md:h-[120px] bg-[#1A1A1A] border-t border-[#333333] grid grid-cols-1 md:grid-cols-4 gap-px shrink-0 overflow-y-auto md:overflow-hidden md:divide-x divide-y md:divide-y-0 divide-[#333333]">
          <div className="p-4 bg-[#1A1A1A] flex flex-col justify-center">
             <h3 className="text-[11px] font-semibold text-[#D4AF37] mb-2 flex items-center gap-1.5 tracking-wider"><ShieldAlert className="w-3.5 h-3.5" /> 审计操作指令中心</h3>
             <p className="text-[10px] text-gray-500 leading-relaxed max-w-[90%]">系统依据证据链自动生成推荐的复核策略，您可直接将勾选的清单落入工作底稿或提交复核流程。</p>
