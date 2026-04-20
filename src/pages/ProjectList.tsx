@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { Plus, Folder, Clock, Activity, Search, X, Upload, MoreHorizontal, FileText, Database, User } from 'lucide-react';
+import { toast } from '../components/Toast.tsx';
 
 export default function ProjectList() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -30,7 +31,7 @@ export default function ProjectList() {
   }, []);
 
   const createProject = async () => {
-    if (!newProject.name.trim()) return alert("请输入项目名称");
+    if (!newProject.name.trim()) return toast("项目名称不能为空", "warning");
     
     setIsSubmitting(true);
     try {
@@ -50,10 +51,14 @@ export default function ProjectList() {
         });
       }
 
+      if (files.length === 0) {
+        toast("信息不全，已为你生成基础风险画像", "info");
+      }
+
       navigate(`/project/${data.id}`);
     } catch (e) {
       console.error(e);
-      alert("创建失败，请重试");
+      toast("创建失败，请重试", "error");
     } finally {
       setIsSubmitting(false);
       setShowModal(false);

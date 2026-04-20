@@ -204,6 +204,60 @@ export default function Workspace() {
   const rulesHit = logs.filter((l: any) => l.action === 'RED_FLAG');
   const docsCount = data.documents.length;
 
+  const downloadWorkpapers = () => {
+    toast('正在打包底稿...', 'info');
+    const content = `=============== AuditEye 综合审计底稿 ===============
+项目名称: ${data.project?.name}
+场景: ${data.project?.scenario}
+创建时间: ${new Date(data.project?.createdAt).toLocaleString()}
+--------------------------------------------------
+【风险评估】
+综合评分: ${score} - ${riskLevel.label}
+关联关系风险: ${dimScores.relation} 分
+行为异动风险: ${dimScores.behavior} 分
+财务异常风险: ${dimScores.financial} 分
+--------------------------------------------------
+【红旗规则命中】
+${rulesHit.length > 0 ? rulesHit.map((r: any, i: number) => {
+  const d = JSON.parse(r.details);
+  return `${i + 1}. [${d.ruleId || 'N/A'}] ${d.ruleName} - +${d.scoreImpact}分 (${d.severity})
+   说明: ${d.description}`;
+}).join('\n\n') : '暂无'}
+--------------------------------------------------
+【文档及文件列表】 (共 ${docsCount} 份)
+${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join('\n') || '暂无'}
+--------------------------------------------------
+【实体与关系】
+实体数量: ${entities.length}
+关系数量: ${rels.length}
+`;
+    const a = document.createElement('a');
+    a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
+    a.download = `AuditEye_Workpapers_${data.project?.id || 'export'}.txt`;
+    a.click();
+    toast('底稿下载成功', 'success');
+  };
+
+  const downloadBrief = () => {
+    const html = `<html><head><meta charset="utf-8"/><title>AuditEye Report - ${data.project?.name}</title><style>body{font-family: sans-serif; max-width: 800px; margin: 2rem auto; line-height: 1.6; color: #333;} h1{color: #C5A028;} .risk{font-weight: bold; color: ${score > 75 ? 'red' : '#C5A028'};} .rule{background: #f9f9f9; padding: 10px; border-left: 4px solid #C5A028; margin-bottom: 10px;}</style></head>
+<body>
+  <h1>AuditEye 专项审计简报</h1>
+  <h2>项目: ${data.project?.name}</h2>
+  <p>分析场景: ${data.project?.scenario}</p>
+  <p>综合风险评价: <span class="risk">${score} 分 (${riskLevel.label})</span></p>
+  <h3>核心风险关注点:</h3>
+  ${rulesHit.length > 0 ? rulesHit.map((r:any) => {
+    const d = JSON.parse(r.details);
+    return `<div class="rule"><strong>${d.ruleName}</strong><br/>${d.description}</div>`;
+  }).join('') : '<p>暂无高危风险点</p>'}
+</body></html>`;
+    const a = document.createElement('a');
+    a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+    a.download = `AuditEye_Brief_${data.project?.id || 'export'}.html`;
+    a.click();
+    toast('专项简报已下载', 'success');
+  };
+
   return (
     <div className="h-full w-full bg-[#121212] text-gray-200 font-sans flex flex-col overflow-hidden selection:bg-[#D4AF37]/30">
       
@@ -521,7 +575,17 @@ export default function Workspace() {
             
             <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
               {activeTab === 'doc' && (
-                 <div className="text-center py-8 text-gray-500 text-xs">项目共挂载 {docsCount} 份文档。请前往项目库查看详情。</div>
+                 <div className="text-center py-8 flex flex-col items-center justify-center h-full">
+                    <FileSearch className="w-10 h-10 text-gray-600 mb-3" />
+                    {docsCount === 0 ? (
+                      <div>
+                        <div className="text-sm font-medium text-gray-300 mb-1">暂无项目底稿/凭证集</div>
+                        <div className="text-[11px] text-gray-500">当前依赖系统生成的初始信息。请返回列表上传财务底稿或流水以获取更准确风险评分。</div>
+                      </div>
+                    ) : (
+                      <div className="text-gray-500 text-xs">项目共挂载 {docsCount} 份文档。请前往项目库查看详情。</div>
+                    )}
+                 </div>
               )}
               {activeTab === 'fin' && (
                  <div className="text-center py-8 text-gray-500 text-xs flex flex-col items-center gap-2">
@@ -599,17 +663,10 @@ export default function Workspace() {
              <Share2 className="w-3.5 h-3.5" /> 提交复核流转
            </button>
            <div className="grid grid-cols-2 gap-2">
-             <button onClick={() => toast('底稿打包下载中...', 'warning')} className="py-1.5 bg-[#1A1A1A] border border-[#333333] hover:border-gray-500 text-gray-300 text-[10px] rounded flex items-center justify-center gap-1.5 transition-colors">
+             <button onClick={downloadWorkpapers} className="py-1.5 bg-[#1A1A1A] border border-[#333333] hover:border-gray-500 text-gray-300 text-[10px] rounded flex items-center justify-center gap-1.5 transition-colors">
                <Download className="w-3 h-3" /> 下载底稿
              </button>
-             <button onClick={()=>{
-                 const a = document.createElement('a');
-                 a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(`<html><head><meta charset="utf-8"/><title>AuditEye Report - ${data.project?.name}</title></head><body><h1>AuditEye 专项审计简报</h1><h2>项目: ${data.project?.name}</h2><p>风险分: ${score}</p><h3>触发红旗规则:</h3><ul>${rulesHit.map((r:any)=>`<li>${JSON.parse(r.details).ruleName}: ${JSON.parse(r.details).description}</li>`).join('')}</ul></body></html>`);
-                 a.download = `Audit_Report_${data.project.id}.html`;
-                 a.click();
-                 toast('简报已下载', 'success');
-               }} 
-               className="py-1.5 bg-[#1A1A1A] border border-[#333333] hover:border-gray-500 text-gray-300 text-[10px] rounded flex items-center justify-center gap-1.5 transition-colors">
+             <button onClick={downloadBrief} className="py-1.5 bg-[#1A1A1A] border border-[#333333] hover:border-gray-500 text-gray-300 text-[10px] rounded flex items-center justify-center gap-1.5 transition-colors">
                <FileText className="w-3 h-3" /> 专项简报
              </button>
            </div>

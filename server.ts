@@ -39,11 +39,18 @@ async function startServer() {
   });
 
   // Projects API
-  app.post("/api/projects", (req, res) => {
+  app.post("/api/projects", async (req, res) => {
     try {
       const { name, scenario } = req.body;
+      
+      if (DEMO_MODE) {
+        const { createNewMockProject } = await import('./src/lib/mockData.ts');
+        const newProject = createNewMockProject(name, scenario || 'IPO审查');
+        return res.json({ id: newProject.id, name, status: "created" });
+      }
+
       const stmt = db.prepare('INSERT INTO projects (name, scenario) VALUES (?, ?)');
-      const info = stmt.run(name, scenario || 'IPO Due Diligence');
+      const info = stmt.run(name, scenario || 'IPO审查');
       res.json({ id: info.lastInsertRowid, name, status: "created" });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -55,7 +62,7 @@ async function startServer() {
   app.get("/api/projects", async (req, res) => {
     if (DEMO_MODE) {
       try {
-        const { mockProjects } = await import('./src/lib/mockData.js');
+        const { mockProjects } = await import('./src/lib/mockData.ts');
         return res.json(mockProjects);
       } catch (err) {
         console.error("Failed to load mockProjects in server:", err);
@@ -120,8 +127,10 @@ async function startServer() {
   app.get("/api/projects/:id", async (req, res) => {
     if (DEMO_MODE) {
       try {
-        const { getMockProjectDetail } = await import('./src/lib/mockData.js');
-        return res.json(getMockProjectDetail(req.params.id));
+        const { getMockProjectDetail } = await import('./src/lib/mockData.ts');
+        const detail = getMockProjectDetail(req.params.id);
+        if (!detail) return res.status(404).json({ error: "Project not found" });
+        return res.json(detail);
       } catch (err) {
         console.error("Failed to load mockData in server:", err);
       }
