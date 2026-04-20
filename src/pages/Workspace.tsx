@@ -418,9 +418,14 @@ export default function Workspace() {
             </div>
 
             {/* Core Graph Component */}
-            {entities.length > 0 ? (
-              <D3Graph entities={graphMode === 'minimal' ? entities.slice(0, 5) : entities} relationships={graphMode === 'minimal' ? rels.slice(0, 3) : rels} onNodeClick={setSelectedNode} onEdgeClick={setSelectedEdge}/>
-            ) : (
+            {entities.length > 0 ? (() => {
+              const displayEntities = graphMode === 'minimal' ? entities.slice(0, 5) : entities;
+              const allowedIds = new Set(displayEntities.map((e: any) => e.name));
+              const displayRels = (graphMode === 'minimal' ? rels : rels).filter((r: any) => 
+                allowedIds.has(r.source) && allowedIds.has(r.target)
+              );
+              return <D3Graph entities={displayEntities} relationships={displayRels} onNodeClick={setSelectedNode} onEdgeClick={setSelectedEdge}/>;
+            })() : (
               <div className="flex items-center justify-center w-full h-full text-xs text-gray-500">暂无图谱数据</div>
             )}
 
