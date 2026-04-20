@@ -51,7 +51,7 @@ export default function RuleEngine() {
                 <tr>
                   <th className="px-4 py-3 font-medium">规则编号 / 名称</th>
                   <th className="px-4 py-3 font-medium">风险维度</th>
-                  <th className="px-4 py-3 font-medium">风险权重 (0-50)</th>
+                  <th className="px-4 py-3 font-medium">风险权重 (0-100)</th>
                   <th className="px-4 py-3 font-medium">状态</th>
                   <th className="px-4 py-3 font-medium">更新人 & 时间</th>
                   <th className="px-4 py-3 text-right font-medium">操作</th>
@@ -72,7 +72,7 @@ export default function RuleEngine() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-1.5 bg-[#1A1A1A] rounded-full overflow-hidden border border-[#333333]">
-                          <div className="h-full bg-[#D4AF37]" style={{ width: `${(r.weight / 50) * 100}%` }}></div>
+                          <div className="h-full bg-[#D4AF37]" style={{ width: `${Math.min(100, r.weight)}%` }}></div>
                         </div>
                         <span className="font-mono text-xs text-gray-400">{r.weight}</span>
                       </div>

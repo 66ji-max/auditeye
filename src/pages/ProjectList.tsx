@@ -204,8 +204,9 @@ export default function ProjectList() {
                     </div>
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <div className={`font-bold ${p.riskScore > 75 ? 'text-red-500' : p.riskScore > 0 ? 'text-[#D4AF37]' : 'text-gray-500'}`}>
+                    <div className={`font-bold ${p.riskLevel ? p.riskLevel.color : 'text-gray-500'}`}>
                       {p.riskScore || '-'} <span className="text-[10px] text-gray-500 font-normal">/100</span>
+                      {p.riskLevel && <div className="text-[10px] font-normal leading-none mt-1">{p.riskLevel.label}</div>}
                     </div>
                   </td>
                   <td className="px-5 py-4">

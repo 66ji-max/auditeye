@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import * as d3 from 'd3';
 import { toast } from '../components/Toast.tsx';
+import { RISK_DIMENSIONS } from '../config/riskScoring.ts';
 
 const WorkflowStep: React.FC<{ icon: React.ReactNode, title: string, desc?: string, status: 'done' | 'active' | 'alert' | 'pending', time: string, entities?: number, rules?: number }> = ({ icon, title, desc, status, time, entities, rules }) => {
   const [expanded, setExpanded] = useState(status !== 'pending');
@@ -197,6 +198,8 @@ export default function Workspace() {
   const entities = data.entities || [];
   const rels = data.relationships || [];
   const score = data.project.riskScore || 0;
+  const riskLevel = data.project.riskLevel || { label: '未评估', color: 'text-gray-500' };
+  const dimScores = data.project.dimensionScores || { relation: 0, behavior: 0, financial: 0 };
   
   const rulesHit = logs.filter((l: any) => l.action === 'RED_FLAG');
   const docsCount = data.documents.length;
@@ -338,21 +341,21 @@ export default function Workspace() {
               <div className="w-32 h-32 shrink-0 bg-gradient-to-br from-[#242424] to-[#1A1A1A] border border-[#333333] rounded-full flex flex-col items-center justify-center relative shadow-inner">
                 {score > 75 && <div className="absolute inset-0 rounded-full border-2 border-red-500/50 animate-ping opacity-20"></div>}
                 <div className="text-[10px] text-gray-400 mb-0.5">综合评分</div>
-                <div className={`text-4xl font-bold tracking-tighter ${score > 75 ? 'text-red-500' : 'text-[#D4AF37]'}`}>{score}</div>
-                <div className="text-[10px] text-gray-500 mt-1 uppercase">{score > 75 ? 'High Risk' : score > 0 ? 'Medium' : 'None'}</div>
+                <div className={`text-4xl font-bold tracking-tighter ${riskLevel.color}`}>{score}</div>
+                <div className="text-[10px] text-gray-500 mt-1 uppercase">{riskLevel.label}</div>
               </div>
               <div className="flex-1 flex flex-col justify-center space-y-3">
                 <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">关联关系风险 (40%)</span> <span className="text-red-400">85 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-red-500 w-[85%]"></div></div>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.relation.name} ({RISK_DIMENSIONS.relation.weight * 100}%)</span> <span className="text-red-400">{dimScores.relation} 分</span></div>
+                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-red-500" style={{ width: `${dimScores.relation}%` }}></div></div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">行为异动风险 (40%)</span> <span className="text-[#D4AF37]">60 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-[#D4AF37] w-[60%]"></div></div>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.behavior.name} ({RISK_DIMENSIONS.behavior.weight * 100}%)</span> <span className="text-[#D4AF37]">{dimScores.behavior} 分</span></div>
+                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-[#D4AF37]" style={{ width: `${dimScores.behavior}%` }}></div></div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">财务异常风险 (20%)</span> <span className="text-green-500">10 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-green-500 w-[10%]"></div></div>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.financial.name} ({RISK_DIMENSIONS.financial.weight * 100}%)</span> <span className="text-green-500">{dimScores.financial} 分</span></div>
+                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${dimScores.financial}%` }}></div></div>
                 </div>
               </div>
             </div>
@@ -372,10 +375,11 @@ export default function Workspace() {
                    <tbody className="divide-y divide-[#333333]">
                      {rulesHit.length > 0 ? rulesHit.map((l:any, i:number) => {
                        const d = JSON.parse(l.details);
+                       const dimName = d.dimension ? RISK_DIMENSIONS[d.dimension as keyof typeof RISK_DIMENSIONS]?.name : '综合';
                        return (
                          <tr key={i} className="hover:bg-[#2A2A2A]">
                            <td className="px-3 py-2 text-gray-200">{d.ruleName}</td>
-                           <td className="px-3 py-2 text-gray-500">{d.ruleId.includes('ADDR') ? '关联' : '文件'}</td>
+                           <td className="px-3 py-2 text-gray-500">{dimName}</td>
                            <td className="px-3 py-2 text-right text-red-400">+{d.scoreImpact}</td>
                          </tr>
                        )
