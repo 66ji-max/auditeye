@@ -75,34 +75,50 @@ export default function ProjectList() {
     
     setIsSubmitting(true);
     try {
+      // 1. Create project
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProject)
       });
+      
+      if (!res.ok) {
+        throw new Error("项目创建接口返回失败");
+      }
+      
       const data = await res.json();
-
-      if (files.length > 0) {
-        const formData = new FormData();
-        files.forEach(f => formData.append('files', f));
-        const uploadRes = await fetch(`/api/projects/${data.id}/documents`, {
-          method: 'POST',
-          body: formData
-        });
-        
-        if (!uploadRes.ok) {
-           const errData = await uploadRes.json();
-           toast(`上传失败: ${errData.error || '未知错误'}`, 'error');
-        }
+      
+      if (!data.id) {
+        throw new Error("未获取到有效的项目ID");
       }
 
-      navigate(`/project/${data.id}`);
-    } catch (e) {
-      console.error(e);
-      toast("创建失败，请重试", "error");
-    } finally {
-      setIsSubmitting(false);
+      // 2. Upload documents
+      const formData = new FormData();
+      files.forEach(f => formData.append('files', f));
+      const uploadRes = await fetch(`/api/projects/${data.id}/documents`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!uploadRes.ok) {
+         let errMsg = '未知错误';
+         try {
+           const errData = await uploadRes.json();
+           errMsg = errData.error || errMsg;
+         } catch(e){}
+         toast(`项目基础信息已建，但文档上传失败: ${errMsg}`, 'error');
+         // Upload failed, stop here, do not navigate
+         setIsSubmitting(false);
+         return; 
+      }
+
+      toast("项目及文档创建成功", "success");
       setShowModal(false);
+      navigate(`/project/${data.id}`);
+    } catch (e: any) {
+      console.error(e);
+      toast(`创建失败: ${e.message || '请重试'}`, "error");
+      setIsSubmitting(false);
     }
   };
 
