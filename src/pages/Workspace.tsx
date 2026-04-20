@@ -10,6 +10,7 @@ import {
 import * as d3 from 'd3';
 import { toast } from '../components/Toast.tsx';
 import { RISK_DIMENSIONS } from '../config/riskScoring.ts';
+import { getMockProjectDetail } from '../lib/mockData.ts';
 
 const WorkflowStep: React.FC<{ icon: React.ReactNode, title: string, desc?: string, status: 'done' | 'active' | 'alert' | 'pending', time: string, entities?: number, rules?: number }> = ({ icon, title, desc, status, time, entities, rules }) => {
   const [expanded, setExpanded] = useState(status !== 'pending');
@@ -158,12 +159,24 @@ export default function Workspace() {
   const fetchProject = async () => {
     try {
       const res = await fetch(`/api/projects/${id}`);
-      if (!res.ok) throw new Error('网络请求失败');
-      setData(await res.json());
+      if (!res.ok) throw new Error(`请求失败状态码: ${res.status}`);
+      const apiData = await res.json();
+      
+      if (apiData && apiData.project) {
+        setData(apiData);
+      } else {
+        throw new Error('API 返回数据结构异常');
+      }
       setLoadingProject(false);
     } catch (err) {
-      console.error(err);
-      toast('工作流加载失败，请重试', 'error');
+      console.warn("API unavailable or invalid response, fallback to local mock detail. Error:", err);
+      const fallbackData = getMockProjectDetail(id as string);
+      
+      if (fallbackData && fallbackData.project) {
+        setData(fallbackData);
+      } else {
+        setData(null);
+      }
       setLoadingProject(false);
     }
   };
@@ -192,7 +205,16 @@ export default function Workspace() {
     );
   }
 
-  if (!data || !data.project) return <div className="h-screen flex items-center justify-center text-[#D4AF37]">数据解析失败/未找到该项目</div>;
+  if (!data || !data.project) return (
+    <div className="h-screen w-full bg-[#121212] flex flex-col items-center justify-center text-gray-400 gap-4">
+      <AlertOctagon className="w-12 h-12 text-[#D4AF37] opacity-50" />
+      <div className="text-center">
+        <h2 className="text-lg font-semibold text-gray-200 mb-1">未找到该项目</h2>
+        <p className="text-sm">该审计项目可能已被删除，或由于网络原因无法加载。</p>
+      </div>
+      <button onClick={() => navigate('/')} className="mt-4 px-4 py-2 bg-[#242424] border border-[#333333] hover:border-[#D4AF37] rounded transition-colors text-sm text-gray-300">返回项目列表</button>
+    </div>
+  );
 
   const logs = data.audit_logs || [];
   const entities = data.entities || [];

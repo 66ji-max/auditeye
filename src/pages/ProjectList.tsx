@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { Plus, Folder, Clock, Activity, Search, X, Upload, MoreHorizontal, FileText, Database, User } from 'lucide-react';
 import { toast } from '../components/Toast.tsx';
+import { mockProjects } from '../lib/mockData.ts';
 
 const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
 
@@ -19,15 +20,21 @@ export default function ProjectList() {
   useEffect(() => {
     fetch('/api/projects')
       .then(res => {
-        if (!res.ok) throw new Error('Failed to load projects');
+        if (!res.ok) throw new Error(`Failed with status ${res.status}`);
         return res.json();
       })
       .then(data => {
-        setProjects(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setProjects(data);
+        } else {
+          console.warn("API returned empty/invalid array, fallback to local mock projects.");
+          setProjects(mockProjects);
+        }
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
+        console.warn("API unavailable, fallback to local mock projects. Error:", err);
+        setProjects(mockProjects);
         setLoading(false);
       });
   }, []);
