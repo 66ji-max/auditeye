@@ -1,10 +1,58 @@
 import { getDb } from '../_lib/db.js';
 import { getMockProjectDetail } from '../_lib/mockData.js';
+import { parse } from 'cookie';
+import { del } from '@vercel/blob';
 
 export default async function handler(req: any, res: any) {
-  if (req.method === 'GET') {
-    const { id } = req.query;
+  const { id } = req.query;
 
+  if (req.method === 'DELETE') {
+    const cookies = parse(req.headers.cookie || '');
+    const isAdmin = cookies.admin_session === 'authenticated';
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Permission denied', errorCode: 'FORBIDDEN' });
+    }
+
+    const sql = getDb();
+    if (!sql) {
+      return res.status(503).json({ error: 'Database not available', errorCode: 'UPLOAD_FAILED' });
+    }
+
+    try {
+      const [project] = await sql`SELECT id FROM projects WHERE id = ${id as string}`;
+      if (!project) {
+         return res.status(400).json({ error: '演示模板不可删除', errorCode: 'DEMO_PROJECT' });
+      }
+
+      // Fetch blob_urls to delete them
+      const docs = await sql`SELECT blob_url FROM documents WHERE project_id = ${id as string} AND blob_url IS NOT NULL`;
+      const blobUrls = docs.map(d => d.blob_url).filter(Boolean);
+
+      // 2. Delete Blobs
+      if (blobUrls.length > 0) {
+         try {
+           await del(blobUrls);
+         } catch (blobErr) {
+           console.error("Failed to delete blobs:", blobErr);
+         }
+      }
+
+      // 3. Delete Relationships, Entities, Audit Logs, Documents, Projects
+      await sql`DELETE FROM relationships WHERE project_id = ${id as string}`;
+      await sql`DELETE FROM entities WHERE project_id = ${id as string}`;
+      await sql`DELETE FROM audit_logs WHERE project_id = ${id as string}`;
+      await sql`DELETE FROM documents WHERE project_id = ${id as string}`;
+      await sql`DELETE FROM projects WHERE id = ${id as string}`;
+
+      return res.status(200).json({ success: true });
+    } catch (err: any) {
+      console.error("Delete project error:", err);
+      return res.status(500).json({ error: '删除失败，请重试', errorCode: 'UPLOAD_FAILED' });
+    }
+  }
+
+  if (req.method === 'GET') {
     const sql = getDb();
 
     // 1. First see if it's a known mock project id (like 1001-1004)

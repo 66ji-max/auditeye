@@ -71,7 +71,7 @@ export default function ProjectList() {
       }
       
       if (hasInvalid) {
-        toast('部分文件类型不支持，仅支持 PDF、Word、TXT 文件', 'error');
+        toast('仅支持 PDF、DOC、DOCX、TXT 文件', 'error');
       }
       
       // Merge with existing files
@@ -83,6 +83,32 @@ export default function ProjectList() {
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteProject = async (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
+    if (!isAdmin) {
+      toast('暂无编辑或删除该项目的权限，请通过管理员登录', 'error');
+      return;
+    }
+    if (window.confirm('确认删除该项目吗？此操作不可恢复')) {
+      try {
+        const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) {
+          if (data.errorCode === 'DEMO_PROJECT') {
+            toast('演示模板不可删除', 'error');
+          } else {
+            toast('删除失败，请重试', 'error');
+          }
+        } else {
+          toast('项目已删除', 'success');
+          setProjects(prev => prev.filter(p => p.id !== projectId));
+        }
+      } catch (err) {
+        toast('删除失败，请重试', 'error');
+      }
+    }
   };
 
   const createProject = async () => {
@@ -103,7 +129,7 @@ export default function ProjectList() {
       });
       
       if (!res.ok) {
-        let errMsg = "项目创建接口返回失败";
+        let errMsg = "创建项目失败，请重试";
         try {
           const errData = await res.json();
           errMsg = errData.error || errMsg;
@@ -113,7 +139,7 @@ export default function ProjectList() {
       
       const data = await res.json();
       if (!data.id) {
-        throw new Error("未获取到有效的项目ID");
+        throw new Error("创建项目失败，请重试");
       }
 
       // 2. Upload documents
@@ -126,11 +152,15 @@ export default function ProjectList() {
       
       const uploadData = await uploadRes.json();
       
-      if (!uploadRes.ok && uploadRes.status !== 207) {
-         toast(`项目已建，但文档上传失败: ${uploadData.error || '未知错误'}`, 'error');
-         if (uploadData.failed && uploadData.failed.length > 0) {
-           uploadData.failed.forEach((f: any) => toast(`${f.fileName}: ${f.reason}`, 'error'));
+      if (!uploadRes.ok) {
+         if (uploadData.errorCode === 'FILE_TOO_LARGE') {
+           toast('文件太大，请压缩后重试', 'error');
+         } else if (uploadData.errorCode === 'INVALID_FILE_TYPE') {
+           toast('仅支持 PDF、DOC、DOCX、TXT 文件', 'error');
+         } else {
+           toast('上传失败，请重试', 'error');
          }
+         
          setIsSubmitting(false);
          // Redirect anyway so user doesn't lose the project created
          setTimeout(() => {
@@ -138,19 +168,6 @@ export default function ProjectList() {
            navigate(`/project/${data.id}`);
          }, 3000);
          return; 
-      }
-
-      if (uploadRes.status === 207) {
-         toast("部分文件上传成功，部分失败。", "warning");
-         if (uploadData.failed && uploadData.failed.length > 0) {
-           uploadData.failed.forEach((f: any) => toast(`${f.fileName}: ${f.reason}`, 'error'));
-         }
-         setIsSubmitting(false);
-         setTimeout(() => {
-           setShowModal(false);
-           navigate(`/project/${data.id}`);
-         }, 3000);
-         return;
       }
 
       toast("项目及文档创建成功", "success");
@@ -358,15 +375,7 @@ export default function ProjectList() {
                       </td>
                       <td className="px-5 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="relative inline-block text-left" onClick={e => e.stopPropagation()}>
-                          <button onClick={(e) => {
-                            if (!isAdmin) {
-                              const evt = new CustomEvent('show-toast', {detail: {message: '暂无编辑或删除该项目的权限，请通过管理员登录', type: 'error'}});
-                              window.dispatchEvent(evt);
-                            } else {
-                              const evt = new CustomEvent('show-toast', {detail: {message: '管理选项待开放', type: 'info'}});
-                              window.dispatchEvent(evt);
-                            }
-                          }} className="text-gray-500 hover:text-white p-1 rounded-full hover:bg-[#333] transition-colors"><MoreHorizontal className="w-5 h-5" /></button>
+                          <button onClick={(e) => handleDeleteProject(e, p.id)} className="text-gray-500 hover:text-white p-1 rounded-full hover:bg-[#333] transition-colors"><MoreHorizontal className="w-5 h-5" /></button>
                         </div>
                       </td>
                     </tr>
