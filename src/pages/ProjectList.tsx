@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
-import { Plus, Folder, Clock, Activity, Search, X, Upload, MoreHorizontal, FileText, Database, User } from 'lucide-react';
+import { Plus, Folder, Clock, Activity, Search, X, Upload, MoreHorizontal, FileText, Database, User, Shield } from 'lucide-react';
 import { toast } from '../components/Toast.tsx';
 import { mockProjects } from '../lib/mockData.ts';
+import { useAuth } from '../context/AuthContext';
 
 const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
 
@@ -18,6 +19,7 @@ export default function ProjectList() {
   const [loading, setLoading] = useState(true);
   const [systemMode, setSystemMode] = useState<'full' | 'demo-readonly' | 'loading'>('loading');
   const [systemMessage, setSystemMessage] = useState('');
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     // Health check
@@ -69,7 +71,7 @@ export default function ProjectList() {
       }
       
       if (hasInvalid) {
-        toast('仅支持 PDF、Word、TXT 文件', 'error');
+        toast('部分文件类型不支持，仅支持 PDF、Word、TXT 文件', 'error');
       }
       
       // Merge with existing files
@@ -110,7 +112,6 @@ export default function ProjectList() {
       }
       
       const data = await res.json();
-      
       if (!data.id) {
         throw new Error("未获取到有效的项目ID");
       }
@@ -123,16 +124,33 @@ export default function ProjectList() {
         body: formData
       });
       
-      if (!uploadRes.ok) {
-         let errMsg = '未知错误';
-         try {
-           const errData = await uploadRes.json();
-           errMsg = errData.error || errMsg;
-         } catch(e){}
-         toast(`项目基础信息已建，但文档上传失败: ${errMsg}`, 'error');
-         // Upload failed, stop here, do not navigate
+      const uploadData = await uploadRes.json();
+      
+      if (!uploadRes.ok && uploadRes.status !== 207) {
+         toast(`项目已建，但文档上传失败: ${uploadData.error || '未知错误'}`, 'error');
+         if (uploadData.failed && uploadData.failed.length > 0) {
+           uploadData.failed.forEach((f: any) => toast(`${f.fileName}: ${f.reason}`, 'error'));
+         }
          setIsSubmitting(false);
+         // Redirect anyway so user doesn't lose the project created
+         setTimeout(() => {
+           setShowModal(false);
+           navigate(`/project/${data.id}`);
+         }, 3000);
          return; 
+      }
+
+      if (uploadRes.status === 207) {
+         toast("部分文件上传成功，部分失败。", "warning");
+         if (uploadData.failed && uploadData.failed.length > 0) {
+           uploadData.failed.forEach((f: any) => toast(`${f.fileName}: ${f.reason}`, 'error'));
+         }
+         setIsSubmitting(false);
+         setTimeout(() => {
+           setShowModal(false);
+           navigate(`/project/${data.id}`);
+         }, 3000);
+         return;
       }
 
       toast("项目及文档创建成功", "success");
@@ -203,10 +221,20 @@ export default function ProjectList() {
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full bg-[#1A1A1A] border border-dashed border-[#444] rounded p-4 text-center cursor-pointer hover:border-[#D4AF37]/50 transition-colors"
                 >
-                  <Upload className="w-5 h-5 text-gray-500 mx-auto mb-2" />
-                  <div className="text-xs text-gray-400">
-                    点击选择 PDF, DOCX, TXT 文件
-                  </div>
+                  {isSubmitting ? (
+                    <div className="animate-pulse">
+                      <Upload className="w-5 h-5 text-gray-500 mx-auto mb-2 opacity-50" />
+                      <div className="text-xs text-[#D4AF37]">文件上传处理中...</div>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 text-gray-500 mx-auto mb-2" />
+                      <div className="text-xs text-gray-400">
+                        点击选择 PDF, DOCX, TXT 文件
+                      </div>
+                      <div className="text-[10px] text-gray-500 mt-1">单文件限制 ~4MB</div>
+                    </>
+                  )}
                 </div>
                 <input 
                   type="file" 
@@ -215,6 +243,7 @@ export default function ProjectList() {
                   className="hidden" 
                   onChange={handleFileChange}
                   accept=".pdf,.docx,.doc,.txt"
+                  disabled={isSubmitting}
                 />
                 
                 {files.length > 0 && (
@@ -222,7 +251,7 @@ export default function ProjectList() {
                     {files.map((f, i) => (
                       <div key={i} className="flex items-center justify-between bg-[#1A1A1A] border border-[#333333] p-2 rounded text-xs">
                         <span className="truncate flex-1 text-gray-300">{f.name}</span>
-                        <button onClick={() => removeFile(i)} className="text-gray-500 hover:text-red-500 ml-2"><X className="w-3 h-3"/></button>
+                        <button disabled={isSubmitting} onClick={() => removeFile(i)} className="text-gray-500 hover:text-red-500 ml-2 disabled:opacity-50"><X className="w-3 h-3"/></button>
                       </div>
                     ))}
                   </div>
@@ -232,7 +261,7 @@ export default function ProjectList() {
             <div className="p-4 border-t border-[#333333] flex justify-end gap-3 bg-[#1A1A1A] shrink-0">
               <button disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white" onClick={() => setShowModal(false)}>取消</button>
               <button disabled={isSubmitting || !newProject.name.trim() || files.length === 0} onClick={createProject} className="px-4 py-2 bg-[#D4AF37] hover:bg-[#E5C048] text-[#1A1A1A] font-medium text-sm rounded shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center gap-2 transition-all disabled:opacity-50">
-                {isSubmitting ? '创建中...' : '创建项目'}
+                {isSubmitting ? '上传执行中...' : '创建项目'}
               </button>
             </div>
           </div>
@@ -284,10 +313,9 @@ export default function ProjectList() {
                     <tr>
                       <th className="px-5 py-3 font-medium">项目名称</th>
                       <th className="px-5 py-3 font-medium">场景类型</th>
-                      <th className="px-5 py-3 font-medium">状态</th>
+                      <th className="px-5 py-3 font-medium">权限角色</th>
                       <th className="px-5 py-3 font-medium">包含数据源</th>
                       <th className="px-5 py-3 font-medium text-right">综合风险评分</th>
-                      <th className="px-5 py-3 font-medium">负责人</th>
                       <th className="px-5 py-3 font-medium text-right">时间</th>
                       <th className="px-5 py-3"></th>
                     </tr>
@@ -305,8 +333,12 @@ export default function ProjectList() {
                         </span>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="flex items-center gap-1.5 text-[11px] text-blue-400">
-                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div> 分析中
+                        <span className="flex items-center gap-1.5 text-[11px]">
+                          {isAdmin ? (
+                            <><Shield className="w-3.5 h-3.5 text-amber-500" /> <span className="text-amber-500">管理员权限</span></>
+                          ) : (
+                            <><User className="w-3.5 h-3.5 text-gray-400" /> <span className="text-gray-400">用户只读</span></>
+                          )}
                         </span>
                       </td>
                       <td className="px-5 py-4">
@@ -321,20 +353,19 @@ export default function ProjectList() {
                           {p.riskLevel && <div className="text-[10px] font-normal leading-none mt-1">{p.riskLevel.label}</div>}
                         </div>
                       </td>
-                      <td className="px-5 py-4">
-                        <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-[#333333] flex items-center justify-center"><User className="w-3 h-3"/></div>
-                          高级合伙人
-                        </div>
-                      </td>
                       <td className="px-5 py-4 text-right">
                         <div className="text-[11px] text-gray-400 flex items-center justify-end gap-1"><Clock className="w-3 h-3"/> {new Date(p.createdAt).toLocaleDateString()}</div>
                       </td>
                       <td className="px-5 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="relative inline-block text-left" onClick={e => e.stopPropagation()}>
                           <button onClick={(e) => {
-                            const evt = new CustomEvent('show-toast', {detail: {message: '暂无编辑或删除该项目的权限', type: 'error'}});
-                            window.dispatchEvent(evt);
+                            if (!isAdmin) {
+                              const evt = new CustomEvent('show-toast', {detail: {message: '暂无编辑或删除该项目的权限，请通过管理员登录', type: 'error'}});
+                              window.dispatchEvent(evt);
+                            } else {
+                              const evt = new CustomEvent('show-toast', {detail: {message: '管理选项待开放', type: 'info'}});
+                              window.dispatchEvent(evt);
+                            }
                           }} className="text-gray-500 hover:text-white p-1 rounded-full hover:bg-[#333] transition-colors"><MoreHorizontal className="w-5 h-5" /></button>
                         </div>
                       </td>
