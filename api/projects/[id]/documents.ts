@@ -1,4 +1,6 @@
 import multer from 'multer';
+import { put } from '@vercel/blob';
+import { getDb } from '../../../src/lib/db';
 import { getMockProjectDetail } from '../../../src/lib/mockData';
 
 const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
@@ -11,7 +13,7 @@ export const config = {
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
 });
 
 function runMiddleware(req: any, res: any, fn: any) {
@@ -39,6 +41,9 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "No files uploaded (请上传文件)" });
   }
 
+  const { id } = req.query;
+  const sql = getDb();
+
   const insertedDocs = [];
   for (const file of files) {
     try {
@@ -49,20 +54,53 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: `不支持的文件类型: ${ext}` });
       }
 
-      insertedDocs.push({
-        id: Date.now() + Math.floor(Math.random() * 100),
-        fileName: originalName,
-        originalName: originalName,
-        sourceType: ext
-      });
-    } catch(e) {
-      // ignore individual parse errors
+      let blobResult: any = null;
+      let blobUrl = '';
+
+      // Upload to Vercel Blob if token is available
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        blobResult = await put('audit-files/' + Date.now() + '-' + originalName, file.buffer, {
+          access: 'public',
+        });
+        blobUrl = blobResult.url;
+      } else {
+        console.warn("BLOB_READ_WRITE_TOKEN not set, skipping actual Blob upload. Faking URL for demo.");
+        blobUrl = `https://unconfigured-blob.vercel.app/${originalName}`;
+      }
+
+      // Save to Neon DB if available
+      if (sql) {
+        const [doc] = await sql`
+           INSERT INTO documents (project_id, file_name, original_name, source_type, blob_url)
+           VALUES (${id as string}, ${originalName}, ${originalName}, ${ext}, ${blobUrl})
+           RETURNING id, file_name, original_name, source_type, blob_url, uploaded_at
+        `;
+        insertedDocs.push({
+          id: doc.id,
+          fileName: doc.file_name,
+          originalName: doc.original_name,
+          sourceType: doc.source_type,
+          blobUrl: doc.blob_url,
+          createdAt: doc.uploaded_at
+        });
+      } else {
+        // Fallback: push to mock storage
+        insertedDocs.push({
+          id: Date.now() + Math.floor(Math.random() * 100),
+          fileName: originalName,
+          originalName: originalName,
+          sourceType: ext,
+          blobUrl: blobUrl,
+          createdAt: new Date().toISOString()
+        });
+      }
+    } catch(e: any) {
+      console.error("Upload error for file:", e.message);
     }
   }
 
-  const { id } = req.query;
+  // Update in-memory mock if it exists there, so frontend won't break if it reads from mock
   const projectDetail = getMockProjectDetail(id as string);
-  
   if (projectDetail) {
     projectDetail.documents = [...(projectDetail.documents || []), ...insertedDocs];
   }

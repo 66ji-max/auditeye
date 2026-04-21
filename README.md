@@ -36,6 +36,22 @@ AUDITEYE_FALLBACK_MODELS="gemini-3.1-pro-preview,gemini-3.1-pro-preview-maxthink
 
 ## Technical Stack
 - **Frontend**: React 19, Tailwind CSS v4, Lucide React, D3.js.
-- **Backend**: Express, Multer, OpenAI-compatible proxy interface.
-- **Database**: `better-sqlite3`.
+- **Backend (Vercel Serverless)**: Vercel Functions (`/api`), Multer Memory Storage, `@vercel/blob`, Neon Serverless Postgres.
+- **Database**: Neon Postgres (Serverless).
 - **Parsing Engines**: `pdf-parse` (PDF), `mammoth` (Word), `xlsx` (Excel/CSV).
+
+## Vercel Deployment & Database Migration
+This project is configured for Vercel serverless deployment using **Neon Database** and **Vercel Blob**.
+
+### 1. Database (Neon Postgres)
+In your Vercel project, go to the Storage tab and connect a Neon Postgres database. This will configure the `DATABASE_URL` environment variable.
+
+After the database is connected, navigate to the following URL in your deployed app (or locally) to automatically initialize the schema:
+```
+https://<your-project-url>.vercel.app/api/db/init
+```
+
+### 2. File Storage (Vercel Blob)
+In your Vercel project, go to the Storage tab and create/connect a **Vercel Blob** store. Provide the environment variables automatically. This will supply the `BLOB_READ_WRITE_TOKEN`.
+
+Without these, the system provides a seamless **Mock Mode** fallback but projects and files will not be permanently stored.
