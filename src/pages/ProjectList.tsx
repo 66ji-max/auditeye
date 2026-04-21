@@ -398,7 +398,7 @@ export default function ProjectList() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className={`font-bold ${p.riskLevel ? p.riskLevel.color : 'text-gray-500'}`}>
-                          {p.riskScore || '-'} <span className="text-[10px] text-gray-500 font-normal">/100</span>
+                          {p.riskScore ?? '-'} <span className="text-[10px] text-gray-500 font-normal">/100</span>
                           {p.riskLevel && <div className="text-[10px] font-normal leading-none mt-1">{p.riskLevel.label}</div>}
                         </div>
                       </td>
@@ -426,7 +426,7 @@ export default function ProjectList() {
                          <div className="text-[10px] font-mono text-gray-500">PRJ-{p.id.toString().padStart(4, '0')}</div>
                        </div>
                        <div className={`text-right font-bold text-lg leading-none ${p.riskLevel ? p.riskLevel.color : 'text-gray-500'}`}>
-                         {p.riskScore || '-'}
+                         {p.riskScore ?? '-'}
                          {p.riskLevel && <div className="text-[9px] font-normal mt-1">{p.riskLevel.label}</div>}
                        </div>
                     </div>

@@ -1,5 +1,6 @@
 import { getDb } from './_lib/db.js';
 import { mockProjects } from './_lib/mockData.js';
+import { generateInitialRiskProfile } from './_lib/initialRiskProfile.js';
 
 export default async function handler(req: any, res: any) {
   const sql = getDb();
@@ -18,7 +19,7 @@ export default async function handler(req: any, res: any) {
           id: String(p.id),
           name: p.name,
           scenario: p.scenario,
-          riskScore: p.risk_score ? Number(p.risk_score) : 0,
+          riskScore: p.risk_score != null ? Number(p.risk_score) : 0,
           riskLevel: p.risk_level ? p.risk_level : { label: '未评级', color: 'bg-gray-500' },
           docCount: Number(p.doc_count) || 0,
           createdAt: p.created_at ? new Date(p.created_at).toISOString() : new Date().toISOString()
@@ -46,18 +47,42 @@ export default async function handler(req: any, res: any) {
     const scene = scenario || 'IPO审查';
 
     try {
-      const initialRiskLevel = { label: '扫描中', color: 'bg-blue-500/20 text-blue-500 border-blue-500/50' };
+      const initialProfile = generateInitialRiskProfile(scene);
       
       await sql`
         INSERT INTO projects (id, name, scenario, risk_score, risk_level, dimension_scores)
-        VALUES (${projectId}, ${name}, ${scene}, 0, ${initialRiskLevel}::jsonb, '{}'::jsonb)
+        VALUES (
+          ${projectId}, 
+          ${name}, 
+          ${scene}, 
+          ${initialProfile.totalScore}, 
+          ${initialProfile.level}::jsonb, 
+          ${initialProfile.dimensionScores}::jsonb
+        )
       `;
       
-      // Add initial log
-      await sql`
-        INSERT INTO audit_logs (project_id, action, details)
-        VALUES (${projectId}, 'INFO', ${JSON.stringify({ message: "项目初始化完成，正在等待文档上传。" })}::jsonb)
-      `;
+      // Add initial logs from profile
+      for (const log of initialProfile.logs) {
+        await sql`
+          INSERT INTO audit_logs (project_id, action, details)
+          VALUES (${projectId}, ${log.action}, ${log.details}::jsonb)
+        `;
+      }
+
+      // Add rule hits as RED_FLAG audit logs to show in UI pre-warnings
+      for (const hit of initialProfile.ruleHits) {
+         await sql`
+           INSERT INTO audit_logs (project_id, action, details)
+           VALUES (${projectId}, 'RED_FLAG', ${JSON.stringify({ 
+             ruleName: hit.ruleName, 
+             ruleId: hit.ruleId, 
+             dimension: hit.dimension, 
+             scoreImpact: hit.scoreImpact, 
+             description: hit.description, 
+             severity: hit.severity 
+           })}::jsonb)
+         `;
+      }
 
       // Add initial entity
       await sql`

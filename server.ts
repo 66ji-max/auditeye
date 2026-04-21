@@ -52,9 +52,33 @@ async function startServer() {
         return res.status(403).json({ error: "Local demo mode. Creates are not supported in local express mock mode. Deploy to vercel." });
       }
 
-      const stmt = db.prepare('INSERT INTO projects (name, scenario) VALUES (?, ?)');
-      const info = stmt.run(name, scenario || 'IPO审查');
-      res.json({ id: info.lastInsertRowid, name, status: "created" });
+      const scene = scenario || 'IPO审查';
+      const { generateInitialRiskProfile } = await import("./api/_lib/initialRiskProfile.ts");
+      const initialProfile = generateInitialRiskProfile(scene);
+
+      const stmt = db.prepare('INSERT INTO projects (name, scenario, riskScore, riskLevel, dimensionScores) VALUES (?, ?, ?, ?, ?)');
+      const info = stmt.run(name, scene, initialProfile.totalScore, JSON.stringify(initialProfile.level), JSON.stringify(initialProfile.dimensionScores));
+      const projectId = info.lastInsertRowid;
+
+      const logStmt = db.prepare('INSERT INTO audit_logs (projectId, action, details) VALUES (?, ?, ?)');
+      for (const log of initialProfile.logs) {
+        logStmt.run(projectId, log.action, log.details);
+      }
+      for (const hit of initialProfile.ruleHits) {
+         logStmt.run(projectId, 'RED_FLAG', JSON.stringify({ 
+           ruleName: hit.ruleName, 
+           ruleId: hit.ruleId, 
+           dimension: hit.dimension, 
+           scoreImpact: hit.scoreImpact, 
+           description: hit.description, 
+           severity: hit.severity 
+         }));
+      }
+
+      const entityStmt = db.prepare('INSERT INTO entities (projectId, entityType, name, attributes) VALUES (?, ?, ?, ?)');
+      entityStmt.run(projectId, 'COMPANY', name + ' (查验标的)', JSON.stringify({ status: '新建' }));
+
+      res.status(201).json({ id: projectId, name, scenario: scene, status: "created" });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
