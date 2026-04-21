@@ -1,5 +1,5 @@
-import { getDb } from '../src/lib/db';
-import { mockProjects } from '../src/lib/mockData';
+import { getDb } from './_lib/db.js';
+import { mockProjects } from './_lib/mockData.js';
 
 export default async function handler(req: any, res: any) {
   const sql = getDb();

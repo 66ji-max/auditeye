@@ -1,4 +1,4 @@
-import { mockKb } from '../src/lib/mockData';
+import { mockKb } from './_lib/mockData.js';
 
 export default function handler(req: any, res: any) {
   if (req.method === 'GET') {

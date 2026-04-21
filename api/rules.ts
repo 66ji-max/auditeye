@@ -1,4 +1,4 @@
-import { mockRules } from '../src/lib/mockData';
+import { mockRules } from './_lib/mockData.js';
 
 export default function handler(req: any, res: any) {
   if (req.method === 'GET') {

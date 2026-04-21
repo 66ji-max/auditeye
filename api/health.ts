@@ -1,4 +1,4 @@
-import { getDb } from '../src/lib/db';
+import { getDb } from './_lib/db.js';
 
 export default async function handler(req: any, res: any) {
   const sql = getDb();

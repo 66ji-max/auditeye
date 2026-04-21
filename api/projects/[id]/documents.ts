@@ -1,6 +1,6 @@
 import multer from 'multer';
 import { put } from '@vercel/blob';
-import { getDb } from '../../../src/lib/db';
+import { getDb } from '../../_lib/db.js';
 
 const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
 
