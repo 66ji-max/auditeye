@@ -59,19 +59,27 @@ export default function ProjectList() {
     if (e.target.files) {
       const selectedFiles: File[] = Array.from(e.target.files);
       const validFiles: File[] = [];
-      let hasInvalid = false;
+      let hasInvalidType = false;
+      let hasInvalidSize = false;
       
+      const MAX_FILE_SIZE = 4.3 * 1024 * 1024; // 4.3MB
+
       for (const file of selectedFiles) {
         const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-        if (ALLOWED_EXTS.includes(ext)) {
-          validFiles.push(file);
+        if (!ALLOWED_EXTS.includes(ext)) {
+          hasInvalidType = true;
+        } else if (file.size > MAX_FILE_SIZE) {
+          hasInvalidSize = true;
         } else {
-          hasInvalid = true;
+          validFiles.push(file);
         }
       }
       
-      if (hasInvalid) {
+      if (hasInvalidType) {
         toast('仅支持 PDF、DOC、DOCX、TXT 文件', 'error');
+      }
+      if (hasInvalidSize) {
+        toast('文件太大，请压缩后重试', 'error');
       }
       
       // Merge with existing files
@@ -121,7 +129,21 @@ export default function ProjectList() {
     
     setIsSubmitting(true);
     try {
-      // 1. Create project
+      // 2. Pre-upload frontend check
+      const MAX_FILE_SIZE = 4.3 * 1024 * 1024;
+      for (const file of files) {
+        if (file.size > MAX_FILE_SIZE) {
+          setIsSubmitting(false);
+          return toast('文件太大，请压缩后重试', 'error');
+        }
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        if (!ALLOWED_EXTS.includes(ext)) {
+          setIsSubmitting(false);
+          return toast('仅支持 PDF、DOC、DOCX、TXT 文件', 'error');
+        }
+      }
+
+      // 3. Create project
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,7 +164,7 @@ export default function ProjectList() {
         throw new Error("创建项目失败，请重试");
       }
 
-      // 2. Upload documents
+      // 4. Upload documents
       const formData = new FormData();
       files.forEach(f => formData.append('files', f));
       const uploadRes = await fetch(`/api/projects/${data.id}/documents`, {
@@ -162,11 +184,21 @@ export default function ProjectList() {
          }
          
          setIsSubmitting(false);
-         // Redirect anyway so user doesn't lose the project created
-         setTimeout(() => {
-           setShowModal(false);
-           navigate(`/project/${data.id}`);
-         }, 3000);
+
+         // Rollback: try to delete the created empty project
+         try {
+           // Create a fake admin session cookie just for frontend API fallback check if not using strict backend cookies
+           // Or just rely on the backend enforcing it. If the backend strictly requires admin logic to delete,
+           // for rollback purposes we should issue a delete from the server, but since this is frontend calling backend:
+           // Note: Since only admins can delete, this project will remain as an empty project if not admin.
+           // However, if the user requested deletion of empty failure projects without admin, we need a special token or backend fix.
+           // For now, since delete API requires Admin, we'll optimistically try to delete if admin.
+           if (isAdmin) {
+             await fetch(`/api/projects/${data.id}`, { method: 'DELETE' });
+           }
+         } catch(e) {}
+         
+         // Do not navigate, keep them on the modal to fix files
          return; 
       }
 

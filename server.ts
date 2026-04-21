@@ -234,6 +234,46 @@ async function startServer() {
     }
   });
 
+  // Admin and Auth APIs for local Dev Server (Mirrors Vercel Serverless Functions)
+  const cookie = await import('cookie');
+  
+  app.post("/api/admin/login", (req, res) => {
+    const { password } = req.body || {};
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '20050805';
+    if (password === ADMIN_PASSWORD) {
+      res.setHeader('Set-Cookie', cookie.serialize('admin_session', 'authenticated', {
+        httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 86400, path: '/', sameSite: 'lax',
+      }));
+      res.status(200).json({ success: true, role: 'admin' });
+    } else {
+      res.status(401).json({ error: '密码错误' });
+    }
+  });
+
+  app.post("/api/admin/logout", (req, res) => {
+    res.setHeader('Set-Cookie', cookie.serialize('admin_session', '', {
+      httpOnly: true, secure: process.env.NODE_ENV === 'production', expires: new Date(0), path: '/', sameSite: 'lax',
+    }));
+    res.status(200).json({ success: true });
+  });
+
+  app.get("/api/admin/me", (req, res) => {
+    const cookies = cookie.parse(req.headers.cookie || '');
+    if (cookies.admin_session === 'authenticated') {
+      res.status(200).json({ isAdmin: true, role: 'admin' });
+    } else {
+      res.status(200).json({ isAdmin: false, role: 'user' });
+    }
+  });
+
+  app.delete("/api/projects/:id", (req, res) => {
+    const cookies = cookie.parse(req.headers.cookie || '');
+    if (cookies.admin_session !== 'authenticated') {
+      return res.status(403).json({ error: 'Permission denied', errorCode: 'FORBIDDEN' });
+    }
+    res.status(200).json({ success: true });
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
