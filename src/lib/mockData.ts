@@ -170,83 +170,8 @@ export const mockProjects = [
   { id: 1004, name: "华泰置业烂尾楼资金抽逃协查", scenario: "内部反欺诈审查", riskScore: demoProjectDetailsMap['1004'].project.riskScore, riskLevel: demoProjectDetailsMap['1004'].project.riskLevel, docCount: 105, createdAt: demoProjectDetailsMap['1004'].project.createdAt },
 ];
 
-export const createNewMockProject = (name: string, scenario: string) => {
-  const id = Date.now();
-  const projectId = String(id);
-  
-  let baseDimRelation = 0;
-  let baseDimBehavior = 0;
-  let baseDimFinancial = 0;
-
-  if (scenario === 'IPO审查') {
-    baseDimRelation = 40 + Math.random() * 40;
-    baseDimBehavior = 30 + Math.random() * 40;
-    baseDimFinancial = 40 + Math.random() * 40;
-  } else if (scenario === '年度审计异常追踪') {
-    baseDimRelation = 20 + Math.random() * 30;
-    baseDimBehavior = 20 + Math.random() * 40;
-    baseDimFinancial = 10 + Math.random() * 30;
-  } else if (scenario === '内部反欺诈审查') {
-    baseDimRelation = 60 + Math.random() * 40;
-    baseDimBehavior = 60 + Math.random() * 40;
-    baseDimFinancial = 40 + Math.random() * 50;
-  } else if (scenario === '深度欺诈审查') {
-    baseDimRelation = 80 + Math.random() * 20;
-    baseDimBehavior = 80 + Math.random() * 20;
-    baseDimFinancial = 70 + Math.random() * 30;
-  } else {
-    baseDimRelation = Math.random() * 100;
-    baseDimBehavior = Math.random() * 100;
-    baseDimFinancial = Math.random() * 100;
-  }
-
-  const logs = [
-    { action: 'INFO', createdAt: new Date(Date.now() - 300000).toISOString(), details: JSON.stringify({ message: '项目初始化完成，正在进行基础关联查询。' }) },
-    { action: 'INFO', createdAt: new Date(Date.now() - 280000).toISOString(), details: JSON.stringify({ message: '发现一些潜在的异常节点，建议上传更多文档进行深入分析。' }) },
-  ];
-
-  if (baseDimRelation > 30) {
-    logs.push({ action: 'RED_FLAG', createdAt: new Date(Date.now() - 100000).toISOString(), details: JSON.stringify({ ruleName: '基础关联排查异常', ruleId: 'R-GEN-01', dimension: 'relation', scoreImpact: Math.floor(baseDimRelation), description: '系统基础探测发现潜在关联方或受益人异常。', severity: baseDimRelation > 70 ? 'high' : 'medium'}) });
-  }
-  if (baseDimBehavior > 30) {
-    logs.push({ action: 'RED_FLAG', createdAt: new Date(Date.now() - 90000).toISOString(), details: JSON.stringify({ ruleName: '基础行为模式监测', ruleId: 'R-GEN-02', dimension: 'behavior', scoreImpact: Math.floor(baseDimBehavior), description: '存在基础异常业务行为或交易特征。', severity: baseDimBehavior > 70 ? 'high' : 'medium'}) });
-  }
-  if (baseDimFinancial > 30) {
-    logs.push({ action: 'RED_FLAG', createdAt: new Date(Date.now() - 80000).toISOString(), details: JSON.stringify({ ruleName: '财务指标初探预警', ruleId: 'R-GEN-03', dimension: 'financial', scoreImpact: Math.floor(baseDimFinancial), description: '从已知公开数据或简单输入中探测到财务指标风险。', severity: baseDimFinancial > 70 ? 'high' : 'medium'}) });
-  }
-
-  const detail: any = {
-    project: { id: projectId, name, scenario, createdAt: new Date().toISOString(), riskScore: 0, riskLevel: {}, dimensionScores: {} },
-    documents: [],
-    audit_logs: logs,
-    entities: [
-      { type: 'COMPANY', name: name + ' (查验标的)', attributes: { status: '存续' } }
-    ],
-    relationships: []
-  };
-
-  const ruleHits = detail.audit_logs
-    .filter((l: any) => l.action === 'RED_FLAG')
-    .map((l: any) => JSON.parse(l.details));
-  
-  const riskResult = calculateProjectRisk(ruleHits);
-  detail.project.riskScore = riskResult.totalScore;
-  detail.project.riskLevel = riskResult.level;
-  detail.project.dimensionScores = riskResult.dimensionScores;
-
-  demoProjectDetailsMap[projectId] = detail;
-  mockProjects.unshift({
-    id: id,
-    name,
-    scenario,
-    riskScore: detail.project.riskScore,
-    riskLevel: detail.project.riskLevel,
-    docCount: 0,
-    createdAt: detail.project.createdAt
-  });
-
-  return detail.project;
-};
+// mock data constants end around line 191
+// Note: createNewMockProject has been removed. All new projects MUST be created via Neon DB.
 
 export const getMockProjectDetail = (id: string | number) => {
   const projectId = String(id);

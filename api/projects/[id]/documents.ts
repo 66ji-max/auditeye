@@ -1,7 +1,6 @@
 import multer from 'multer';
 import { put } from '@vercel/blob';
 import { getDb } from '../../../src/lib/db';
-import { getMockProjectDetail } from '../../../src/lib/mockData';
 
 const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
 
@@ -30,6 +29,15 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  const sql = getDb();
+  if (!sql) {
+    return res.status(503).json({ error: "数据库尚未配置 (DATABASE_URL missing)。当前为可读 Demo 模式，禁止写入。" });
+  }
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return res.status(503).json({ error: "Vercel Blob 尚未配置 (BLOB_READ_WRITE_TOKEN missing)。当前为可读 Demo 模式，禁止写入。" });
+  }
+
   try {
     await runMiddleware(req, res, upload.array('files'));
   } catch (e: any) {
@@ -42,7 +50,16 @@ export default async function handler(req: any, res: any) {
   }
 
   const { id } = req.query;
-  const sql = getDb();
+
+  // Verify project exists in DB
+  try {
+    const [project] = await sql`SELECT id FROM projects WHERE id = ${id as string}`;
+    if (!project) {
+       return res.status(404).json({ error: `在真实数据库中未找到项目 ID: ${id}。上传已终止。` });
+    }
+  } catch (err: any) {
+    return res.status(500).json({ error: "数据库查询异常，无法验证项目存在性。", detail: err.message });
+  }
 
   const insertedDocs = [];
   for (const file of files) {
@@ -54,25 +71,23 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: `不支持的文件类型: ${ext}` });
       }
 
-      let blobResult: any = null;
-      let blobUrl = '';
-
-      // Upload to Vercel Blob if token is available
-      if (process.env.BLOB_READ_WRITE_TOKEN) {
+      // Upload to Vercel Blob
+      let blobResult: any;
+      try {
         blobResult = await put('audit-files/' + Date.now() + '-' + originalName, file.buffer, {
           access: 'public',
         });
-        blobUrl = blobResult.url;
-      } else {
-        console.warn("BLOB_READ_WRITE_TOKEN not set, skipping actual Blob upload. Faking URL for demo.");
-        blobUrl = `https://unconfigured-blob.vercel.app/${originalName}`;
+      } catch (e: any) {
+        return res.status(500).json({ error: `上传到 Vercel Blob 失败: ${e.message}` });
       }
 
-      // Save to Neon DB if available
-      if (sql) {
+      const blobUrl = blobResult.url;
+
+      // Save to Neon DB
+      try {
         const [doc] = await sql`
            INSERT INTO documents (project_id, file_name, original_name, source_type, blob_url)
-           VALUES (${id as string}, ${originalName}, ${originalName}, ${ext}, ${blobUrl})
+           VALUES (${id as string}, ${blobResult.pathname}, ${originalName}, ${ext}, ${blobUrl})
            RETURNING id, file_name, original_name, source_type, blob_url, uploaded_at
         `;
         insertedDocs.push({
@@ -83,26 +98,13 @@ export default async function handler(req: any, res: any) {
           blobUrl: doc.blob_url,
           createdAt: doc.uploaded_at
         });
-      } else {
-        // Fallback: push to mock storage
-        insertedDocs.push({
-          id: Date.now() + Math.floor(Math.random() * 100),
-          fileName: originalName,
-          originalName: originalName,
-          sourceType: ext,
-          blobUrl: blobUrl,
-          createdAt: new Date().toISOString()
-        });
+      } catch(e: any) {
+        return res.status(500).json({ error: "元数据写入数据库失败", detail: e.message });
       }
     } catch(e: any) {
       console.error("Upload error for file:", e.message);
+      return res.status(500).json({ error: `处理文件异常: ${e.message}` });
     }
-  }
-
-  // Update in-memory mock if it exists there, so frontend won't break if it reads from mock
-  const projectDetail = getMockProjectDetail(id as string);
-  if (projectDetail) {
-    projectDetail.documents = [...(projectDetail.documents || []), ...insertedDocs];
   }
 
   return res.status(200).json({ status: "success", documents: insertedDocs });

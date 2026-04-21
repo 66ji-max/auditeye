@@ -1,5 +1,5 @@
 import { getDb } from '../src/lib/db';
-import { mockProjects, createNewMockProject } from '../src/lib/mockData';
+import { mockProjects } from '../src/lib/mockData';
 
 export default async function handler(req: any, res: any) {
   const sql = getDb();
@@ -32,6 +32,10 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json([...dbProjects, ...mockProjects]);
     
   } else if (req.method === 'POST') {
+    if (!sql) {
+      return res.status(503).json({ error: "数据库尚未配置 (DATABASE_URL missing)。当前为仅可读 Demo 模式，无法创建真实项目。" });
+    }
+
     const { name, scenario } = req.body || {};
     
     if (!name || !name.trim()) {
@@ -41,50 +45,38 @@ export default async function handler(req: any, res: any) {
     const projectId = 'PROJ-' + Date.now() + Math.floor(Math.random()*(999-100+1)+100);
     const scene = scenario || 'IPO审查';
 
-    if (sql) {
-      try {
-        const initialRiskLevel = { label: '扫描中', color: 'bg-blue-500/20 text-blue-500 border-blue-500/50' };
-        
-        await sql`
-          INSERT INTO projects (id, name, scenario, risk_score, risk_level, dimension_scores)
-          VALUES (${projectId}, ${name}, ${scene}, 0, ${initialRiskLevel}::jsonb, '{}'::jsonb)
-        `;
-        
-        // Add initial log
-        await sql`
-          INSERT INTO audit_logs (project_id, action, details)
-          VALUES (${projectId}, 'INFO', ${JSON.stringify({ message: "项目初始化完成，正在等待文档上传。" })}::jsonb)
-        `;
-
-        // Add initial entity
-        await sql`
-          INSERT INTO entities (project_id, type, name, attributes)
-          VALUES (${projectId}, 'COMPANY', ${name + ' (查验标的)'}, ${JSON.stringify({ status: '新建' })}::jsonb)
-        `;
-
-        return res.status(201).json({
-          id: projectId,
-          name: name,
-          scenario: scene,
-          status: "created"
-        });
-      } catch (err: any) {
-        console.error("DB Insert Failed:", err);
-        // Fallback below
-      }
-    }
-
-    // FALLBACK to memory store if DB is absent or failed
     try {
-      const newProject = createNewMockProject(name, scene);
+      const initialRiskLevel = { label: '扫描中', color: 'bg-blue-500/20 text-blue-500 border-blue-500/50' };
+      
+      await sql`
+        INSERT INTO projects (id, name, scenario, risk_score, risk_level, dimension_scores)
+        VALUES (${projectId}, ${name}, ${scene}, 0, ${initialRiskLevel}::jsonb, '{}'::jsonb)
+      `;
+      
+      // Add initial log
+      await sql`
+        INSERT INTO audit_logs (project_id, action, details)
+        VALUES (${projectId}, 'INFO', ${JSON.stringify({ message: "项目初始化完成，正在等待文档上传。" })}::jsonb)
+      `;
+
+      // Add initial entity
+      await sql`
+        INSERT INTO entities (project_id, type, name, attributes)
+        VALUES (${projectId}, 'COMPANY', ${name + ' (查验标的)'}, ${JSON.stringify({ status: '新建' })}::jsonb)
+      `;
+
       return res.status(201).json({
-        id: newProject.id,
-        name: newProject.name,
-        scenario: newProject.scenario,
-        status: "created (memory fallback)"
+        id: projectId,
+        name: name,
+        scenario: scene,
+        status: "created"
       });
-    } catch (e: any) {
-      return res.status(500).json({ error: "创建项目失败", detail: e.message });
+    } catch (err: any) {
+      console.error("DB Insert Failed:", err);
+      return res.status(500).json({ 
+        error: "真实项目插入数据库失败。请确认是否已执行 /api/db/init 生成数据表结构。", 
+        detail: err.message 
+      });
     }
   }
   return res.status(405).json({ error: 'Method Not Allowed' });

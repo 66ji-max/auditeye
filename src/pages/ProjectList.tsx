@@ -16,8 +16,22 @@ export default function ProjectList() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [systemMode, setSystemMode] = useState<'full' | 'demo-readonly' | 'loading'>('loading');
+  const [systemMessage, setSystemMessage] = useState('');
 
   useEffect(() => {
+    // Health check
+    fetch('/api/health')
+      .then(res => res.json())
+      .then(data => {
+         setSystemMode(data.mode);
+         setSystemMessage(data.message);
+      })
+      .catch(() => {
+         setSystemMode('demo-readonly');
+         setSystemMessage('健康检查请求失败，进入系统降级模式。');
+      });
+
     fetch('/api/projects')
       .then(res => {
         if (!res.ok) throw new Error(`Failed with status ${res.status}`);
@@ -70,6 +84,10 @@ export default function ProjectList() {
   };
 
   const createProject = async () => {
+    if (systemMode === 'demo-readonly') {
+      return toast("当前系统为只读模式，无法创建项目。请检查数据库与 Blob 配置是否初始化。", "error");
+    }
+
     if (!newProject.name.trim()) return toast("项目名称不能为空", "warning");
     if (files.length === 0) return toast("请至少上传一个 PDF、Word 或 TXT 文件", "warning");
     
@@ -83,7 +101,12 @@ export default function ProjectList() {
       });
       
       if (!res.ok) {
-        throw new Error("项目创建接口返回失败");
+        let errMsg = "项目创建接口返回失败";
+        try {
+          const errData = await res.json();
+          errMsg = errData.error || errMsg;
+        } catch(e){}
+        throw new Error(errMsg);
       }
       
       const data = await res.json();
@@ -126,6 +149,18 @@ export default function ProjectList() {
 
   return (
     <div className="h-full w-full bg-[#1A1A1A] p-4 md:p-6 text-gray-200 overflow-y-auto custom-scrollbar">
+
+      {systemMode === 'demo-readonly' && (
+        <div className="bg-[#242424] border border-[#D4AF37]/50 rounded-lg p-4 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between shadow-xl">
+           <div className="flex items-center gap-3">
+              <Activity className="w-5 h-5 text-[#D4AF37] shrink-0" />
+              <div className="text-sm">
+                <span className="font-semibold text-gray-200">Demo 只读模式</span>
+                <p className="text-gray-400 mt-0.5">{systemMessage}</p>
+              </div>
+           </div>
+        </div>
+      )}
       
       {/* Modal */}
       {showModal && (

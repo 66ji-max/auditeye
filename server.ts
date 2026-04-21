@@ -5,7 +5,7 @@ import multer from "multer";
 import fs from "fs";
 import db, { initDB } from "./src/db.ts";
 import { AuditEngine } from "./src/services/auditEngine.ts";
-import { mockProjects, getMockProjectDetail, createNewMockProject, mockRules, mockKb } from "./src/lib/mockData.ts";
+import { mockProjects, getMockProjectDetail, mockRules, mockKb } from "./src/lib/mockData.ts";
 
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
@@ -49,8 +49,7 @@ async function startServer() {
       const { name, scenario } = req.body;
       
       if (DEMO_MODE) {
-        const newProject = createNewMockProject(name, scenario || 'IPO审查');
-        return res.json({ id: newProject.id, name, status: "created" });
+        return res.status(403).json({ error: "Local demo mode. Creates are not supported in local express mock mode. Deploy to vercel." });
       }
 
       const stmt = db.prepare('INSERT INTO projects (name, scenario) VALUES (?, ?)');
