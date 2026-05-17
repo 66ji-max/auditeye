@@ -44,7 +44,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const projectId = 'PROJ-' + Date.now() + Math.floor(Math.random()*(999-100+1)+100);
-    const scene = scenario || 'IPO审查';
+    const scene = scenario || 'IPO关联交易核查';
 
     try {
       const initialProfile = generateInitialRiskProfile(scene);

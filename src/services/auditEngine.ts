@@ -7,9 +7,12 @@ import { llm } from './llmProvider.ts';
 export interface AuditRecommendation {
   ruleId: string;
   ruleName: string;
+  dimension: string;
   description: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: 'high' | 'medium' | 'low' | 'critical';
   scoreImpact: number;
+  evidenceSource: string;
+  manualReviewRequired: boolean;
 }
 
 export interface AuditResult {
@@ -50,36 +53,70 @@ export class AuditEngine {
             // AI Analysis
             try {
               logs.push(`Running LLM extraction on ${doc.originalName}...`);
-              const prompt = `Analyze the following document text and extract any companies, people, and their relationships. Also identify any audit risk anomalies (like related party transactions, suspicious overlap, etc.).
-Return ONLY a JSON object with this exact structure:
+              const prompt = `Analyze the following document text and extract any companies, people, and their relationships. Address specific related-party transaction indicators.
+RETURN ONLY JSON WITH THIS EXACT STRUCTURE:
 {
-  "entities": [{"type": "COMPANY"|"PERSON", "name": "...", "normalizedName": "...", "attributes": {}}],
-  "relationships": [{"source": "...", "target": "...", "type": "...", "evidence": "..."}],
-  "risks": [{"ruleName": "...", "description": "...", "severity": "high"|"medium"|"low", "scoreImpact": 15}]
+  "companies": ["..."],
+  "persons": ["..."],
+  "formerNames": [{"company": "...", "formerName": "..."}],
+  "equityChain": [{"source": "...", "target": "...", "percentage": "..."}],
+  "ultimateBeneficialOwner": [{"company": "...", "owner": "..."}],
+  "addressOverlap": [{"entities": ["..."], "address": "..."}],
+  "contactOverlap": [{"entities": ["..."], "contact": "..."}],
+  "transactionAmountTrend": [{"source": "...", "target": "...", "description": "..."}],
+  "evidenceAnchors": ["..."],
+  "riskHits": [{
+    "ruleId": "...",
+    "ruleName": "...",
+    "layer": "identity|behavior|circumstantial",
+    "scoreImpact": 15,
+    "severity": "critical|high|medium|low",
+    "description": "...",
+    "evidenceSource": "...",
+    "manualReviewRequired": true
+  }]
 }
 Text to analyze:
 ${blockText.substring(0, 10000)} /* Truncated for safety */`;
               
-              const jsonStr = await llm.generate(prompt, { jsonMode: true, systemPrompt: "You are a senior audit intelligence engine. Extract exact entities and identify fraud risks." });
+              const systemPrompt = `You are a strict, senior audit intelligence engine specializing in '发行人关联交易智能核查'.
+CRITICAL RULES:
+- Only output anonymized/desensitized names (e.g. 登XX, 山东富XX).
+- NEVER fabricate evidence. If evidence is insufficient, output "需人工补充核查" and do not forcefully label it a concrete risk.
+- Every risk conclusion MUST bind to an 'evidenceSource'.
+- Provide the specified JSON structure flawlessly.`;
+
+              const jsonStr = await llm.generate(prompt, { jsonMode: true, systemPrompt });
               const result = JSON.parse(jsonStr);
               
-              if (result.entities && Array.isArray(result.entities)) {
-                allEntities = allEntities.concat(result.entities);
-                logs.push(`Extracted ${result.entities.length} entities from ${doc.originalName}`);
+              const addEntity = (type: 'COMPANY'|'PERSON', name: string) => {
+                 if (name && !allEntities.find(e => e.name === name)) {
+                    allEntities.push({ type, name, normalizedName: name, attributes: {} });
+                 }
+              };
+              
+              if (result.companies) result.companies.forEach((c:string) => addEntity('COMPANY', c));
+              if (result.persons) result.persons.forEach((c:string) => addEntity('PERSON', c));
+              
+              if (result.equityChain) {
+                 result.equityChain.forEach((rel: any) => {
+                    allRels.push({ source: rel.source, target: rel.target, type: 'HOLDING', evidence: rel.percentage });
+                 });
+                 logs.push(`Extracted ${result.equityChain.length} equity chain relationships.`);
               }
-              if (result.relationships && Array.isArray(result.relationships)) {
-                allRels = allRels.concat(result.relationships);
-                logs.push(`Extracted ${result.relationships.length} relationships from ${doc.originalName}`);
-              }
-              if (result.risks && Array.isArray(result.risks)) {
-                result.risks.forEach((r: any) => {
+              
+              if (result.riskHits && Array.isArray(result.riskHits)) {
+                result.riskHits.forEach((r: any) => {
                   score += r.scoreImpact || 10;
                   recommendations.push({
-                    ruleId: 'R-AI-DOC',
-                    ruleName: r.ruleName || 'AI预警规则',
+                    ruleId: r.ruleId || 'R-AI-DOC',
+                    ruleName: r.ruleName || 'AI智能核查预警',
+                    dimension: r.layer || 'circumstantial',
                     description: r.description,
                     severity: r.severity || 'medium',
-                    scoreImpact: r.scoreImpact || 10
+                    scoreImpact: r.scoreImpact || 10,
+                    evidenceSource: r.evidenceSource || '系统提取',
+                    manualReviewRequired: typeof r.manualReviewRequired === 'boolean' ? r.manualReviewRequired : true
                   });
                 });
               }
@@ -119,9 +156,12 @@ ${blockText.substring(0, 10000)} /* Truncated for safety */`;
         recommendations.push({
           ruleId: 'R-ADDR-01',
           ruleName: '地址异常重合',
+          dimension: 'circumstantial',
           description: `公司注册地址高度重合: ${companies.join(', ')}`,
           severity: 'high',
-          scoreImpact: 35
+          scoreImpact: 35,
+          evidenceSource: '地址信息提取分析',
+          manualReviewRequired: true
         });
         score += 35;
         logs.push(`Triggered Rule R-ADDR-01 on ${companies.join(', ')}`);
@@ -138,9 +178,12 @@ ${blockText.substring(0, 10000)} /* Truncated for safety */`;
         recommendations.push({
           ruleId: 'R-EXEC-02',
           ruleName: '高管履历交集',
+          dimension: 'identity',
           description: `${ex.source} 曾是 ${ex.target} 员工, 现为 ${currentLegal.target} 法人`,
           severity: 'high',
-          scoreImpact: 45
+          scoreImpact: 45,
+          evidenceSource: '历史履历比对',
+          manualReviewRequired: true
         });
         score += 45;
         logs.push(`Triggered Rule R-EXEC-02 on ${ex.source}`);

@@ -2,45 +2,43 @@ import { calculateProjectRisk, RISK_DIMENSIONS } from '../config/riskScoring.ts'
 
 export const demoProjectDetailsMap: Record<string, any> = {
   '1001': {
-    project: { id: '1001', name: "星巴达（大连）企业重组审查项目", scenario: "深度欺诈审查", createdAt: new Date().toISOString() },
+    project: { id: '1001', name: "发行人关联交易智能核查项目", scenario: "IPO关联交易核查", createdAt: new Date().toISOString() },
     documents: [
-      { id: 1, fileName: 'bank_statement.pdf', originalName: '1-星巴达2024对公流水.pdf', sourceType: '.pdf' },
-      { id: 2, fileName: 'contract.pdf', originalName: '补充借款协议（密）.pdf', sourceType: '.pdf' },
-      { id: 3, fileName: 'board.pdf', originalName: '2023年度董事会决议.docx', sourceType: '.docx' }
+      { id: 1, fileName: 'bank_statement.pdf', originalName: '1-登XX集团对公流水.pdf', sourceType: '.pdf' },
+      { id: 2, fileName: 'contract.pdf', originalName: '与旺XX公司历史采购框架.pdf', sourceType: '.pdf' },
+      { id: 3, fileName: 'board.pdf', originalName: '工商变更归档-山东片区.docx', sourceType: '.docx' }
     ],
     audit_logs: [
-      { action: 'INFO', createdAt: new Date(Date.now() - 300000).toISOString(), details: JSON.stringify({ message: '成功连接至全国企业信用信息公示系统进行实名校验。' }) },
-      { action: 'INFO', createdAt: new Date(Date.now() - 280000).toISOString(), details: JSON.stringify({ message: '解析 14 份非结构化文书，共切分得到 402 个独立语块。' }) },
-      { action: 'INFO', createdAt: new Date(Date.now() - 250000).toISOString(), details: JSON.stringify({ message: '利用图计算发现隐藏 4 层网络嵌套的实际控制人体系。' }) },
-      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 100000).toISOString(), details: JSON.stringify({ ruleName: '隐藏高管交叉控股 (R-MGMT-02)', ruleId: 'R-MGMT-02', dimension: 'relation', scoreImpact: 85, description: '检测到目标企业【星巴达】的边缘小微供应商【大连海润实业】其实际受益人为星巴达副总裁李某，涉嫌违规体外循环输送利益。', severity: 'high'}) },
-      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 90000).toISOString(), details: JSON.stringify({ ruleName: '注册地址重叠 (R-ADDR-01)', ruleId: 'R-ADDR-01', dimension: 'relation', scoreImpact: 50, description: '五家近期发生大规模贸易往来的“壳公司”均集中注册于同一地址（科技硅谷大厦3栋A座401），存在虚假虚开发票嫌疑。', severity: 'high'}) },
-      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 80000).toISOString(), details: JSON.stringify({ ruleName: '短期异常资金回流 (R-FUND-09)', ruleId: 'R-FUND-09', dimension: 'behavior', scoreImpact: 90, description: '流水记录显示多笔过千万大额资金在72小时内通过第三方通道绕回主体公司账户，典型粉饰报表与虚增营收特征。', severity: 'critical'}) }
+      { action: 'INFO', createdAt: new Date(Date.now() - 300000).toISOString(), details: JSON.stringify({ message: '成功接入公开工商信息与商业征信数据。' }) },
+      { action: 'INFO', createdAt: new Date(Date.now() - 280000).toISOString(), details: JSON.stringify({ message: '提取企业曾用名、股东、变更记录、联系方式并分析完毕。' }) },
+      { action: 'INFO', createdAt: new Date(Date.now() - 250000).toISOString(), details: JSON.stringify({ message: '执行股权穿透与最终受益人识别，比对境内外主体联系方式。' }) },
+      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 100000).toISOString(), details: JSON.stringify({ ruleName: '实控人/最终受益人同源', ruleId: 'R-ID-01', dimension: 'identity', scoreImpact: 25, description: '最终控制人均指向“欧XX”，交易对手实控人与发行人属同一人控制。', severity: 'critical'}) },
+      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 90000).toISOString(), details: JSON.stringify({ ruleName: '多层股权嵌套控制', ruleId: 'R-ID-02', dimension: 'identity', scoreImpact: 15, description: '系统发现4级控股结构：欧XX → 广州富XX（90%）→ 肇庆达XX（80%）→ 山东富XX（50%）→ 山东旺XX汽车零部件有限公司（100%）。涉及广东到山东的跨地域控股。', severity: 'high'}) },
+      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 85000).toISOString(), details: JSON.stringify({ ruleName: '曾用名字号关联', ruleId: 'R-ID-03', dimension: 'identity', scoreImpact: 5, description: '交易对手曾用名为“山东登XX汽配销售有限公司”，不仅包含发行人核心字号，且在申报期前后突击变更为现名，疑似弱化关联痕迹。', severity: 'high'}) },
+      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 80000).toISOString(), details: JSON.stringify({ ruleName: '单一依赖 / 突击交易', ruleId: 'R-BEH-01', dimension: 'behavior', scoreImpact: 10, description: '识别申报期内异常交易增长：2010年115万，至2012年突击增至770.13万，金额连年暴涨。', severity: 'critical'}) },
+      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 75000).toISOString(), details: JSON.stringify({ ruleName: '外围关联佐证/单据同源', ruleId: 'R-CIRC-01', dimension: 'circumstantial', scoreImpact: 10, description: '与境外关联主体（美国登X）多维比对发现：传真、联系地址高度一致，且装箱单模板与制作人员同源。', severity: 'high'}) }
     ],
     entities: [
-      { type: 'COMPANY', name: '星巴达(大连)科技', attributes: { registeredCapital: '5000万', address: '高新园区科技硅谷大厦1栋' } },
-      { type: 'COMPANY', name: '大连海润实业', attributes: { address: '科技硅谷大厦3栋A座401' } },
-      { type: 'COMPANY', name: '创通物流', attributes: { address: '科技硅谷大厦3栋A座401' } },
-      { type: 'COMPANY', name: '鼎力贸易', attributes: { address: '科技硅谷大厦3栋A座401' } },
-      { type: 'COMPANY', name: '瑞博咨询服务', attributes: { address: '科技硅谷大厦3栋A座401' } },
-      { type: 'COMPANY', name: '万恒资产', attributes: { address: '科技硅谷大厦3栋A座401' } },
-      { type: 'PERSON', name: '李明 (副总裁)', attributes: { role: '执行董事' } },
-      { type: 'PERSON', name: '张伟 (CEO)', attributes: { role: '法定代表人' } },
-      { type: 'COMPANY', name: '离岸开曼星巴达基金', attributes: { address: 'Cayman Islands' } },
-      { type: 'PERSON', name: '王强 (财务总监)', attributes: { role: 'CFO' } },
-      { type: 'COMPANY', name: '审计核准第三方', attributes: { address: '北京东城区' } }
+      { type: 'COMPANY', name: '登XX发行主体', attributes: { registeredCapital: '5亿', address: '总部园区' } },
+      { type: 'COMPANY', name: '山东旺XX汽车零部件有限公司', attributes: { address: '山东特定园区', label: '现名' } },
+      { type: 'COMPANY', name: '山东登XX汽配销售有限公司', attributes: { address: '山东特定园区', label: '曾用名' } },
+      { type: 'COMPANY', name: '山东富XX', attributes: { address: '山东' } },
+      { type: 'COMPANY', name: '肇庆达XX', attributes: { address: '肇庆' } },
+      { type: 'COMPANY', name: '广州富XX', attributes: { address: '广州' } },
+      { type: 'PERSON', name: '欧XX', attributes: { role: '最终自然人/实控人' } },
+      { type: 'COMPANY', name: '美国登X', attributes: { address: 'USA', label: '境外关联主体' } }
     ],
     relationships: [
-      { source: '星巴达(大连)科技', target: '张伟 (CEO)', relationType: 'LEGAL_REP', evidenceSnippet: '工商登记信息明确张伟自2021年起担任法定代表人。' },
-      { source: '星巴达(大连)科技', target: '王强 (财务总监)', relationType: 'EXECUTIVE', evidenceSnippet: '人事档案与年度财报批露。' },
-      { source: '星巴达(大连)科技', target: '李明 (副总裁)', relationType: 'EXECUTIVE', evidenceSnippet: '公司组织架构图第4页所示。' },
-      { source: '大连海润实业', target: '李明 (副总裁)', relationType: 'HIGH_RISK_OVERLAP', evidenceSnippet: '海润实业的最终穿透受益人协议指向李某的配偶，形成实质利益共同体。' },
-      { source: '创通物流', target: '大连海润实业', relationType: 'FUND_TRANSFER', evidenceSnippet: '对公流水第120页，金额2000万，附言"技术服务费"。' },
-      { source: '星巴达(大连)科技', target: '大连海润实业', relationType: 'HIGH_RISK_OVERLAP', evidenceSnippet: '年报显示发生重组期间采购额暴增4000%，触发反舞弊拦截体系。' },
-      { source: '鼎力贸易', target: '瑞博咨询服务', relationType: 'ADDRESS_SHARED', evidenceSnippet: '两家公司注册地完全相同，连工位号均一致。' },
-      { source: '瑞博咨询服务', target: '万恒资产', relationType: 'ADDRESS_SHARED', evidenceSnippet: '营业执照注册地一致。' },
-      { source: '万恒资产', target: '鼎力贸易', relationType: 'ADDRESS_SHARED', evidenceSnippet: '企查查数据反馈为关联聚类地址。' },
-      { source: '离岸开曼星巴达基金', target: '张伟 (CEO)', relationType: 'SHAREHOLDER', evidenceSnippet: '红筹架构招股书附件披露持有45%股权。' },
-      { source: '星巴达(大连)科技', target: '创通物流', relationType: 'SUSPICIOUS_TRADE', evidenceSnippet: '三方凭证比对无法支持真实的物流发生场景。' }
+      { source: '山东旺XX汽车零部件有限公司', target: '山东登XX汽配销售有限公司', relationType: 'FORMER_NAME', evidenceSnippet: '工商底稿显示企业于申报前发生更名。' },
+      { source: '山东富XX', target: '山东旺XX汽车零部件有限公司', relationType: 'HOLDING', evidenceSnippet: '持股 100%' },
+      { source: '肇庆达XX', target: '山东富XX', relationType: 'HOLDING', evidenceSnippet: '持股 50%' },
+      { source: '广州富XX', target: '肇庆达XX', relationType: 'HOLDING', evidenceSnippet: '持股 80%' },
+      { source: '欧XX', target: '广州富XX', relationType: 'HOLDING', evidenceSnippet: '持股 90%' },
+      { source: '欧XX', target: '登XX发行主体', relationType: 'ULTIMATE_CONTROLLER', evidenceSnippet: '最终控制人指向一致。' },
+      { source: '登XX发行主体', target: '美国登X', relationType: 'DOCUMENT_MATCH', evidenceSnippet: '联系方式与装箱单模板制作人一致。' },
+      { source: '登XX发行主体', target: '山东富XX', relationType: 'ABNORMAL_TRANSACTION', evidenceSnippet: '交易金额异常：2010年 96.39万，2011年 389.02万。' },
+      { source: '登XX发行主体', target: '山东旺XX汽车零部件有限公司', relationType: 'ABNORMAL_TRANSACTION', evidenceSnippet: '连年暴增：2012年突增至 770.13万。' },
+      { source: '山东富XX', target: '广州富XX', relationType: 'BUSINESS_CROSSCHECK', evidenceSnippet: '【业务交叉查询】通过对“山东富XX与广州富XX”等主体进行历史单据比对，系统在300万份发票及合同底稿中，精准定位到其历史联系方式、联系传真及业务单据制作者存在高度重合（匹配信度：99.2%）。' }
     ]
   },
   '1002': {
@@ -55,9 +53,9 @@ export const demoProjectDetailsMap: Record<string, any> = {
       { action: 'INFO', createdAt: new Date(Date.now() - 7200000).toISOString(), details: JSON.stringify({ message: '开始对【绿能科技】及其主要关联方进行穿透分析...' }) },
       { action: 'INFO', createdAt: new Date(Date.now() - 7100000).toISOString(), details: JSON.stringify({ message: '解析 32 份财务确认底稿与合同，提取结构化实体 45 个。' }) },
       { action: 'INFO', createdAt: new Date(Date.now() - 6800000).toISOString(), details: JSON.stringify({ message: '执行大额资金出入匹配检测逻辑。' }) },
-      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 6500000).toISOString(), details: JSON.stringify({ ruleName: '重大客户收入依赖及返流 (R-FIN-08)', ruleId: 'R-FIN-08', dimension: 'financial', scoreImpact: 80, description: '前五大客户之一的【远景新能源】与其实控人在报告期内存在通过保荐机构指定账户间接进行资金回转（约1200万）的情况，存在提前确认收入粉饰利润的嫌疑。', severity: 'critical'}) },
-      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 6000000).toISOString(), details: JSON.stringify({ ruleName: '政府补贴依赖度超红线 (R-FIN-03)', ruleId: 'R-FIN-03', dimension: 'financial', scoreImpact: 50, description: '扣非净利润中有近65%来源于地方新能源补贴，且该补贴政策将于明年一季度到期，面临极高持续盈利风险。', severity: 'medium'}) },
-      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 5000000).toISOString(), details: JSON.stringify({ ruleName: '隐层关联控制嫌疑', ruleId: 'R-MGMT-09', dimension: 'relation', scoreImpact: 40, description: '绿能科技部分非核心高管具有在主要供应商处兼职经历，风险需进一步核查。', severity: 'medium'}) }
+      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 6500000).toISOString(), details: JSON.stringify({ ruleName: '重大客户收入依赖及返流 (R-FIN-08)', ruleId: 'R-FIN-08', dimension: 'circumstantial', scoreImpact: 80, description: '前五大客户之一的【远景新能源】与其实控人在报告期内存在通过保荐机构指定账户间接进行资金回转（约1200万）的情况，存在提前确认收入粉饰利润的嫌疑。', severity: 'critical'}) },
+      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 6000000).toISOString(), details: JSON.stringify({ ruleName: '政府补贴依赖度超红线 (R-FIN-03)', ruleId: 'R-FIN-03', dimension: 'circumstantial', scoreImpact: 50, description: '扣非净利润中有近65%来源于地方新能源补贴，且该补贴政策将于明年一季度到期，面临极高持续盈利风险。', severity: 'medium'}) },
+      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 5000000).toISOString(), details: JSON.stringify({ ruleName: '隐层关联控制嫌疑', ruleId: 'R-MGMT-09', dimension: 'identity', scoreImpact: 40, description: '绿能科技部分非核心高管具有在主要供应商处兼职经历，风险需进一步核查。', severity: 'medium'}) }
     ],
     entities: [
       { type: 'COMPANY', name: '绿能科技(拟发行)', attributes: { registeredCapital: '1.2亿', address: '苏州工业园区' } },
@@ -88,7 +86,7 @@ export const demoProjectDetailsMap: Record<string, any> = {
       { action: 'INFO', createdAt: new Date(Date.now() - 140000).toISOString(), details: JSON.stringify({ message: '核对投资组合内85家被投企业及其董监高体系。' }) },
       { action: 'INFO', createdAt: new Date(Date.now() - 120000).toISOString(), details: JSON.stringify({ message: '抽取【普华永道审计往来款底稿】中的资金往来记录进行比对。' }) },
       { action: 'RED_FLAG', createdAt: new Date(Date.now() - 90000).toISOString(), details: JSON.stringify({ ruleName: '未披露大额关联拆借 (R-AUDIT-04)', ruleId: 'R-AUDIT-04', dimension: 'behavior', scoreImpact: 50, description: '审计清单中存在一笔向【星光创投合伙企业】支出的3000万短期过桥借款，该合伙企业实质GP为鼎信资本CFO陈某，未在当年关联交易决议中明确披露。', severity: 'medium'}) },
-      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 60000).toISOString(), details: JSON.stringify({ ruleName: '高管违规跨层兼职 (R-MGMT-05)', ruleId: 'R-MGMT-05', dimension: 'relation', scoreImpact: 20, description: '投资总监王某在旗下三家被投企业担任执行董事且领取薪酬，违反内部利益冲突豁免条款。', severity: 'low'}) }
+      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 60000).toISOString(), details: JSON.stringify({ ruleName: '高管违规跨层兼职 (R-MGMT-05)', ruleId: 'R-MGMT-05', dimension: 'identity', scoreImpact: 20, description: '投资总监王某在旗下三家被投企业担任执行董事且领取薪酬，违反内部利益冲突豁免条款。', severity: 'low'}) }
     ],
     entities: [
       { type: 'COMPANY', name: '鼎信资本控股', attributes: { registeredCapital: '10亿', address: '深圳南山区' } },
@@ -124,7 +122,7 @@ export const demoProjectDetailsMap: Record<string, any> = {
       { action: 'INFO', createdAt: new Date(Date.now() - 750000).toISOString(), details: JSON.stringify({ message: 'NLP解析工程款审批流、监理签名及施工支付节点明细...' }) },
       { action: 'INFO', createdAt: new Date(Date.now() - 600000).toISOString(), details: JSON.stringify({ message: '触发全量围标清洗及关系人比对脚本。' }) },
       { action: 'RED_FLAG', createdAt: new Date(Date.now() - 500000).toISOString(), details: JSON.stringify({ ruleName: '预售资金违规挪用 (R-REAL-01)', ruleId: 'R-REAL-01', dimension: 'behavior', scoreImpact: 100, description: '发现累计1.2亿预售款在进入监管账户后48小时内，以“主体土建工程预付款”名义超额支付给总包【中建九局】，总包随后即划转入体外的材料贸易空壳公司。', severity: 'critical'}) },
-      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 450000).toISOString(), details: JSON.stringify({ ruleName: '重大项目舞弊与利益输送 (R-FRAUD-09)', ruleId: 'R-FRAUD-09', dimension: 'relation', scoreImpact: 85, description: '土方工程分包商【广州鼎盛沙石】的实际控制人与其项目的开发工程总监刘某存在直系亲属关系，且该分包商资质评级D级却连续中标。', severity: 'critical'}) },
+      { action: 'RED_FLAG', createdAt: new Date(Date.now() - 450000).toISOString(), details: JSON.stringify({ ruleName: '重大项目舞弊与利益输送 (R-FRAUD-09)', ruleId: 'R-FRAUD-09', dimension: 'identity', scoreImpact: 85, description: '土方工程分包商【广州鼎盛沙石】的实际控制人与其项目的开发工程总监刘某存在直系亲属关系，且该分包商资质评级D级却连续中标。', severity: 'critical'}) },
       { action: 'RED_FLAG', createdAt: new Date(Date.now() - 400000).toISOString(), details: JSON.stringify({ ruleName: '工程节点假审签 (R-DOC-03)', ruleId: 'R-DOC-03', dimension: 'behavior', scoreImpact: 35, description: '识别到第三期工程款请款单上的监理签审笔迹及时间与施工日志严重悖离。', severity: 'high'}) }
     ],
     entities: [
@@ -164,7 +162,7 @@ Object.values(demoProjectDetailsMap).forEach(detail => {
 });
 
 export const mockProjects = [
-  { id: 1001, name: "星巴达（大连）企业重组审查项目", scenario: "深度欺诈审查", riskScore: demoProjectDetailsMap['1001'].project.riskScore, riskLevel: demoProjectDetailsMap['1001'].project.riskLevel, docCount: 14, createdAt: demoProjectDetailsMap['1001'].project.createdAt },
+  { id: 1001, name: "发行人关联交易智能核查项目", scenario: "IPO关联交易核查", riskScore: demoProjectDetailsMap['1001'].project.riskScore, riskLevel: demoProjectDetailsMap['1001'].project.riskLevel, docCount: 14, createdAt: demoProjectDetailsMap['1001'].project.createdAt },
   { id: 1002, name: "绿能科技IPO主体资金流穿透", scenario: "IPO审查", riskScore: demoProjectDetailsMap['1002'].project.riskScore, riskLevel: demoProjectDetailsMap['1002'].project.riskLevel, docCount: 32, createdAt: demoProjectDetailsMap['1002'].project.createdAt },
   { id: 1003, name: "鼎信资本年度审计关联方排查", scenario: "年度审计异常追踪", riskScore: demoProjectDetailsMap['1003'].project.riskScore, riskLevel: demoProjectDetailsMap['1003'].project.riskLevel, docCount: 8, createdAt: demoProjectDetailsMap['1003'].project.createdAt },
   { id: 1004, name: "华泰置业烂尾楼资金抽逃协查", scenario: "内部反欺诈审查", riskScore: demoProjectDetailsMap['1004'].project.riskScore, riskLevel: demoProjectDetailsMap['1004'].project.riskLevel, docCount: 105, createdAt: demoProjectDetailsMap['1004'].project.createdAt },
@@ -180,11 +178,11 @@ export const getMockProjectDetail = (id: string | number) => {
 };
 
 export const mockRules = [
-  { id: 'R-ADDR-01', name: '高密聚类注册地址重叠', category: RISK_DIMENSIONS.relation.name, weight: 50, status: 'enabled', updatedAt: '2026-04-10', owner: '审计风控组' },
-  { id: 'R-MGMT-02', name: '隐藏高管交叉控股/任职', category: RISK_DIMENSIONS.relation.name, weight: 85, status: 'enabled', updatedAt: '2026-04-12', owner: '审计风控组' },
+  { id: 'R-ADDR-01', name: '高密聚类注册地址重叠', category: RISK_DIMENSIONS.identity.name, weight: 50, status: 'enabled', updatedAt: '2026-04-10', owner: '审计风控组' },
+  { id: 'R-MGMT-02', name: '隐藏高管交叉控股/任职', category: RISK_DIMENSIONS.identity.name, weight: 85, status: 'enabled', updatedAt: '2026-04-12', owner: '审计风控组' },
   { id: 'R-FUND-09', name: '短期异常资金回路 (72h内)', category: RISK_DIMENSIONS.behavior.name, weight: 90, status: 'enabled', updatedAt: '2026-04-15', owner: '资金合规组' },
-  { id: 'R-TEND-04', name: '供应商与员工电话/邮箱重叠', category: RISK_DIMENSIONS.behavior.name, weight: 35, status: 'enabled', updatedAt: '2026-03-22', owner: '采购合规组' },
-  { id: 'R-FIN-01', name: '毛利率显著背离行业均值', category: RISK_DIMENSIONS.financial.name, weight: 15, status: 'disabled', updatedAt: '2026-01-05', owner: '数据模型组' }
+  { id: 'R-TEND-04', name: '供应商与员工电话/邮箱重叠', category: RISK_DIMENSIONS.circumstantial.name, weight: 35, status: 'enabled', updatedAt: '2026-03-22', owner: '采购合规组' },
+  { id: 'R-FIN-01', name: '毛利率显著背离行业均值', category: RISK_DIMENSIONS.circumstantial.name, weight: 15, status: 'disabled', updatedAt: '2026-01-05', owner: '数据模型组' }
 ];
 
 export const mockKb = [

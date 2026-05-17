@@ -22,28 +22,28 @@ const TEMPLATES: Record<string, {
     description: string;
   }[]
 }> = {
-  'IPO审查': {
+  'IPO关联交易核查': {
     rules: [
       {
-        ruleId: 'IPO-R-01',
-        ruleName: '前五大客户集中度预警',
-        dimension: 'relation',
-        impactRange: [40, 70],
-        description: '发现核心客户集中度偏高，需排查是否存在潜在的利益输送或隐性关联。'
+        ruleId: 'IPO-ID-01',
+        ruleName: '实控人/最终受益人同源',
+        dimension: 'identity',
+        impactRange: [25, 40],
+        description: '发现交易对手最终控制人与发行人实控人指向同一人。'
       },
       {
-        ruleId: 'IPO-F-01',
-        ruleName: '收入确认时点敏感',
-        dimension: 'financial',
-        impactRange: [60, 90],
-        description: '部分大额非标收入在期末集中确认，存在跨期调节利润的嫌疑。'
-      },
-      {
-        ruleId: 'IPO-B-01',
-        ruleName: '关键岗位人员异动',
+        ruleId: 'IPO-BEH-01',
+        ruleName: '突击异常交易',
         dimension: 'behavior',
-        impactRange: [20, 50],
-        description: '申报期内财务与风控负责人存在离职与换岗记录。'
+        impactRange: [30, 50],
+        description: '申报期内交易金额激增，关联业务比例畸高。'
+      },
+      {
+        ruleId: 'IPO-CIRC-01',
+        ruleName: '外围联系方式及单据匹配',
+        dimension: 'circumstantial',
+        impactRange: [20, 30],
+        description: '检测到与境外主体存在传真、电话、地址乃至装箱单模板制作者重叠现象。'
       }
     ]
   },
@@ -59,16 +59,16 @@ const TEMPLATES: Record<string, {
       {
         ruleId: 'AUD-R-01',
         ruleName: '隐性关联任职关联',
-        dimension: 'relation',
+        dimension: 'identity',
         impactRange: [20, 50],
         description: '提取到高管疑似在核心供应商体系内有未披露的兼职或干股。'
       },
       {
         ruleId: 'AUD-F-01',
-        ruleName: '个别费用率偏离',
-        dimension: 'financial',
+        ruleName: '负面舆情或诉讼佐证',
+        dimension: 'circumstantial',
         impactRange: [10, 30],
-        description: '某些渠道推广费用异常显著增长，与营收匹配度不高。'
+        description: '外围数据发现历史上有共同成为被执行人或互相担保关联。'
       }
     ]
   },
@@ -83,17 +83,17 @@ const TEMPLATES: Record<string, {
       },
       {
         ruleId: 'AF-R-01',
-        ruleName: '供应商信息高密重叠',
-        dimension: 'relation',
+        ruleName: '信息高密重叠',
+        dimension: 'identity',
         impactRange: [60, 90],
-        description: '检测到多家中型供应商的实际注册邮箱或联系人电话雷同，涉嫌围标串标。'
+        description: '检测到注册邮箱或联系人电话雷同，隐蔽控制明显。'
       },
       {
         ruleId: 'AF-F-01',
-        ruleName: '资金实际用途背离',
-        dimension: 'financial',
+        ruleName: '外围资质造假相关',
+        dimension: 'circumstantial',
         impactRange: [40, 60],
-        description: '部分报销及请款单据的摘要与最终资金流出的收款方性质存在明显差异。'
+        description: '公开招投标信息外围数据显示存在围标嫌疑。'
       }
     ]
   },
@@ -109,16 +109,16 @@ const TEMPLATES: Record<string, {
       {
         ruleId: 'DF-R-01',
         ruleName: '实控关联链异常隐蔽',
-        dimension: 'relation',
+        dimension: 'identity',
         impactRange: [80, 100],
         description: '实际控制人通过多层有限合伙或空壳公司交叉控制核心业务节点。'
       },
       {
         ruleId: 'DF-F-01',
-        ruleName: '异常巨额现金交易',
-        dimension: 'financial',
+        ruleName: '资产负面划转',
+        dimension: 'circumstantial',
         impactRange: [60, 80],
-        description: '存在大量无合理商业逻辑的现金结算与公转私提取记录。'
+        description: '存在无合理商业实质的公开资产划转与代偿外围记录。'
       }
     ]
   }
@@ -126,7 +126,7 @@ const TEMPLATES: Record<string, {
 
 export function generateInitialRiskProfile(scenario: string) {
   // Fallback to IPO if scenario is unknown
-  const template = TEMPLATES[scenario] || TEMPLATES['IPO审查'];
+  const template = TEMPLATES[scenario] || TEMPLATES['IPO关联交易核查'];
   
   const ruleHits: InitialRuleHit[] = [];
   

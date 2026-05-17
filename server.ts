@@ -52,7 +52,7 @@ async function startServer() {
         return res.status(403).json({ error: "Local demo mode. Creates are not supported in local express mock mode. Deploy to vercel." });
       }
 
-      const scene = scenario || 'IPO审查';
+      const scene = scenario || 'IPO关联交易核查';
       const { generateInitialRiskProfile } = await import("./api/_lib/initialRiskProfile.ts");
       const initialProfile = generateInitialRiskProfile(scene);
 

@@ -261,23 +261,99 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
   };
 
   const downloadBrief = () => {
-    const html = `<html><head><meta charset="utf-8"/><title>AuditEye Report - ${data.project?.name}</title><style>body{font-family: sans-serif; max-width: 800px; margin: 2rem auto; line-height: 1.6; color: #333;} h1{color: #C5A028;} .risk{font-weight: bold; color: ${score > 75 ? 'red' : '#C5A028'};} .rule{background: #f9f9f9; padding: 10px; border-left: 4px solid #C5A028; margin-bottom: 10px;}</style></head>
+    const html = `<html><head><meta charset="utf-8"/><title>关联交易风险分析报告（AI生成） - ${data.project?.name}</title><style>
+      body{font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 800px; margin: 2rem auto; line-height: 1.6; color: #333;}
+      h1{color: #C5A028; text-align: center; margin-bottom: 5px;}
+      .header-meta{text-align: center; color: #666; font-size: 0.9em; margin-bottom: 30px;}
+      .stamp{position: absolute; top: 20px; right: 20px; color: #D32F2F; border: 2px solid #D32F2F; padding: 5px 10px; font-weight: bold; transform: rotate(15deg); border-radius: 4px; font-size: 0.8em;}
+      .section{margin-bottom: 30px;}
+      h2{color: #333; border-bottom: 2px solid #C5A028; padding-bottom: 5px; margin-top: 30px;}
+      h3{color: #555; margin-bottom: 10px;}
+      .risk-score{font-size: 1.5em; font-weight: bold; color: ${score >= 85 ? '#D32F2F' : score >= 60 ? '#F57C00' : score >= 30 ? '#1976D2' : '#388E3C'};}
+      .rule-box{background: #f9f9f9; padding: 15px; border-left: 4px solid #C5A028; margin-bottom: 15px; border-radius: 0 4px 4px 0;}
+      .rule-box h4{margin: 0 0 5px 0; color: #D32F2F;}
+      ul{padding-left: 20px; margin-top: 5px;}
+      .footer-note{margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 0.8em; color: #888;}
+    </style></head>
 <body>
-  <h1>AuditEye 专项审计简报</h1>
-  <h2>项目: ${data.project?.name}</h2>
-  <p>分析场景: ${data.project?.scenario}</p>
-  <p>综合风险评价: <span class="risk">${score} 分 (${riskLevel.label})</span></p>
-  <h3>核心风险关注点:</h3>
-  ${rulesHit.length > 0 ? rulesHit.map((r:any) => {
-    const d = JSON.parse(r.details);
-    return `<div class="rule"><strong>${d.ruleName}</strong><br/>${d.description}</div>`;
-  }).join('') : '<p>暂无高危风险点</p>'}
+  <div class="stamp">机密文件 / 仅供内部使用</div>
+  <h1>关联交易风险分析报告（AI生成）</h1>
+  <div class="header-meta">
+    项目名称：${data.project?.name}<br/>
+    被审计主体：${entities.find((e:any) => e.type === 'COMPANY' && e.name.includes('发行'))?.name || data.project?.name}<br/>
+    核查范围：2021.01.01 - 2024.04.30<br/>
+    报告日期：2024年5月20日<br/>
+    生成工具：AuditEye 智能审计分析平台
+  </div>
+
+  <div class="section">
+    <h2>01 项目概述</h2>
+    <p><strong>核查目标：</strong>针对发行人关联交易真实性、完整性及资金流向进行智能风险识别与分析，揭示潜在隐性关联关系及异常交易行为。</p>
+    <p><strong>核查范围：</strong></p>
+    <ul>
+      <li>工商及股权穿透数据</li>
+      <li>财务与ERP交易数据</li>
+      <li>发票与合同数据</li>
+      <li>银行流水数据</li>
+      <li>公开信息及舆情数据</li>
+    </ul>
+    <p><strong>核查结论：</strong></p>
+    <ul>
+      <li>高风险关联主体：3个</li>
+      <li>异常资金/交易路径：2条</li>
+      <li>疑似隐性关联交易：5笔</li>
+      <li><strong>建议进一步人工复核与补充审计程序</strong></li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>02 风险发现详情</h2>
+    <p>综合风险评分：<span class="risk-score">${score}/100（${riskLevel.label}）</span></p>
+    
+    ${rulesHit.length > 0 ? rulesHit.map((r:any) => {
+      const d = JSON.parse(r.details);
+      return `
+      <div class="rule-box">
+        <h4>${d.ruleName || '隐性关联风险'}</h4>
+        <p><strong>风险等级：</strong>${d.severity === 'critical' ? '极高风险' : d.severity === 'high' ? '高风险' : d.severity === 'medium' ? '中风险' : '低风险'}</p>
+        <p><strong>风险描述：</strong>${d.description}</p>
+        <p><strong>AI识别依据：</strong>系统识别到交易对手与发行人之间存在多重关联迹象。综合运用工商股权穿透分析、历史企业信息变更回溯、ERP交易数据关联、业务单据匹配等智能核查手段。</p>
+        <p><strong>证据链提点：</strong></p>
+        <ul>
+          <li>基于预警模型 [${d.dimension}]，单项贡献预警得分 +${d.scoreImpact}分。</li>
+        </ul>
+      </div>`;
+    }).join('') : '<p>分析未见显著异常。</p>'}
+
+    <h3>建议动作：</h3>
+    <ul>
+      <li>补充审计程序</li>
+      <li>获取支持性证据</li>
+      <li>穿透核查关联关系</li>
+      <li>持续监控交易金额和资金流向</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>03 附件</h2>
+    <ul>
+      <li>附件1：关联方股权穿透图谱</li>
+      <li>附件2：交易明细与匹配分析表</li>
+      <li>附件3：资金流水路径图</li>
+      <li>附件4：异常关联分析报告</li>
+      <li>附件5：相关公开工商信息截图</li>
+    </ul>
+  </div>
+
+  <div class="footer-note">
+    <p>注：本报告由 AuditEye 智能审计分析平台生成，仅供参考。所有结论需结合人工审计程序、原始凭证、访谈记录及外部函证进行复核确认。本系统输出不构成最终审计意见或法律结论。</p>
+  </div>
 </body></html>`;
     const a = document.createElement('a');
     a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
-    a.download = `AuditEye_Brief_${data.project?.id || 'export'}.html`;
+    a.download = `AuditEye_Related_Party_Report_${data.project?.id || 'export'}.html`;
     a.click();
-    toast('专项简报已下载', 'success');
+    toast('专项关联交易报告（AI生成）已下载', 'success');
   };
 
   return (
@@ -422,16 +498,16 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
               </div>
               <div className="flex-1 flex flex-col justify-center space-y-3">
                 <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.relation.name} ({RISK_DIMENSIONS.relation.weight * 100}%)</span> <span className="text-red-400">{dimScores.relation} 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-red-500" style={{ width: `${dimScores.relation}%` }}></div></div>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.identity?.name || '身份关联识别'} ({(RISK_DIMENSIONS.identity?.weight || 0.6) * 100}%)</span> <span className="text-red-400">{dimScores.identity} 分</span></div>
+                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-red-500" style={{ width: `${dimScores.identity}%` }}></div></div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.behavior.name} ({RISK_DIMENSIONS.behavior.weight * 100}%)</span> <span className="text-[#D4AF37]">{dimScores.behavior} 分</span></div>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.behavior?.name || '交易行为异常'} ({(RISK_DIMENSIONS.behavior?.weight || 0.3) * 100}%)</span> <span className="text-[#D4AF37]">{dimScores.behavior} 分</span></div>
                   <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-[#D4AF37]" style={{ width: `${dimScores.behavior}%` }}></div></div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.financial.name} ({RISK_DIMENSIONS.financial.weight * 100}%)</span> <span className="text-green-500">{dimScores.financial} 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${dimScores.financial}%` }}></div></div>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.circumstantial?.name || '外围关联佐证'} ({(RISK_DIMENSIONS.circumstantial?.weight || 0.1) * 100}%)</span> <span className="text-green-500">{dimScores.circumstantial} 分</span></div>
+                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${dimScores.circumstantial}%` }}></div></div>
                 </div>
               </div>
             </div>
@@ -617,6 +693,38 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
               )}
               {activeTab === 'graph' && (
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  {id === '1001' && (
+                    <div className="bg-[#242424] border border-[#D4AF37]/50 rounded hover:border-[#D4AF37] transition-colors flex flex-col shadow-lg shadow-[#D4AF37]/5 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-12 h-12 overflow-hidden pointer-events-none">
+                        <div className="bg-[#D4AF37] text-black text-[8px] font-bold py-0.5 px-6 rotate-45 transform origin-top-left translate-x-3 translate-y-2 whitespace-nowrap shadow-sm">
+                          公开信息发现
+                        </div>
+                      </div>
+                      <div className="p-3 border-b border-[#333333] flex justify-between items-start">
+                        <div>
+                          <div className="text-[10px] font-medium text-[#D4AF37] flex items-center gap-1 mb-1"><ShieldAlert className="w-3 h-3" /> 公开工商信息回溯卡片</div>
+                          <div className="text-xs text-gray-200 font-medium">历史代持排查</div>
+                        </div>
+                        <span className="text-[9px] text-gray-500 bg-[#1A1A1A] px-1.5 py-0.5 rounded border border-[#333333] z-10">TianYancha</span>
+                      </div>
+                      <div className="p-3 flex-1 flex flex-col">
+                         <p className="text-[11px] text-gray-400 font-serif leading-relaxed mb-3">
+                           【工商穿透分析】发现‘山东登XX汽配销售有限公司’的历史股东中，发行人现任董办秘书曾代持 15% 股份，后于申报前 6 个月匆忙转让。
+                           <br/><br/>
+                           <span className="text-gray-500">— 数据来源：全国企业信用信息公示系统 / 天眼查库</span>
+                         </p>
+                         <div className="mt-auto flex justify-end gap-2">
+                           <button onClick={() => toast('功能演示中，暂不提供外链', 'info')} className="text-[10px] text-gray-500 hover:text-[#D4AF37]">查看原始快照</button>
+                           <button onClick={(e) => {
+                             toast('已摘录入底稿', 'success');
+                             (e.target as HTMLButtonElement).innerText = '已添加';
+                             (e.target as HTMLButtonElement).classList.replace('text-blue-400', 'text-green-500');
+                             (e.target as HTMLButtonElement).disabled = true;
+                           }} className="text-[10px] text-blue-400 font-medium hover:opacity-80">加入底稿</button>
+                         </div>
+                      </div>
+                    </div>
+                  )}
                  {rels.map((r: any, i: number) => (
                     <div key={i} className="bg-[#242424] border border-[#333333] rounded hover:border-[#D4AF37]/50 transition-colors flex flex-col">
                       <div className="p-3 border-b border-[#333333] flex justify-between items-start">

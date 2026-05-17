@@ -15,6 +15,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { label: '项目管理', path: '/', icon: <Folder className="w-4 h-4" /> },
     { label: '知识库', path: '/knowledge', icon: <BookOpen className="w-4 h-4" /> },
     { label: '规则引擎', path: '/rules', icon: <Settings className="w-4 h-4" /> },
+    { label: '合规与伦理', path: '/compliance', icon: <Shield className="w-4 h-4" /> },
   ];
 
   return (
