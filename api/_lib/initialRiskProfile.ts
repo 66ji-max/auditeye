@@ -28,21 +28,35 @@ const TEMPLATES: Record<string, {
         ruleId: 'IPO-ID-01',
         ruleName: '实控人/最终受益人同源',
         dimension: 'identity',
-        impactRange: [25, 40],
+        impactRange: [25, 25],
         description: '发现交易对手最终控制人与发行人实控人指向同一人。'
+      },
+      {
+        ruleId: 'IPO-ID-02',
+        ruleName: '多层股权嵌套控制',
+        dimension: 'identity',
+        impactRange: [15, 15],
+        description: '系统发现4级控股结构，涉及广东到山东的跨地域控股。'
+      },
+      {
+        ruleId: 'IPO-ID-03',
+        ruleName: '曾用名字号关联',
+        dimension: 'identity',
+        impactRange: [8, 8],
+        description: '交易对手曾用名包含发行人核心字号，紧邻申报期突击重名。'
       },
       {
         ruleId: 'IPO-BEH-01',
         ruleName: '突击异常交易',
         dimension: 'behavior',
-        impactRange: [30, 50],
+        impactRange: [29, 29],
         description: '申报期内交易金额激增，关联业务比例畸高。'
       },
       {
         ruleId: 'IPO-CIRC-01',
         ruleName: '外围联系方式及单据匹配',
         dimension: 'circumstantial',
-        impactRange: [20, 30],
+        impactRange: [10, 10],
         description: '检测到与境外主体存在传真、电话、地址乃至装箱单模板制作者重叠现象。'
       }
     ]

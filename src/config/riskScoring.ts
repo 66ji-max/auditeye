@@ -3,16 +3,19 @@ export const RISK_DIMENSIONS = {
     id: 'identity',
     name: '身份关联识别',
     weight: 0.6,
+    maxScore: 60
   },
   behavior: {
     id: 'behavior',
     name: '交易行为异常',
     weight: 0.3,
+    maxScore: 30
   },
   circumstantial: {
     id: 'circumstantial',
     name: '外围关联佐证',
     weight: 0.1,
+    maxScore: 10
   }
 } as const;
 
@@ -47,16 +50,12 @@ export function calculateProjectRisk(ruleHits: Array<{ scoreImpact: number; dime
     }
   }
 
-  // Cap each dimension at 100
-  dimensionScores.identity = Math.min(100, dimensionScores.identity);
-  dimensionScores.behavior = Math.min(100, dimensionScores.behavior);
-  dimensionScores.circumstantial = Math.min(100, dimensionScores.circumstantial);
+  // Cap each dimension at maxScore
+  dimensionScores.identity = Math.min(RISK_DIMENSIONS.identity.maxScore, dimensionScores.identity);
+  dimensionScores.behavior = Math.min(RISK_DIMENSIONS.behavior.maxScore, dimensionScores.behavior);
+  dimensionScores.circumstantial = Math.min(RISK_DIMENSIONS.circumstantial.maxScore, dimensionScores.circumstantial);
 
-  const totalScore = Math.floor(
-    dimensionScores.identity * RISK_DIMENSIONS.identity.weight +
-    dimensionScores.behavior * RISK_DIMENSIONS.behavior.weight +
-    dimensionScores.circumstantial * RISK_DIMENSIONS.circumstantial.weight
-  );
+  const totalScore = dimensionScores.identity + dimensionScores.behavior + dimensionScores.circumstantial;
 
   return {
     totalScore: Math.min(100, Math.max(0, totalScore)), // Cap overall score

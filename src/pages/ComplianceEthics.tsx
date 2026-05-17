@@ -33,6 +33,13 @@ export default function ComplianceEthics() {
                 </div>
               </div>
               <div className="flex gap-4">
+                <Lock className="w-5 h-5 text-gray-500 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-medium text-gray-300">加密存储</h3>
+                  <p className="text-xs text-gray-500 mt-1">数据传输与存储全程加密，访问全链路审计。</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
                 <Eye className="w-5 h-5 text-gray-500 shrink-0 mt-0.5" />
                 <div>
                   <h3 className="text-sm font-medium text-gray-300">防反推与最小化采集</h3>
@@ -96,6 +103,13 @@ export default function ComplianceEthics() {
                 <div>
                   <h3 className="text-sm font-medium text-gray-300">完整审计留痕</h3>
                   <p className="text-xs text-gray-500 mt-1">系统记录每次底层模型调用的版本、预设提示词、文档切片及输出结果与修正反馈，操作全记录。</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <ShieldCheck className="w-5 h-5 text-gray-500 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-medium text-gray-300">操作追踪</h3>
+                  <p className="text-xs text-gray-500 mt-1">用户行为全链路追踪，关键操作不可篡改。</p>
                 </div>
               </div>
               <div className="flex gap-4">

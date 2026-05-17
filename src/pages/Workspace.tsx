@@ -85,12 +85,14 @@ const D3Graph = ({ entities, relationships, onNodeClick, onEdgeClick }: { entiti
     const zoomGroup = svg.append("g");
     svg.call(d3.zoom().scaleExtent([0.5, 4]).on("zoom", (e) => zoomGroup.attr("transform", e.transform)) as any);
 
+    const isHighRiskRel = (rType: string) => ['HIGH_RISK_OVERLAP', 'FORMER_NAME', 'ULTIMATE_CONTROLLER', 'DOCUMENT_MATCH', 'ABNORMAL_TRANSACTION', 'BUSINESS_CROSSCHECK', 'CONTACT_MATCH', 'RELATED_PARTY_TRANSACTION'].includes(rType);
+
     const link = zoomGroup.append("g")
       .selectAll("line")
       .data(links)
       .join("line")
-      .attr("stroke", (d: any) => d.relationType === 'HIGH_RISK_OVERLAP' ? '#ef4444' : '#4B5563')
-      .attr("stroke-width", (d: any) => d.relationType === 'HIGH_RISK_OVERLAP' ? 2 : 1.5)
+      .attr("stroke", (d: any) => isHighRiskRel(d.relationType) ? '#ef4444' : '#4B5563')
+      .attr("stroke-width", (d: any) => isHighRiskRel(d.relationType) ? 2 : 1.5)
       .attr("stroke-dasharray", (d: any) => d.type === 'SHAREHOLDER' ? "0" : "4")
       .style("cursor", "pointer")
       .on("click", (e, d: any) => { e.stopPropagation(); onEdgeClick(d); });
@@ -146,7 +148,7 @@ export default function Workspace() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
-  const [query, setQuery] = useState('分析A公司与B公司的关联风险');
+  const [query, setQuery] = useState('分析登XX发行主体与山东旺XX汽车零部件有限公司的关联交易风险');
   const [loading, setLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [selectedEdge, setSelectedEdge] = useState<any>(null);
@@ -235,9 +237,9 @@ export default function Workspace() {
 --------------------------------------------------
 【风险评估】
 综合评分: ${score} - ${riskLevel.label}
-关联关系风险: ${dimScores.relation} 分
-行为异动风险: ${dimScores.behavior} 分
-财务异常风险: ${dimScores.financial} 分
+身份关联识别: ${dimScores.identity} 分
+交易行为异常: ${dimScores.behavior} 分
+外围关联佐证: ${dimScores.circumstantial} 分
 --------------------------------------------------
 【红旗规则命中】
 ${rulesHit.length > 0 ? rulesHit.map((r: any, i: number) => {
@@ -324,6 +326,16 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
         </ul>
       </div>`;
     }).join('') : '<p>分析未见显著异常。</p>'}
+
+      <div class="rule-box">
+        <h4>人工智能特定证据提取记录</h4>
+        <p><strong>名称关联：</strong>曾用名“山东登XX汽配销售有限公司”包含核心字号“登XX”。</p>
+        <p><strong>股权穿透：</strong>欧XX → 广州富XX → 肇庆达XX → 山东富XX → 山东旺XX汽车零部件有限公司。</p>
+        <p><strong>跨地域控制：</strong>广东 → 山东。</p>
+        <p><strong>联系方式匹配：</strong>传真、电话、联系地址与美国登X高度一致。</p>
+        <p><strong>单据同源：</strong>订单、发票、装箱单模板或制作主体同源。</p>
+        <p><strong>交易异常：</strong>山东富XX 2010年96.39万、2011年389.02万；山东旺XX 2010年115.51万、2011年553.49万、2012年770.13万。</p>
+      </div>
 
     <h3>建议动作：</h3>
     <ul>
@@ -498,16 +510,16 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
               </div>
               <div className="flex-1 flex flex-col justify-center space-y-3">
                 <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.identity?.name || '身份关联识别'} ({(RISK_DIMENSIONS.identity?.weight || 0.6) * 100}%)</span> <span className="text-red-400">{dimScores.identity} 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-red-500" style={{ width: `${dimScores.identity}%` }}></div></div>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.identity?.name || '身份关联识别'} (最高 {RISK_DIMENSIONS.identity?.maxScore || 60}分)</span> <span className="text-red-400">{dimScores.identity} 分</span></div>
+                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-red-500" style={{ width: `${(dimScores.identity / (RISK_DIMENSIONS.identity?.maxScore || 60)) * 100}%` }}></div></div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.behavior?.name || '交易行为异常'} ({(RISK_DIMENSIONS.behavior?.weight || 0.3) * 100}%)</span> <span className="text-[#D4AF37]">{dimScores.behavior} 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-[#D4AF37]" style={{ width: `${dimScores.behavior}%` }}></div></div>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.behavior?.name || '交易行为异常'} (最高 {RISK_DIMENSIONS.behavior?.maxScore || 30}分)</span> <span className="text-[#D4AF37]">{dimScores.behavior} 分</span></div>
+                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-[#D4AF37]" style={{ width: `${(dimScores.behavior / (RISK_DIMENSIONS.behavior?.maxScore || 30)) * 100}%` }}></div></div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.circumstantial?.name || '外围关联佐证'} ({(RISK_DIMENSIONS.circumstantial?.weight || 0.1) * 100}%)</span> <span className="text-green-500">{dimScores.circumstantial} 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${dimScores.circumstantial}%` }}></div></div>
+                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.circumstantial?.name || '外围关联佐证'} (最高 {RISK_DIMENSIONS.circumstantial?.maxScore || 10}分)</span> <span className="text-green-500">{dimScores.circumstantial} 分</span></div>
+                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${(dimScores.circumstantial / (RISK_DIMENSIONS.circumstantial?.maxScore || 10)) * 100}%` }}></div></div>
                 </div>
               </div>
             </div>
@@ -708,31 +720,48 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                         <span className="text-[9px] text-gray-500 bg-[#1A1A1A] px-1.5 py-0.5 rounded border border-[#333333] z-10">TianYancha</span>
                       </div>
                       <div className="p-3 flex-1 flex flex-col">
-                         <p className="text-[11px] text-gray-400 font-serif leading-relaxed mb-3">
-                           【工商穿透分析】发现‘山东登XX汽配销售有限公司’的历史股东中，发行人现任董办秘书曾代持 15% 股份，后于申报前 6 个月匆忙转让。
-                           <br/><br/>
-                           <span className="text-gray-500">— 数据来源：全国企业信用信息公示系统 / 天眼查库</span>
-                         </p>
-                         <div className="mt-auto flex justify-end gap-2">
-                           <button onClick={() => toast('功能演示中，暂不提供外链', 'info')} className="text-[10px] text-gray-500 hover:text-[#D4AF37]">查看原始快照</button>
-                           <button onClick={(e) => {
-                             toast('已摘录入底稿', 'success');
-                             (e.target as HTMLButtonElement).innerText = '已添加';
-                             (e.target as HTMLButtonElement).classList.replace('text-blue-400', 'text-green-500');
-                             (e.target as HTMLButtonElement).disabled = true;
-                           }} className="text-[10px] text-blue-400 font-medium hover:opacity-80">加入底稿</button>
+                         <div className="text-[10px] text-gray-400 space-y-1 mb-3">
+                           <div><span className="text-gray-500">数据来源：</span> 公开工商信息 / 商业征信页面</div>
+                           <div><span className="text-gray-500">页面状态：</span> 已脱敏</div>
+                           <div><span className="text-gray-500">更新时间：</span> 2026-04-14</div>
+                           <div><span className="text-gray-500">可回溯字段：</span> 基本信息、曾用名、股东信息、变更记录、经营范围、联系方式</div>
+                         </div>
+                         <div className="text-[10px] text-gray-300 mb-3 space-y-1 bg-[#1A1A1A] p-2 rounded border border-[#333333]">
+                           <div className="font-semibold text-[#D4AF37] mb-1">证据锚点：</div>
+                           <div>• TY-BASE-001：企业基本信息</div>
+                           <div>• TY-CHANGE-002：名称/地址/经营范围变更记录</div>
+                           <div>• TY-SHARE-003：股权穿透链</div>
+                           <div>• TY-CONTACT-004：联系方式/地址匹配</div>
+                         </div>
+                         <div className="mt-auto">
+                           <div className="text-[9px] text-gray-500 bg-[#333333]/50 p-1.5 rounded mb-2 leading-relaxed">
+                             本系统输出为智能辅助判断，需结合人工复核、原始凭证、访谈记录及审计程序确认。
+                           </div>
+                           <div className="flex justify-end gap-2">
+                             <button onClick={() => toast('功能演示中，暂不提供外链', 'info')} className="text-[10px] text-gray-500 hover:text-[#D4AF37]">查看原始快照</button>
+                             <button onClick={(e) => {
+                               toast('已摘录入底稿', 'success');
+                               (e.target as HTMLButtonElement).innerText = '已添加';
+                               (e.target as HTMLButtonElement).classList.replace('text-blue-400', 'text-green-500');
+                               (e.target as HTMLButtonElement).disabled = true;
+                             }} className="text-[10px] text-blue-400 font-medium hover:opacity-80">加入底稿</button>
+                           </div>
                          </div>
                       </div>
                     </div>
                   )}
-                 {rels.map((r: any, i: number) => (
-                    <div key={i} className="bg-[#242424] border border-[#333333] rounded hover:border-[#D4AF37]/50 transition-colors flex flex-col">
+                 {rels.map((r: any, i: number) => {
+                    const isHighRisk = ['HIGH_RISK_OVERLAP', 'FORMER_NAME', 'ULTIMATE_CONTROLLER', 'DOCUMENT_MATCH', 'ABNORMAL_TRANSACTION', 'BUSINESS_CROSSCHECK', 'CONTACT_MATCH', 'RELATED_PARTY_TRANSACTION'].includes(r.relationType);
+                    return (
+                    <div key={i} className={`bg-[#242424] border ${isHighRisk ? 'border-red-500/50' : 'border-[#333333]'} rounded hover:border-[#D4AF37]/50 transition-colors flex flex-col`}>
                       <div className="p-3 border-b border-[#333333] flex justify-between items-start">
                         <div>
-                          <div className="text-[10px] font-medium text-[#D4AF37] flex items-center gap-1 mb-1"><FileText className="w-3 h-3" /> API 数据 / 公开库</div>
+                          <div className={`text-[10px] font-medium ${isHighRisk ? 'text-red-400' : 'text-[#D4AF37]'} flex items-center gap-1 mb-1`}><FileText className="w-3 h-3" /> API 数据 / 公开库</div>
                           <div className="text-xs text-gray-200 font-medium">段落锚点 #{i+102}</div>
                         </div>
-                        <span className="text-[9px] text-gray-500 bg-[#1A1A1A] px-1.5 py-0.5 rounded border border-[#333333]">Page 1</span>
+                        <span className={`text-[9px] ${isHighRisk ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-gray-500 bg-[#1A1A1A] border-[#333333]'} px-1.5 py-0.5 rounded border`}>
+                          {isHighRisk ? '高风险预警' : 'Page 1'}
+                        </span>
                       </div>
                       <div className="p-3 flex-1 flex flex-col">
                          <p className="text-[11px] text-gray-400 font-serif leading-relaxed line-clamp-3 mb-3">
@@ -749,7 +778,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                          </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
                   {rels.length === 0 && <div className="col-span-full py-8 text-center text-xs text-gray-500">关联图谱暂无有效证据片段</div>}
                 </div>
               )}

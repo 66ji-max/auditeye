@@ -32,20 +32,26 @@ export class CorporateRegistryProvider implements DataProvider {
     console.log(`[CorporateRegistry] Fetching public records for: ${query}`);
     
     // Mock seed data representing a highly suspicious pattern match for AuditEye
-    if (query.includes('A公司') || query.includes('B公司')) {
+    if (query.includes('登XX') || query.includes('山东旺XX')) {
       return {
         entities: [
-          { type: 'COMPANY', name: 'A公司', normalizedName: 'A_CORP', attributes: { address: '高新区科技路88号1栋', status: 'active' } },
-          { type: 'COMPANY', name: 'B公司', normalizedName: 'B_CORP', attributes: { address: '高新区科技路88号3栋', status: 'active' } },
-          { type: 'COMPANY', name: '供应商Y', normalizedName: 'Y_CORP', attributes: { address: '高新区科技路88号3栋201室', founded: '2022-11-15' } },
-          { type: 'PERSON', name: '高管张某', normalizedName: 'ZHANG_MOU', attributes: { role: 'former_cto' } }
+          { type: 'COMPANY', name: '登XX发行主体', normalizedName: 'CORP_DENG', attributes: { address: '广东省肇庆市', status: 'active' } },
+          { type: 'COMPANY', name: '山东旺XX汽车零部件有限公司', normalizedName: 'CORP_WANG', attributes: { address: '山东省', status: 'active' } },
+          { type: 'COMPANY', name: '山东登XX汽配销售有限公司', normalizedName: 'CORP_DENG_SD', attributes: { address: '山东省', note: '曾用名' } },
+          { type: 'COMPANY', name: '山东富XX', normalizedName: 'CORP_FU', attributes: { status: 'active' } },
+          { type: 'COMPANY', name: '肇庆达XX', normalizedName: 'CORP_DA', attributes: { status: 'active' } },
+          { type: 'COMPANY', name: '广州富XX', normalizedName: 'CORP_GZ_FU', attributes: { status: 'active' } },
+          { type: 'PERSON', name: '欧XX', normalizedName: 'PERSON_OU', attributes: { role: 'ultimate_controller' } },
+          { type: 'COMPANY', name: '美国登X', normalizedName: 'CORP_US_DENG', attributes: { location: 'USA' } }
         ] as ExtractedEntity[],
         relationships: [
-          { source: '高管张某', target: 'A公司', type: 'FORMER_EXEC', evidence: '曾担任技术总监' },
-          { source: 'B公司', target: '供应商Y', type: 'SHAREHOLDER', evidence: 'B公司持有供应商Y 60%股份' },
-          { source: '高管张某', target: 'B公司', type: 'LEGAL_REP', evidence: '现任法定代表人' }
+          { source: '山东旺XX汽车零部件有限公司', target: '山东登XX汽配销售有限公司', type: 'FORMER_NAME', evidence: '曾用名重名风险' },
+          { source: '广州富XX', target: '肇庆达XX', type: 'HOLDING', evidence: '持股' },
+          { source: '肇庆达XX', target: '山东富XX', type: 'HOLDING', evidence: '持股' },
+          { source: '山东富XX', target: '山东旺XX汽车零部件有限公司', type: 'HOLDING', evidence: '持股' },
+          { source: '欧XX', target: '广州富XX', type: 'ULTIMATE_CONTROLLER', evidence: '最终实际控制人' }
         ],
-        rawContent: "A公司前高管张某离职后成立B公司。B公司随后控股了新成立的供应商Y。供应商Y注册在A公司隔壁办公楼。"
+        rawContent: "欧XX通过广州富XX、肇庆达XX、山东富XX等多层有限合伙嵌套交叉控股山东旺XX汽车零部件有限公司。调查显示，山东旺XX曾用名为“山东登XX汽配销售有限公司”，并与拟发行主体存在复杂的潜藏业务交集与单据同源重合现象。"
       };
     }
     

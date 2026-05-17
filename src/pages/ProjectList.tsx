@@ -242,7 +242,7 @@ export default function ProjectList() {
                   value={newProject.name}
                   onChange={e => setNewProject({...newProject, name: e.target.value})}
                   className="w-full bg-[#1A1A1A] border border-[#333333] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#D4AF37] text-white"
-                  placeholder="例如：重组尽调 A公司"
+                  placeholder="例如：发行人关联交易智能核查项目"
                 />
               </div>
               <div>

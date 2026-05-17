@@ -105,8 +105,8 @@ export function initDB() {
   const kbCount = db.prepare('SELECT COUNT(*) as c FROM kb_documents').get() as { c: number };
   if (kbCount.c === 0) {
     const insertKb = db.prepare('INSERT INTO kb_documents (id, name, status, chunks, entities, type, date) VALUES (?, ?, ?, ?, ?, ?, ?)');
-    insertKb.run('DOC-1029', 'A公司 2025 年度审计报告.pdf', '解析完成', 145, 32, '财务文书', '2026-04-18');
-    insertKb.run('DOC-1030', '供应商采购协议-B公司.docx', '解析完成', 42, 8, '业务合同', '2026-04-18');
+    insertKb.run('DOC-1029', '登XX发行主体 2025 年度审计报告.pdf', '解析完成', 145, 32, '财务文书', '2026-04-18');
+    insertKb.run('DOC-1030', '供应商采购协议-山东旺XX.docx', '解析完成', 42, 8, '业务合同', '2026-04-18');
     insertKb.run('DOC-1031', '高管名册及履历表.xlsx', '解析完成', 86, 54, '人事档案', '2026-04-17');
     insertKb.run('DOC-1032', '尽职调查初步问卷.md', '解析中...', 0, 0, '工作底稿', '2026-04-19');
   }
