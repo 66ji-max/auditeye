@@ -168,8 +168,14 @@ export default function Workspace() {
   const [activeTab, setActiveTab] = useState<'doc'|'fin'|'graph'>('doc');
   const [graphMode, setGraphMode] = useState<'all'|'minimal'>('all');
   const [showRuleSet, setShowRuleSet] = useState(false);
+  const [lastAnalysisAt, setLastAnalysisAt] = useState<Date | null>(null);
 
   const [loadingProject, setLoadingProject] = useState(true);
+
+  const formatWorkflowTime = (time?: string | Date) => {
+    const d = time ? new Date(time) : new Date();
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   const fetchProject = async () => {
     try {
@@ -199,16 +205,21 @@ export default function Workspace() {
   useEffect(() => { fetchProject(); }, [id]);
 
   const handleAnalyze = async () => {
+    const now = new Date();
+    setLastAnalysisAt(now);
     setLoading(true);
-    await fetch(`/api/projects/${id}/analyze`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetCompany: query })
-    });
-    await fetchProject();
-    setSelectedNode(null);
-    setSelectedEdge(null);
-    setLoading(false);
+    try {
+      await fetch(`/api/projects/${id}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetCompany: query })
+      });
+      await fetchProject();
+      setSelectedNode(null);
+      setSelectedEdge(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loadingProject) {
@@ -442,7 +453,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
           <div className="flex-1 overflow-y-auto px-4 py-6 relative custom-scrollbar bg-[#1A1A1A]">
             <div className="absolute left-[27px] top-8 bottom-6 w-[2px] bg-[#333333] z-0"></div>
 
-            {loading && <WorkflowStep icon={<Search className="w-3 h-3 text-[#D4AF37]" />} title="执行多源数据检索中..." status="active" time="现在" />}
+            {loading && <WorkflowStep icon={<Search className="w-3 h-3 text-[#D4AF37]" />} title="执行多源数据检索中..." status="active" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : '现在'} />}
             
             {logs.length > 0 ? (
               <>
@@ -453,7 +464,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                       key={i}
                       icon={<CheckSquare className="w-3 h-3 text-gray-400" />} 
                       title={details.message || '系统日志'}
-                      status="done" time={new Date(l.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      status="done" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : formatWorkflowTime(l.createdAt)}
                     />
                   )
                 })}
@@ -462,14 +473,14 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                     icon={<AlertTriangle className="w-3 h-3 text-red-500" />} 
                     title="风险规则命中警告" 
                     desc={`检测到 ${rulesHit.length} 项高亮风险，涉及强关系证据链。段落证据已落至工作底稿。`}
-                    status="alert" time={new Date(rulesHit[0].createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} rules={rulesHit.length}
+                    status="alert" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : formatWorkflowTime(rulesHit[0].createdAt)} rules={rulesHit.length}
                   />
                 )}
                 <WorkflowStep 
                   icon={<FileText className="w-3 h-3 text-gray-400" />} 
                   title="生成专项审计建议" 
                   desc="根据规则命中情况，已自动生成扩大抽样与业务核查指南。"
-                  status="done" time={new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} 
+                  status="done" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : formatWorkflowTime(new Date())} 
                 />
                 <WorkflowStep 
                   icon={<User className="w-3 h-3 text-gray-500" />} 
