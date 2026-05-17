@@ -83,7 +83,18 @@ const D3Graph = ({ entities, relationships, onNodeClick, onEdgeClick }: { entiti
     svg.append("rect").attr("width", "100%").attr("height", "100%").attr("fill", "url(#grid)");
 
     const zoomGroup = svg.append("g");
-    svg.call(d3.zoom().scaleExtent([0.5, 4]).on("zoom", (e) => zoomGroup.attr("transform", e.transform)) as any);
+    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.75, 2.2])
+      .wheelDelta((event: any) => {
+        const base = event.deltaMode === 1 ? 0.015 : 0.0012;
+        return -event.deltaY * base;
+      })
+      .on("zoom", (event) => {
+        zoomGroup.attr("transform", event.transform);
+      });
+
+    svg.call(zoomBehavior as any);
+    svg.on("dblclick.zoom", null);
 
     const isHighRiskRel = (rType: string) => ['HIGH_RISK_OVERLAP', 'FORMER_NAME', 'ULTIMATE_CONTROLLER', 'DOCUMENT_MATCH', 'ABNORMAL_TRANSACTION', 'BUSINESS_CROSSCHECK', 'CONTACT_MATCH', 'RELATED_PARTY_TRANSACTION'].includes(rType);
 
