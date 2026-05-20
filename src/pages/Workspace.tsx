@@ -62,7 +62,24 @@ const D3Graph = ({ entities, relationships, onNodeClick, onEdgeClick }: { entiti
     const height = containerRef.current.clientHeight;
 
     const nodes = entities.map(d => ({ ...d, id: d.name }));
-    const links = relationships.map(d => ({ ...d, source: d.source, target: d.target }));
+    
+    const nodeIds = new Set(nodes.map(n => n.id));
+    
+    const links = relationships.map(d => ({ 
+      ...d, 
+      relationType: d.relationType ?? d.type,
+      evidenceSnippet: d.evidenceSnippet ?? d.evidence,
+      source: d.source, 
+      target: d.target 
+    })).filter(d => {
+      const sourceExists = nodeIds.has(d.source);
+      const targetExists = nodeIds.has(d.target);
+      if (!sourceExists || !targetExists) {
+        console.warn(`[AuditEye] Filtered invalid relationship: source="${d.source}" (exists:${sourceExists}), target="${d.target}" (exists:${targetExists})`);
+        return false;
+      }
+      return true;
+    });
 
     const simulation = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).id((d: any) => d.id).distance(95).strength(0.75))
