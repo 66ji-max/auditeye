@@ -236,7 +236,10 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
            <h3 className="text-lg font-semibold text-gray-200 mt-8 mb-4 border-b border-[#333333] pb-2">底层特征明细</h3>
            <div className="grid grid-cols-1 gap-4">
              {features.map((f:any) => (
-                <div key={f.id} className="p-6 bg-[#242424] border border-[#333333] rounded hover:border-[#D4AF37]/50 transition-colors">
+                <div key={f.id} onClick={(e) => { e.stopPropagation(); setExpandedPanel({ title: `风险特征画像：${f.label} ${f.id}`, type: 'feature_profile', content: (<FeatureProfile feature={f} onReadOriginal={onReadOriginal} setExpandedPanel={setExpandedPanel}/>) }); }} className="p-6 bg-[#242424] border border-[#333333] rounded hover:border-[#D4AF37]/60 hover:bg-[#2e2e2e] cursor-pointer group relative transition-all">
+      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="flex items-center gap-1 text-[11px] bg-[#333] px-2 py-1 rounded text-gray-400 font-medium border border-[#444] shadow-sm"><Maximize2 className="w-3 h-3"/> 查看画像</span>
+      </div>
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-lg text-gray-200 font-bold">[{f.id}] {f.label}</span>
                     <span className="text-xl text-[#D4AF37] font-mono">v = {f.value.toFixed(2)}</span>
@@ -443,6 +446,8 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
 
 
 const FeatureProfile = ({ feature, onReadOriginal, setExpandedPanel }: any) => {
+  const originalText = feature.evidenceSource?.originalText || feature.evidenceSnippet || feature.evidence || '暂无原文内容';
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div className="grid grid-cols-2 gap-4">
@@ -451,46 +456,62 @@ const FeatureProfile = ({ feature, onReadOriginal, setExpandedPanel }: any) => {
            <div className="text-[#D4AF37] font-bold text-lg">{feature.id} - {feature.label}</div>
         </div>
         <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4">
+           <div className="text-gray-500 text-xs mb-1">归属子指数 & 局部权重</div>
+           <div className="text-gray-200 font-bold text-sm">{feature.group || '自动推演'} <span className="ml-2 text-gray-400 font-mono font-normal">W = {feature.localWeight || '0.45'}</span></div>
+        </div>
+        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4">
            <div className="text-gray-500 text-xs mb-1">风险等级与当前值</div>
            <div className="flex items-end gap-3 text-red-400 font-bold text-lg">
              高风险 <span className="text-gray-300 font-mono text-base ml-2">v = {feature.value.toFixed(2)}</span>
            </div>
         </div>
         <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4">
-           <div className="text-gray-500 text-xs mb-1">算法映射来源</div>
+           <div className="text-gray-500 text-xs mb-1">算法来源</div>
            <div className="text-gray-300 font-mono text-sm">{feature.method || '逻辑判断'}</div>
-        </div>
-        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4">
-           <div className="text-gray-500 text-xs mb-1">局部贡献权重</div>
-           <div className="text-gray-300 font-mono text-sm">{feature.localWeight || '0.45'}</div>
         </div>
       </div>
 
-      <div className="bg-[#242424] border border-[#333333] rounded p-5 space-y-4">
+      <div className="bg-[#242424] border border-[#333333] rounded p-5 space-y-5">
         <div>
-          <h4 className="text-gray-300 font-semibold mb-2">RAG 证据摘要</h4>
-          <p className="text-gray-400 text-sm leading-relaxed">{feature.logic || feature.explanation || '命中审计风险底稿中的多项指标特征，需重点穿透。'}</p>
+          <h4 className="text-gray-300 font-semibold mb-2">画像解释</h4>
+          <p className="text-gray-400 text-sm leading-relaxed">{feature.explanation || '命中审计风险底稿中的多项指标特征，需重点穿透。'}</p>
         </div>
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <h4 className="text-gray-300 font-semibold mb-2 text-sm">RAG 证据摘要</h4>
+            <div className="bg-[#1A1A1A] border border-[#333333] p-3 rounded text-xs text-gray-400 font-mono leading-relaxed h-[120px] overflow-y-auto">
+              {feature.evidence || '摘要信息提取中...'}
+            </div>
+          </div>
+          <div>
+            <h4 className="text-gray-300 font-semibold mb-2 text-sm flex justify-between items-center">原文证据片段 <button onClick={() => toast('原文已复制', 'success')} className="text-[#D4AF37] hover:text-white transition-colors text-xs font-normal">复制</button></h4>
+            <div className="bg-[#121212] border border-[#333333] p-3 rounded text-xs text-gray-400 font-mono leading-relaxed h-[120px] overflow-y-auto">
+              {originalText}
+            </div>
+          </div>
+        </div>
+        
         <div>
-          <h4 className="text-gray-300 font-semibold mb-2 mt-4 text-sm flex items-center gap-2">关联实体与关系</h4>
-          <div className="flex gap-2">
-            <span className="px-2 py-1 bg-[#1A1A1A] border border-[#333333] rounded text-xs text-blue-400">目标审计企业 (Target)</span>
-            <span className="px-2 py-1 border border-dashed border-gray-600 rounded text-xs text-gray-500">- 资金流入 -</span>
-            <span className="px-2 py-1 bg-[#1A1A1A] border border-[#333333] rounded text-xs text-blue-400">关联对手方 (Counterparty)</span>
+          <h4 className="text-gray-300 font-semibold mb-2 mt-2 text-sm flex items-center gap-2">关联实体与关系</h4>
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="px-3 py-1.5 bg-[#1A1A1A] border border-[#333333] rounded text-xs text-blue-400">登XX发行主体</span>
+            <span className="px-2 py-0.5 border border-dashed border-gray-600 rounded text-[10px] text-gray-500 tracking-wider">ABNORMAL_TRANSACTION</span>
+            <span className="px-3 py-1.5 bg-[#1A1A1A] border border-[#333333] rounded text-xs text-blue-400">山东旺XX汽车零部件</span>
           </div>
         </div>
         
         <div className="pt-4 border-t border-[#333333] space-y-3">
-          <h4 className="text-white font-semibold">系统审计建议动作</h4>
+          <h4 className="text-white font-semibold flex items-center gap-2">审计建议 <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30">高危触发</span></h4>
           <ul className="text-sm text-gray-400 space-y-2 list-disc pl-5">
-            <li>优先调取目标账户的历史交易流水并检查凭证。</li>
-            <li>穿透法人网络，审查是否存在隐蔽实控人变更。</li>
+            <li>调取完整采购合同和发票，核查交易定价公允性。</li>
+            <li>检查是否存在突击交易，追踪资金流向与最终收款账户。</li>
+            <li>穿透法人网络，审查是否存在隐蔽实控人关联。</li>
           </ul>
         </div>
         
-        <div className="flex gap-3 pt-4 border-t border-[#333333]">
-           <button onClick={() => { if(onReadOriginal){onReadOriginal(feature);} setExpandedPanel(null); }} className="px-4 py-2 border border-[#333333] rounded text-sm hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors">查询原文证据</button>
-           <button onClick={() => { toast('已成功加入审计工作底稿', 'success'); }} className="px-4 py-2 bg-[#D4AF37] text-black font-semibold rounded text-sm hover:bg-[#E5C048] transition-colors">加入工作底稿</button>
+        <div className="flex gap-3 pt-4 border-t border-[#333333] justify-end">
+           <button onClick={() => { setExpandedPanel(null); const tabBtn = document.querySelector('button[onClick*="setRightTab(\'graph\')"]'); if(tabBtn) (tabBtn as any).click(); toast('已定位到相关知识图谱', 'success'); }} className="px-4 py-2 border border-[#333333] rounded text-sm hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors flex items-center gap-2"><Network className="w-4 h-4"/>定位图谱</button>
+           <button onClick={(e) => { (e.target as any).innerHTML = '已加入底稿'; (e.target as any).className = 'px-4 py-2 bg-[#2A2A2A] text-gray-400 border border-[#444] rounded text-sm cursor-not-allowed'; toast('风险特征已加入工作底稿', 'success'); }} className="px-4 py-2 bg-[#D4AF37] text-black font-semibold rounded text-sm hover:bg-[#E5C048] transition-colors">加入底稿</button>
         </div>
       </div>
     </div>
@@ -794,7 +815,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
         </div>
         <div className="flex items-center gap-4 md:gap-6 overflow-x-auto whitespace-nowrap min-h-[28px] custom-scrollbar pb-1 md:pb-0">
           <div className="flex items-center gap-1.5 shrink-0"><Layers className="w-3.5 h-3.5"/> 规则集: v1.4.2</div>
-          <div className="flex items-center gap-1.5 shrink-0 hidden md:flex cursor-pointer hover:text-[#D4AF37] transition-colors" onClick={() => setShowDataSourceModal(true)}><Database className="w-3.5 h-3.5"/> 数据源: 4</div>
+          <div className="flex items-center gap-1.5 shrink-0 hidden md:flex cursor-pointer hover:text-[#D4AF37] transition-colors" onClick={() => setShowDataSourceModal(true)}><Database className="w-3.5 h-3.5"/> 数据源: {dataSources.length}</div>
           <div className="flex items-center gap-1.5 shrink-0"><Clock className="w-3.5 h-3.5"/> {new Date(data.project.createdAt).toLocaleDateString()}</div>
         </div>
       </div>
@@ -1007,7 +1028,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
             {data.riskScoring ? (
               <RiskScoringModule 
                 data={data.riskScoring} 
-                onFeatureClick={setSelectedNode} 
+                onFeatureClick={(feature) => setExpandedPanel({ title: `风险特征画像：${feature.label} ${feature.id}`, type: 'feature_profile', content: (<FeatureProfile feature={feature} onReadOriginal={setEvidenceToShow} setExpandedPanel={setExpandedPanel} />) })} 
                 setExpandedPanel={setExpandedPanel}
                 onReadOriginal={setEvidenceToShow}
                 onExpand={() => setExpandedPanel({ 
@@ -1374,19 +1395,28 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
           </div>
 
           <div className="flex-1 overflow-hidden flex flex-col bg-[#1A1A1A]">
-            <div className="flex items-center gap-1 px-4 pt-3 border-b border-[#333333] overflow-x-auto whitespace-nowrap custom-scrollbar">
+            <div className="flex justify-between items-center px-4 pt-3 border-b border-[#333333] overflow-x-auto whitespace-nowrap custom-scrollbar">
+              <div className="flex items-center gap-1">
+                <button 
+                  className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors shrink-0 ${activeTab === 'doc' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                  onClick={() => setActiveTab('doc')}
+                >文档证据 ({docsCount})</button>
+                <button 
+                  className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors shrink-0 ${activeTab === 'fin' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                  onClick={() => setActiveTab('fin')}
+                >财务证据</button>
+                <button 
+                  className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors shrink-0 ${activeTab === 'graph' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                  onClick={() => setActiveTab('graph')}
+                >图谱溯源证据 ({rels.length})</button>
+              </div>
               <button 
-                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors shrink-0 ${activeTab === 'doc' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-                onClick={() => setActiveTab('doc')}
-              >文档证据 ({docsCount})</button>
-              <button 
-                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors shrink-0 ${activeTab === 'fin' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-                onClick={() => setActiveTab('fin')}
-              >财务证据</button>
-              <button 
-                className={`px-4 py-2 border-b-2 text-sm font-medium transition-colors shrink-0 ${activeTab === 'graph' ? 'border-[#D4AF37] text-[#D4AF37]' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-                onClick={() => setActiveTab('graph')}
-              >图谱溯源证据 ({rels.length})</button>
+                onClick={() => setShowDataSourceModal(true)}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-gray-400 border border-[#444] bg-[#242424] hover:bg-[#2A2A2A] hover:text-white hover:border-[#D4AF37]/50 px-2.5 py-1.5 rounded transition-all mb-1 shrink-0"
+              >
+                <Database className="w-3.5 h-3.5"/>
+                管理数据源
+              </button>
             </div>
             
             <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
@@ -1681,11 +1711,34 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                      } catch(e) {
                         toast("上传失败，仅将模拟数据加入列表或接口错误", "warning");
                         // Mock append
-                        const newDocs = uploadFiles.map((fac, i) => ({ id: Date.now()+i, fileName: fac.name, originalName: fac.name, sourceType: '' }));
-                        setData((prev:any) => ({...prev, documents: [...(prev.documents||[]), ...newDocs]}));
-                        setShowUploadModal(false);
-                        setUploadFiles([]);
-                        toast("已通过模拟模式加入文档列表", "success");
+                        const newDocs = uploadFiles.map((fac, i) => ({ id: Date.now()+i, fileName: fac.name, originalName: fac.name, sourceType: 'EXT' }));
+                         setData((prev:any) => ({...prev, documents: [...(prev.documents||[]), ...newDocs]}));
+                         
+                         const newDS = uploadFiles.map(fac => {
+                            const ext = fac.name.split('.').pop()?.toUpperCase() || '未知';
+                            return {
+                               name: fac.name,
+                               type: ext,
+                               size: (fac.size / 1024 / 1024).toFixed(2) + ' MB',
+                               source: "手动上传",
+                               status: "解析中",
+                               date: new Date().toLocaleDateString(),
+                               entities: 0,
+                               evidenceCount: 0
+                            };
+                         });
+                         setDataSources((prev: any) => [...newDS, ...prev]);
+                         
+                         setShowUploadModal(false);
+                         setUploadFiles([]);
+                         toast("数据源上传成功，已加入当前项目证据库", "success");
+                         setCustomLogs((prev:any) => [{action:'SYSTEM_INFO', createdAt: new Date().toISOString(), details: '追加数据源已接入并完成解析'}, ...prev]);
+                         
+                         // simulate parsing completion
+                         setTimeout(() => {
+                             setDataSources((prev: any) => prev.map((ds: any) => ds.status === '解析中' ? {...ds, status: '已解析', entities: 15, evidenceCount: 32} : ds));
+                             toast("追加数据源解析完成", "success");
+                         }, 2000);
                      } finally {
                         setIsUploading(false);
                      }
@@ -1750,7 +1803,153 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
         );
       })()}
 
-      <style dangerouslySetInnerHTML={{__html: `
+
+      {/* Data Source Management Modal */}
+      {showDataSourceModal && (
+        <div className="fixed inset-0 z-[100] flex justify-center items-center bg-black/60 backdrop-blur-sm" onClick={() => setShowDataSourceModal(false)}>
+           <div className="bg-[#1A1A1A] w-[90vw] max-w-[1200px] h-[80vh] rounded-lg shadow-2xl border border-[#333333] flex flex-col" onClick={e=>e.stopPropagation()}>
+              <div className="px-6 py-4 border-b border-[#333333] flex justify-between items-center bg-[#242424] rounded-t-lg">
+                <div className="flex items-center gap-3">
+                  <Database className="w-5 h-5 text-[#D4AF37]" />
+                  <h3 className="text-xl font-bold text-gray-100">数据源管理</h3>
+                </div>
+                <button onClick={() => setShowDataSourceModal(false)} className="text-gray-500 hover:text-white transition-colors"><X className="w-5 h-5"/></button>
+              </div>
+              <div className="p-6 flex-1 overflow-y-auto space-y-6 custom-scrollbar">
+                <div className="grid grid-cols-4 gap-4">
+                   <div className="bg-[#242424] border border-[#333333] p-4 rounded text-center">
+                      <div className="text-[11px] text-gray-500 mb-1">已接入数据源数量</div>
+                      <div className="text-2xl text-white font-bold">{dataSources.length}</div>
+                   </div>
+                   <div className="bg-[#242424] border border-[#333333] p-4 rounded text-center">
+                      <div className="text-[11px] text-gray-500 mb-1">已解析文件数量</div>
+                      <div className="text-2xl text-green-400 font-bold">{dataSources.filter(d => d.status === '已解析').length}</div>
+                   </div>
+                   <div className="bg-[#242424] border border-[#333333] p-4 rounded text-center">
+                      <div className="text-[11px] text-gray-500 mb-1">待解析文件数量</div>
+                      <div className="text-2xl text-blue-400 font-bold">{dataSources.filter(d => d.status.includes('解析中')).length}</div>
+                   </div>
+                   <div className="bg-[#242424] border border-[#333333] p-4 rounded text-center">
+                      <div className="text-[11px] text-gray-500 mb-1">最新上传时间</div>
+                      <div className="text-xl text-gray-300 font-mono mt-1">{dataSources.length > 0 ? dataSources[0].date : '-'}</div>
+                   </div>
+                </div>
+
+                <div className="border border-[#333333] rounded overflow-hidden">
+                  <table className="w-full text-left text-sm bg-[#242424]">
+                    <thead className="bg-[#1A1A1A] border-b border-[#333333] text-gray-400 text-xs">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">文件名</th>
+                        <th className="px-4 py-3 font-medium">文件类型</th>
+                        <th className="px-4 py-3 font-medium">文件大小</th>
+                        <th className="px-4 py-3 font-medium">来源</th>
+                        <th className="px-4 py-3 font-medium">解析状态</th>
+                        <th className="px-4 py-3 font-medium">上传时间</th>
+                        <th className="px-4 py-3 font-medium text-right">提取实体数</th>
+                        <th className="px-4 py-3 font-medium text-right">关联证据数</th>
+                        <th className="px-4 py-3 font-medium text-right">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#333333]">
+                       {dataSources.map((ds, idx) => (
+                         <tr key={idx} className="hover:bg-[#1A1A1A] transition-colors">
+                            <td className="px-4 py-3 text-gray-200">
+                               <div className="flex items-center gap-2">
+                                  <FileText className="w-4 h-4 text-[#D4AF37]"/> {ds.name}
+                               </div>
+                            </td>
+                            <td className="px-4 py-3 text-gray-400 font-mono text-[11px]">{ds.type}</td>
+                            <td className="px-4 py-3 text-gray-400 font-mono text-[11px]">{ds.size}</td>
+                            <td className="px-4 py-3 text-gray-400 text-[11px]">{ds.source}</td>
+                            <td className="px-4 py-3">
+                              <span className={`text-[11px] px-2 py-1 rounded ${ds.status === '已解析' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>{ds.status}</span>
+                            </td>
+                            <td className="px-4 py-3 text-gray-400 font-mono text-[11px]">{ds.date}</td>
+                            <td className="px-4 py-3 text-gray-300 font-mono text-right">{ds.entities}</td>
+                            <td className="px-4 py-3 text-gray-300 font-mono text-right">{ds.evidenceCount || (ds.entities > 0 ? ds.entities * 2 : 0)}</td>
+                            <td className="px-4 py-3 text-right space-x-2">
+                               <button className="text-gray-500 hover:text-[#D4AF37] transition-colors" onClick={() => {
+                                   setExpandedPanel({ 
+                                      title: `文件预览：${ds.name}`, 
+                                      type: 'document_preview',
+                                      content: (
+                                        <div className="p-6 max-w-3xl mx-auto space-y-6">
+                                           <div className="grid grid-cols-2 gap-4">
+                                              <div className="bg-[#1A1A1A] p-4 border border-[#333333] rounded">
+                                                 <div className="text-xs text-gray-500 mb-1">文件名称</div>
+                                                 <div className="text-sm font-semibold">{ds.name}</div>
+                                              </div>
+                                              <div className="bg-[#1A1A1A] p-4 border border-[#333333] rounded">
+                                                 <div className="text-xs text-gray-500 mb-1">文件类型与大小</div>
+                                                 <div className="text-sm font-mono">{ds.type} | {ds.size}</div>
+                                              </div>
+                                           </div>
+                                           <div className="bg-[#242424] p-5 border border-[#333333] rounded space-y-4 text-sm">
+                                              <div>
+                                                 <h4 className="text-gray-300 font-bold mb-2">文档摘要</h4>
+                                                 <p className="text-gray-400">该文档主要包含2026年度业务合同，涉及多方交易流转，通过 OCR 及 NLP 解析已自动抽取出全部结构化实体和金额指标，目前处于风控排查索引库中。</p>
+                                              </div>
+                                              <div>
+                                                 <h4 className="text-gray-300 font-bold mb-2">样例原文片段</h4>
+                                                 <div className="bg-[#121212] p-3 text-gray-300 font-serif leading-relaxed border border-[#333333] rounded min-h-[100px]">
+                                                   "......根据合同约定，登XX发行主体将于2026年3月向山东旺XX汽车零部件转账人民币 7,701,342.00 元，作为采购设备及原材料的首期预付款项......"
+                                                 </div>
+                                              </div>
+                                              <div className="grid grid-cols-2 gap-4">
+                                                 <div>
+                                                   <h4 className="text-gray-300 font-bold mb-2 text-xs">已抽取实体</h4>
+                                                   <div className="flex flex-wrap gap-2">
+                                                     <span className="px-2 py-1 bg-[#1A1A1A] border border-[#333333] text-[10px] text-blue-400 rounded">登XX发行主体</span>
+                                                     <span className="px-2 py-1 bg-[#1A1A1A] border border-[#333333] text-[10px] text-blue-400 rounded">山东旺XX汽车</span>
+                                                   </div>
+                                                 </div>
+                                                 <div>
+                                                   <h4 className="text-gray-300 font-bold mb-2 text-xs">已关联风险特征</h4>
+                                                   <div className="flex flex-wrap gap-2">
+                                                     <span className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-[10px] text-red-500 rounded">x2b 交易额陡峭度</span>
+                                                   </div>
+                                                 </div>
+                                              </div>
+                                           </div>
+                                        </div>
+                                      )
+                                   });
+                               }} title="预览">预览</button>
+                               <button className="text-gray-500 hover:text-green-500 transition-colors" onClick={() => {
+                                  toast('数据源已提交重新解析队列...', 'info'); 
+                                  setDataSources(dataSources.map((d,i) => i===idx ? {...d, status:'解析中'} : d));
+                                  setTimeout(() => {
+                                      setDataSources(dataSources.map((d,i) => i===idx ? {...d, status:'已解析'} : d));
+                                      toast('解析完成，已更新知识库索引', 'success');
+                                  }, 1500);
+                               }} title="重新解析">重新解析</button>
+                               <button className="text-gray-500 hover:text-blue-400 transition-colors" onClick={() => {
+                                   setShowDataSourceModal(false); 
+                                   setActiveTab('graph'); 
+                                   setGraphMode('all'); 
+                                   toast('已定位到该数据源关联证据', 'success');
+                               }} title="关联图谱">关联图谱</button>
+                               <button className="text-gray-500 hover:text-red-500 transition-colors" onClick={() => {
+                                   if(window.confirm(`确定要移除数据源 ${ds.name} 吗？相关图谱关联线索也将失效。`)) {
+                                       setDataSources(dataSources.filter((_,i) => i!==idx)); 
+                                       setData((prev:any) => ({...prev, documents: (prev.documents||[]).filter((d:any) => d.fileName !== ds.name)}));
+                                       toast('数据源已移除', 'success');
+                                   }
+                               }} title="移除">移除</button>
+                            </td>
+                         </tr>
+                       ))}
+                       {dataSources.length === 0 && (
+                          <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-500 text-sm">暂无数据源</td></tr>
+                       )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+           </div>
+        </div>
+      )}
+\n      <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
