@@ -263,11 +263,25 @@ Object.values(demoProjectDetailsMap).forEach(detail => {
     .filter((l: any) => l.action === 'RED_FLAG')
     .map((l: any) => JSON.parse(l.details));
   
-  const riskResult = calculateProjectRisk(ruleHits);
-  
-  detail.project.riskScore = riskResult.totalScore;
-  detail.project.riskLevel = riskResult.level;
-  detail.project.dimensionScores = riskResult.dimensionScores;
+  if (detail.riskScoring) {
+    detail.project.riskScore = detail.riskScoring.probabilityPercent;
+    detail.project.riskLevel = {
+      label: detail.riskScoring.riskLevel,
+      color: "text-red-500",
+      bg: "bg-red-500"
+    };
+    detail.project.dimensionScores = {
+      X1: detail.riskScoring.subIndices.X1,
+      X2: detail.riskScoring.subIndices.X2,
+      X3: detail.riskScoring.subIndices.X3
+    };
+  } else {
+    const riskResult = calculateProjectRisk(ruleHits);
+    
+    detail.project.riskScore = riskResult.totalScore;
+    detail.project.riskLevel = riskResult.level;
+    detail.project.dimensionScores = riskResult.dimensionScores;
+  }
 });
 
 export const mockProjects = [
