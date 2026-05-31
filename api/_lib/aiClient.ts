@@ -65,8 +65,15 @@ const callOpenAICompatible = async (prompt: string, config: any, useFallback: bo
         let errStr = res.statusText;
         try {
             const errData = await res.json();
-            errStr = JSON.stringify(errData.error || errData);
-        } catch (e) {}
+            errStr = JSON.stringify(errData.error?.message || errData.error || errData);
+        } catch (e) {
+            try {
+                const text = await res.text();
+                if (text) {
+                    errStr = text.length > 300 ? text.substring(0, 300) + '...' : text;
+                }
+            } catch (e2) {}
+        }
         const error: any = new Error(`OpenAI-compatible API Error: ${errStr}`);
         error.status = res.status;
         throw error;
@@ -89,8 +96,15 @@ const callOfficialGemini = async (prompt: string, config: any) => {
          let errStr = res.statusText;
          try {
              const errData = await res.json();
-             errStr = JSON.stringify(errData.error || errData);
-         } catch (e) {}
+             errStr = JSON.stringify(errData.error?.message || errData.error || errData);
+         } catch (e) {
+             try {
+                const text = await res.text();
+                if (text) {
+                    errStr = text.length > 300 ? text.substring(0, 300) + '...' : text;
+                }
+             } catch (e2) {}
+         }
          const error: any = new Error(`Gemini API Error: ${errStr}`);
          error.status = res.status;
          throw error;
@@ -119,13 +133,15 @@ export const callLLM = async (prompt: string) => {
         apiKeyConfigured: config.apiKeyConfigured,
         baseUrlHost: baseUrlHost,
         failureStage: "none",
-        errorStatus: null,
-        errorMessage: null
+        primaryErrorStatus: null,
+        primaryErrorMessage: null,
+        fallbackErrorStatus: null,
+        fallbackErrorMessage: null
     };
 
     if (config.mode === 'mock-fallback') {
         providerInfo.failureStage = 'missing-env';
-        providerInfo.errorMessage = 'No API key configured';
+        providerInfo.primaryErrorMessage = 'No API key configured';
         return { text: '', providerInfo };
     }
     
@@ -134,20 +150,18 @@ export const callLLM = async (prompt: string) => {
             resultText = await callOpenAICompatible(prompt, config, false);
         } catch (e: any) {
             providerInfo.failureStage = 'primary-model-failed';
-            providerInfo.errorStatus = e.status || null;
-            providerInfo.errorMessage = e.message || String(e);
+            providerInfo.primaryErrorStatus = e.status || null;
+            providerInfo.primaryErrorMessage = e.message || String(e);
 
             if (config.fallbackModel) {
                 try {
                     resultText = await callOpenAICompatible(prompt, config, true);
                     providerInfo.failureStage = "none";
-                    providerInfo.errorStatus = null;
-                    providerInfo.errorMessage = null;
                     providerInfo.model = config.fallbackModel; // show successful use
                 } catch (e2: any) {
                     providerInfo.failureStage = "fallback-model-failed";
-                    providerInfo.errorStatus = e2.status || providerInfo.errorStatus;
-                    providerInfo.errorMessage = e2.message || String(e2);
+                    providerInfo.fallbackErrorStatus = e2.status || null;
+                    providerInfo.fallbackErrorMessage = e2.message || String(e2);
                 }
             }
         }
@@ -156,8 +170,8 @@ export const callLLM = async (prompt: string) => {
              resultText = await callOfficialGemini(prompt, config);
          } catch (e: any) {
              providerInfo.failureStage = 'primary-model-failed';
-             providerInfo.errorStatus = e.status || null;
-             providerInfo.errorMessage = e.message || String(e);
+             providerInfo.primaryErrorStatus = e.status || null;
+             providerInfo.primaryErrorMessage = e.message || String(e);
          }
     }
     

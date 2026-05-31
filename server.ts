@@ -301,6 +301,35 @@ async function startServer() {
   // Vite middleware for development
   
   // ML API Routes
+  app.get("/api/ml/diagnostics", async (req, res) => {
+    try {
+        let baseUrlHost = null;
+        try {
+            if (process.env.LLM_BASE_URL) {
+                baseUrlHost = new URL(process.env.LLM_BASE_URL).host;
+            }
+        } catch(e) {}
+        res.status(200).json({
+            "env": {
+                "LLM_API_KEY": !!process.env.LLM_API_KEY,
+                "LLM_BASE_URL": !!process.env.LLM_BASE_URL,
+                "LLM_MODEL": !!process.env.LLM_MODEL,
+                "LLM_FALLBACK_MODEL": !!process.env.LLM_FALLBACK_MODEL,
+                "GEMINI_API_KEY": !!process.env.GEMINI_API_KEY,
+                "GOOGLE_AI_API_KEY": !!process.env.GOOGLE_AI_API_KEY
+            },
+            "resolved": {
+                "mode": process.env.LLM_BASE_URL ? "openai-compatible" : (process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY ? "official-gemini" : "mock-fallback"),
+                "model": process.env.LLM_MODEL || "gemini-3.1-pro-preview",
+                "fallbackModel": process.env.LLM_FALLBACK_MODEL || "gemini-3-flash-preview",
+                "baseUrlHost": baseUrlHost
+            }
+        });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/ml/extract", async (req, res) => {
     try {
       const { extractEvidence } = await import("./api/_lib/aiExtraction.js");

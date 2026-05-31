@@ -27,8 +27,10 @@ export const extractEvidence = async (projectType: string, documentText: string)
           baseUrlConfigured: false,
           apiKeyConfigured: false,
           failureStage: "none",
-          errorStatus: null,
-          errorMessage: null
+          primaryErrorStatus: null,
+          primaryErrorMessage: null,
+          fallbackErrorStatus: null,
+          fallbackErrorMessage: null
       },
       entities: [
         { name: "登XX发行主体", type: "COMPANY" },
@@ -80,11 +82,11 @@ export const extractEvidence = async (projectType: string, documentText: string)
                 parsed = parseJSON(text);
             } catch (jsonErr: any) {
                 providerInfo.failureStage = "json-parse-failed";
-                providerInfo.errorMessage = jsonErr.message;
+                providerInfo.primaryErrorMessage = jsonErr.message;
             }
         } else if (providerInfo.failureStage === "none" && providerInfo.mode !== "mock-fallback") {
             providerInfo.failureStage = "empty-response";
-            providerInfo.errorMessage = "LLM returned empty output";
+            providerInfo.primaryErrorMessage = "LLM returned empty output";
         }
 
         if (!parsed) {
@@ -102,7 +104,7 @@ export const extractEvidence = async (projectType: string, documentText: string)
         console.error("LLM Extraction failed, fallback to mock");
         const fallback = { ...defaultMockResult };
         fallback.providerInfo.failureStage = "unknown";
-        fallback.providerInfo.errorMessage = e.message || String(e);
+        fallback.providerInfo.primaryErrorMessage = e.message || String(e);
         return fallback;
     }
 };

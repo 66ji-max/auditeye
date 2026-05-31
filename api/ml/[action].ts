@@ -3,10 +3,36 @@ import { getWeightsByProjectType, saveOrCacheWeights } from '../_lib/modelWeight
 import { trainCategoryWeights } from '../_lib/weightTraining.js';
 
 export default async function handler(req: any, res: any) {
+    const action = req.query.action;
+
+    if (req.method === 'GET' && action === 'diagnostics') {
+        let baseUrlHost = null;
+        try {
+            if (process.env.LLM_BASE_URL) {
+                baseUrlHost = new URL(process.env.LLM_BASE_URL).host;
+            }
+        } catch(e) {}
+        return res.status(200).json({
+            "env": {
+                "LLM_API_KEY": !!process.env.LLM_API_KEY,
+                "LLM_BASE_URL": !!process.env.LLM_BASE_URL,
+                "LLM_MODEL": !!process.env.LLM_MODEL,
+                "LLM_FALLBACK_MODEL": !!process.env.LLM_FALLBACK_MODEL,
+                "GEMINI_API_KEY": !!process.env.GEMINI_API_KEY,
+                "GOOGLE_AI_API_KEY": !!process.env.GOOGLE_AI_API_KEY
+            },
+            "resolved": {
+                "mode": process.env.LLM_BASE_URL ? "openai-compatible" : (process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY ? "official-gemini" : "mock-fallback"),
+                "model": process.env.LLM_MODEL || "gemini-3.1-pro-preview",
+                "fallbackModel": process.env.LLM_FALLBACK_MODEL || "gemini-3-flash-preview",
+                "baseUrlHost": baseUrlHost
+            }
+        });
+    }
+
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     
     // Vercel puts the dynamic parameter in req.query.action
-    const action = req.query.action;
 
     try {
         if (action === 'extract') {
