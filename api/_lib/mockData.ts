@@ -29,15 +29,15 @@ export const demoProjectDetailsMap: Record<string, any> = {
       { type: 'COMPANY', name: '美国登X', attributes: { address: 'USA' } }
     ],
     relationships: [
-      { source: '山东旺XX汽车零部件有限公司', target: '山东登XX汽配销售有限公司', relationType: 'FORMER_NAME', evidenceSnippet: '工商底稿显示企业于申报前发生更名。' },
+      { source: '山东旺XX汽车零部件有限公司', target: '山东登XX汽配销售有限公司', relationType: 'FORMER_NAME', evidenceSnippet: '工商底稿显示企业于申报前发生更名。', evidenceSource: { documentName: "工商变更归档-山东片区.docx", page: "第 3 页", paragraph: "第 2 段", originalText: "工商变更记录显示，山东旺XX汽车零部件有限公司曾用名为山东登XX汽配销售有限公司，并于申报期前后完成企业名称变更。" } },
       { source: '山东富XX', target: '山东旺XX汽车零部件有限公司', relationType: 'HOLDING', evidenceSnippet: '持股 100%' },
       { source: '肇庆达XX', target: '山东富XX', relationType: 'HOLDING', evidenceSnippet: '持股 50%' },
       { source: '广州富XX', target: '肇庆达XX', relationType: 'HOLDING', evidenceSnippet: '持股 80%' },
-      { source: '欧XX', target: '广州富XX', relationType: 'HOLDING', evidenceSnippet: '持股 90%' },
-      { source: '欧XX', target: '登XX发行主体', relationType: 'ULTIMATE_CONTROLLER', evidenceSnippet: '最终控制人指向一致。' },
-      { source: '登XX发行主体', target: '美国登X', relationType: 'DOCUMENT_MATCH', evidenceSnippet: '联系方式与装箱单模板制作人一致。' },
-      { source: '登XX发行主体', target: '山东富XX', relationType: 'ABNORMAL_TRANSACTION', evidenceSnippet: '交易金额异常：2010年 96.39万，2011年 389.02万。' },
-      { source: '登XX发行主体', target: '山东旺XX汽车零部件有限公司', relationType: 'ABNORMAL_TRANSACTION', evidenceSnippet: '连年暴增：2012年突增至 770.13万。' },
+      { source: '欧XX', target: '广州富XX', relationType: 'HOLDING', evidenceSnippet: '持股 90%', evidenceSource: { documentName: "工商变更归档-山东片区.docx", page: "第 12 页", paragraph: "第 4 段", originalText: "系统发现4级控股结构：欧XX → 广州富XX（90%）→ 肇庆达XX（80%）→ 山东富XX（50%）→ 山东旺XX汽车零部件有限公司（100%）。涉及广东到山东的跨地域控股。" } },
+      { source: '欧XX', target: '登XX发行主体', relationType: 'ULTIMATE_CONTROLLER', evidenceSnippet: '最终控制人指向一致。', evidenceSource: { documentName: "招股说明书.pdf", page: "第 45 页", paragraph: "第 1 段", originalText: "发行人的最终控制人指向“欧XX”，交易对手实控人与发行人属同一人控制。" } },
+      { source: '登XX发行主体', target: '美国登X', relationType: 'DOCUMENT_MATCH', evidenceSnippet: '联系方式与装箱单模板制作人一致。', evidenceSource: { documentName: "出口单据归档.pdf", page: "第 8 页", paragraph: "装箱单信息", originalText: "经过对该企业与境外主体（美国登X）多维比对发现：两者的传真、联系地址高度一致，且装箱单模板与制作人员同源。" } },
+      { source: '登XX发行主体', target: '山东富XX', relationType: 'ABNORMAL_TRANSACTION', evidenceSnippet: '交易金额异常：2010年 96.39万，2011年 389.02万。', evidenceSource: { documentName: "1-登XX集团对公流水.pdf", page: "第 24 页", paragraph: "2010-2011 交易明细", originalText: "登XX发行主体与山东富XX之间的交易金额在报告期内存在异常：2010年实际开票金额为 96.39万，2011年飙升至 389.02万。" } },
+      { source: '登XX发行主体', target: '山东旺XX汽车零部件有限公司', relationType: 'ABNORMAL_TRANSACTION', evidenceSnippet: '连年暴增：2012年突增至 770.13万。', evidenceSource: { documentName: "与旺XX公司历史采购框架.pdf", page: "第 2 页", paragraph: "附件清单", originalText: "交易明细表显示，发行人向山东旺XX相关采购金额在 2012 年快速上升至 770.13 万元，较前期金额出现异常陡增。" } },
       { source: '山东富XX', target: '广州富XX', relationType: 'BUSINESS_CROSSCHECK', evidenceSnippet: '【业务交叉查询】通过对“山东富XX与广州富XX”等主体进行历史单据比对，系统在300万份发票及合同底稿中，精准定位到其历史联系方式、联系传真及业务单据制作者存在高度重合（匹配信度：99.2%）。' }
     ],
     riskScoring: {
@@ -50,7 +50,8 @@ export const demoProjectDetailsMap: Record<string, any> = {
             method: "Jaccard 相似度",
             evidence: "算法抓取“突击更名”及“海外主体高度相似”的事实。",
             explanation: "发行人与相关主体在实际控制网络中存在较高重合度。",
-            subIndex: "X1"
+            subIndex: "X1",
+            evidenceSource: { documentName: "工商变更归档-山东片区.docx", page: "第 3 页", paragraph: "第 2 段", originalText: "工商变更记录显示，山东旺XX汽车零部件有限公司曾用名为山东登XX汽配销售有限公司，并于申报期前后完成企业名称变更。" }
           },
           {
             id: "x1b",
@@ -59,7 +60,8 @@ export const demoProjectDetailsMap: Record<string, any> = {
             method: "知识图谱最短路径",
             evidence: "图谱算法发现“4级跨地域逐层控股”。",
             explanation: "控制链路复杂，存在绕层控股和跨地域控制特征。",
-            subIndex: "X1"
+            subIndex: "X1",
+            evidenceSource: { documentName: "工商变更归档-山东片区.docx", page: "第 12 页", paragraph: "第 4 段", originalText: "系统发现4级控股结构：欧XX → 广州富XX（90%）→ 肇庆达XX（80%）→ 山东富XX（50%）→ 山东旺XX汽车零部件有限公司（100%）。涉及广东到山东的跨地域控股。" }
           },
           {
             id: "x1c",
@@ -68,7 +70,8 @@ export const demoProjectDetailsMap: Record<string, any> = {
             method: "时间衰减二分图",
             evidence: "经查双方高管无交叉兼职，属于静默特征。",
             explanation: "高管维度未发现明显异常，因此该项不拉高风险。",
-            subIndex: "X1"
+            subIndex: "X1",
+            evidenceSource: { documentName: "高管及关联方名单.xlsx", page: "Sheet 1", paragraph: "名单比对", originalText: "在高管名单比对中，未发现发行人高级管理人员在相关交易对手处存在交叉任职或历史任职记录。" }
           }
         ],
         transactionAbnormality: [
@@ -79,7 +82,8 @@ export const demoProjectDetailsMap: Record<string, any> = {
             method: "孤立森林 / NLP 对比",
             evidence: "NLP 对比发现传真、电话、装箱单模板完全一致，皮包公司特征极其恶劣。",
             explanation: "交易对手存在明显空壳化、皮包化特征，是最核心风险点之一。",
-            subIndex: "X2"
+            subIndex: "X2",
+            evidenceSource: { documentName: "出口单据归档.pdf", page: "第 8 页", paragraph: "装箱单信息", originalText: "NLP 对比结果显示，山东旺XX与境外主体在传真号码、联系电话、装箱单模板及制作人员字段上高度一致，疑似存在单据同源与空壳化交易对手特征。" }
           },
           {
             id: "x2b",
@@ -88,7 +92,8 @@ export const demoProjectDetailsMap: Record<string, any> = {
             method: "时序斜率",
             evidence: "2012 年突击交易 770 万，曲线斜率极陡。",
             explanation: "交易额在短期内异常上升，显示出突击交易风险。",
-            subIndex: "X2"
+            subIndex: "X2",
+            evidenceSource: { documentName: "与旺XX公司历史采购框架.pdf", page: "第 2 页", paragraph: "附件清单", originalText: "交易明细表显示，发行人向山东旺XX相关采购金额在 2012 年快速上升至 770.13 万元，较前期金额出现异常陡增。" }
           },
           {
             id: "x2c",
@@ -97,7 +102,8 @@ export const demoProjectDetailsMap: Record<string, any> = {
             method: "Z-score",
             evidence: "毛利被刻意平滑，暂未发现明显定价异常。",
             explanation: "定价偏离维度暂未发现强异常，因此该项权重贡献较低。",
-            subIndex: "X2"
+            subIndex: "X2",
+            evidenceSource: { documentName: "毛利分析底稿.xlsx", page: "Sheet 2", paragraph: "定价分析", originalText: "对相关采购单价与市场公开报价比对后，暂未发现存在明显的高买低卖等定价异常情况，整体毛利率稳定。" }
           }
         ],
         externalTrace: [
@@ -108,7 +114,8 @@ export const demoProjectDetailsMap: Record<string, any> = {
             method: "NLP 涉案金额 / 净资产",
             evidence: "仅存在零星小额诉讼。",
             explanation: "外围涉诉痕迹较弱，仅形成轻微风险提示。",
-            subIndex: "X3"
+            subIndex: "X3",
+            evidenceSource: { documentName: "天眼查诉讼记录导出.csv", page: "全文档", paragraph: "诉讼汇总", originalText: "相关主体涉及的法律诉讼多为小额合同纠纷，涉案总金额占其净资产比例极低，暂未发现可能导致利益输送或资产转移的重大诉讼。" }
           },
           {
             id: "x3b",
@@ -117,7 +124,8 @@ export const demoProjectDetailsMap: Record<string, any> = {
             method: "泊松分布异常低概率事件",
             evidence: "暂无强异常资产异动证据。",
             explanation: "暂未发现强异常资产异动，仅保留低强度外围风险。",
-            subIndex: "X3"
+            subIndex: "X3",
+            evidenceSource: { documentName: "资产评估报告.pdf", page: "第 15 页", paragraph: "资产变动说明", originalText: "报告期内，相关企业的核心资产及注册资本未发生频繁或异常的增减变动，资本运作相对静默。" }
           }
         ]
       },

@@ -5,7 +5,7 @@ import {
   Activity, Network, TrendingDown, Link as LinkIcon, AlertOctagon, 
   Download, FileSearch, Clock, CheckSquare, Maximize, DownloadCloud,
   Search, Bell, Settings, ChevronRight, Menu, ArrowLeft, Send, X, Layers,
-  ChevronDown, Filter, GitBranch, Share2
+  ChevronDown, Filter, GitBranch, Share2, Upload
 } from 'lucide-react';
 import * as d3 from 'd3';
 import { toast } from '../components/Toast.tsx';
@@ -50,7 +50,7 @@ const WorkflowStep: React.FC<{ icon: React.ReactNode, title: string, desc?: stri
   );
 };
 
-const D3Graph = ({ entities, relationships, onNodeClick, onEdgeClick }: { entities: any[], relationships: any[], onNodeClick: (n: any)=>void, onEdgeClick: (e: any)=>void }) => {
+const D3Graph = ({ entities, relationships, onNodeClick, onEdgeClick, expanded = false }: { entities: any[], relationships: any[], onNodeClick: (n: any)=>void, onEdgeClick: (e: any)=>void, expanded?: boolean }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -82,12 +82,12 @@ const D3Graph = ({ entities, relationships, onNodeClick, onEdgeClick }: { entiti
     });
 
     const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(95).strength(0.75))
-      .force("charge", d3.forceManyBody().strength(-170))
+      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(expanded ? 150 : 95).strength(0.75))
+      .force("charge", d3.forceManyBody().strength(expanded ? -350 : -170))
       .force("center", d3.forceCenter(width / 2, height / 2).strength(0.75))
       .force("x", d3.forceX(width / 2).strength(0.055))
       .force("y", d3.forceY(height / 2).strength(0.055))
-      .force("collide", d3.forceCollide().radius(34).strength(0.75));
+      .force("collide", d3.forceCollide().radius(expanded ? 45 : 34).strength(0.75));
 
     const svg = d3.select(containerRef.current).append("svg")
       .attr("width", "100%")
@@ -122,7 +122,7 @@ const D3Graph = ({ entities, relationships, onNodeClick, onEdgeClick }: { entiti
       .data(links)
       .join("line")
       .attr("stroke", (d: any) => isHighRiskRel(d.relationType) ? '#ef4444' : '#4B5563')
-      .attr("stroke-width", (d: any) => isHighRiskRel(d.relationType) ? 2 : 1.5)
+      .attr("stroke-width", (d: any) => isHighRiskRel(d.relationType) ? (expanded ? 3 : 2) : (expanded ? 2 : 1.5))
       .attr("stroke-dasharray", (d: any) => d.type === 'SHAREHOLDER' ? "0" : "4")
       .style("cursor", "pointer")
       .on("click", (e, d: any) => { e.stopPropagation(); onEdgeClick(d); });
@@ -147,20 +147,21 @@ const D3Graph = ({ entities, relationships, onNodeClick, onEdgeClick }: { entiti
         }) as any);
 
     node.append("circle")
-      .attr("r", (d: any) => d.type === 'COMPANY' ? 24 : 16)
+      .attr("r", (d: any) => d.type === 'COMPANY' ? (expanded ? 32 : 24) : (expanded ? 22 : 16))
       .attr("fill", "#242424")
       .attr("stroke", (d: any) => {
         if(d.attributes?.address && (d.attributes.address as string).includes('3栋')) return "#ef4444";
         return d.type === 'COMPANY' ? "#D4AF37" : "#4B5563";
       })
-      .attr("stroke-width", 2);
+      .attr("stroke-width", expanded ? 3 : 2);
 
     node.append("text")
-      .attr("y", (d: any) => d.type === 'COMPANY' ? 38 : 28)
+      .attr("y", (d: any) => d.type === 'COMPANY' ? (expanded ? 45 : 38) : (expanded ? 32 : 28))
       .attr("text-anchor", "middle")
       .style("fill", "#E2E8F0")
-      .style("font-size", "10px")
-      .text((d: any) => d.name.length > 10 ? d.name.substring(0,10)+'...' : d.name);
+      .style("font-size", expanded ? "13px" : "10px")
+      .style("font-weight", expanded ? "600" : "400")
+      .text((d: any) => expanded ? d.name : (d.name.length > 10 ? d.name.substring(0,10)+'...' : d.name));
 
     svg.on("click", () => { onNodeClick(null); onEdgeClick(null); });
 
@@ -169,7 +170,7 @@ const D3Graph = ({ entities, relationships, onNodeClick, onEdgeClick }: { entiti
       node.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
     });
 
-  }, [entities, relationships]);
+  }, [entities, relationships, expanded]);
 
   return <div ref={containerRef} className="absolute inset-0 z-0 bg-[#1A1A1A]" />;
 }
@@ -186,18 +187,18 @@ const ExpandedPanelModal = ({ expandedPanel, setExpandedPanel }: any) => {
   }, [setExpandedPanel]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 sm:p-8" onClick={() => setExpandedPanel(null)}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4" onClick={() => setExpandedPanel(null)}>
       <div 
-        className="relative bg-[#1A1A1A] border border-[#333333] w-[95vw] max-w-6xl h-[85vh] rounded-lg shadow-2xl flex flex-col overflow-hidden" 
+        className="relative bg-[#121212] border border-[#333333] w-[96vw] max-w-[1600px] h-[92vh] rounded-lg shadow-2xl flex flex-col overflow-hidden" 
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center px-6 py-4 border-b border-[#333333] bg-[#242424]">
-          <h2 className="text-lg font-semibold text-gray-200">{expandedPanel.title}</h2>
-          <button onClick={() => setExpandedPanel(null)} className="p-1 hover:bg-[#333333] rounded text-gray-400 hover:text-white transition-colors">
-            <X className="w-5 h-5" />
+        <div className="flex justify-between items-center px-6 py-4 border-b border-[#333333] bg-[#1A1A1A] sticky top-0 z-50">
+          <h2 className="text-xl font-semibold text-gray-200">{expandedPanel.title}</h2>
+          <button onClick={() => setExpandedPanel(null)} className="p-2 hover:bg-red-500/20 hover:text-red-400 rounded text-gray-400 transition-colors">
+            <X className="w-6 h-6" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 bg-[#1A1A1A] custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 bg-[#121212] custom-scrollbar">
           {expandedPanel.content}
         </div>
       </div>
@@ -205,9 +206,57 @@ const ExpandedPanelModal = ({ expandedPanel, setExpandedPanel }: any) => {
   );
 };
 
-const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false }: { data: any, onFeatureClick?: (feature: any) => void, onExpand?: () => void, expanded?: boolean }) => {
+const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, setExpandedPanel, onReadOriginal }: { data: any, onFeatureClick?: (feature: any) => void, onExpand?: () => void, expanded?: boolean, setExpandedPanel?: any, onReadOriginal?: (feature:any) => void }) => {
   if (!data) return null;
-  const { probabilityPercent, riskLevel, threshold, zValue, warning, subIndices, rawFeatures, conclusion, globalWeights } = data;
+  const { probabilityPercent, riskLevel, threshold, zValue, warning, subIndices, rawFeatures, conclusion, globalWeights, localWeights } = data;
+  
+  const handleSubIndexExpand = (type: 'X1'|'X2'|'X3', title: string, color: string, features: any[], w: number) => {
+     if (!setExpandedPanel) return;
+     const sumFormula = features.map(f => `${localWeights?.[type]?.[f.id] || 0.5}*${f.id}`).join(' + ');
+     
+     setExpandedPanel({
+       title,
+       type: 'subIndex',
+       content: (
+         <div className="space-y-6">
+           <div className={`p-6 bg-[#1A1A1A] border-l-4 rounded ${color} flex justify-between items-center bg-gradient-to-r from-[#242424] to-[#1A1A1A]`}>
+             <div>
+               <div className="text-gray-400 text-sm mb-1">当前指数值</div>
+               <div className="text-5xl font-bold font-mono text-gray-100">{subIndices[type]}</div>
+               <div className="text-gray-500 text-sm mt-2">全局权重 W{type.substring(1)} = {w}</div>
+             </div>
+             <div className="text-right">
+                <div className="text-sm text-gray-400 mb-1">局部聚合公式</div>
+                <div className="text-xl font-mono text-[#D4AF37]">{type} = {sumFormula}</div>
+             </div>
+           </div>
+           
+           <h3 className="text-lg font-semibold text-gray-200 mt-8 mb-4 border-b border-[#333333] pb-2">底层特征明细</h3>
+           <div className="grid grid-cols-1 gap-4">
+             {features.map((f:any) => (
+                <div key={f.id} className="p-6 bg-[#242424] border border-[#333333] rounded hover:border-[#D4AF37]/50 transition-colors">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-lg text-gray-200 font-bold">[{f.id}] {f.label}</span>
+                    <span className="text-xl text-[#D4AF37] font-mono">v = {f.value.toFixed(2)}</span>
+                  </div>
+                  <div className="text-sm text-gray-500 font-mono mb-4 bg-[#1A1A1A] p-3 rounded">算法引擎: {f.method}</div>
+                  <div className="grid grid-cols-2 gap-6">
+                     <div>
+                       <strong className="text-gray-300 block mb-2 text-sm">证据段落:</strong>
+                       <p className="text-gray-400 text-sm leading-relaxed">{f.evidence}</p>
+                     </div>
+                     <div>
+                       <strong className="text-gray-300 block mb-2 text-sm">风险释义:</strong>
+                       <p className="text-gray-400 text-sm leading-relaxed">{f.explanation}</p>
+                     </div>
+                  </div>
+                </div>
+             ))}
+           </div>
+         </div>
+       )
+     });
+  };
   
   return (
     <div className={`flex flex-col ${expanded ? 'gap-8' : 'gap-5'} pb-8 relative group h-full`}>
@@ -218,7 +267,42 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false }:
       )}
       
       {/* 顶部总览卡片 */}
-      <div className={`bg-gradient-to-br from-[#242424] to-[#1A1A1A] border border-[#333333] rounded ${expanded ? 'p-6' : 'p-4'} relative overflow-hidden shadow-lg`}>
+      <div className={`bg-gradient-to-br from-[#242424] to-[#1A1A1A] border border-[#333333] rounded ${expanded ? 'p-6' : 'p-4'} relative overflow-hidden shadow-lg group/main`}>
+        {setExpandedPanel && <button onClick={() => {
+           setExpandedPanel({
+             title: '全局风险评估公式 P(Risk)',
+             type: 'formula',
+             content: (
+                <div className="space-y-6">
+                   <div className="text-center p-8 bg-gradient-to-b from-[#242424] to-[#1A1A1A] rounded-xl border border-[#333333]">
+                      <div className="text-8xl font-bold tracking-tighter text-red-500 mb-4">{probabilityPercent.toFixed(1)}%</div>
+                      <div className="text-xl text-red-400 font-medium">{riskLevel} <span className="text-gray-500 mx-2">|</span> 高危阈值 &gt; {threshold}%</div>
+                      <p className="text-gray-300 mt-6 text-lg max-w-2xl mx-auto">{conclusion}</p>
+                   </div>
+                   <div className="bg-[#1A1A1A] rounded-xl border border-[#333333] p-8 mt-6">
+                      <h4 className="text-gray-400 mb-6 text-sm uppercase tracking-widest font-semibold">分层逻辑回归公式 (Logit)</h4>
+                      <div className="text-2xl font-mono text-[#D4AF37] mb-6 p-4 bg-[#242424] rounded text-center">
+                        Z = W1*X1 + W2*X2 + W3*X3 + b
+                      </div>
+                      <div className="grid grid-cols-4 gap-4 text-center font-mono text-gray-300 mb-8">
+                         <div className="p-3 bg-[#242424] rounded"><span className="text-blue-400 text-xs block mb-1">X1={subIndices.X1}</span>W1={globalWeights.W1}</div>
+                         <div className="p-3 bg-[#242424] rounded"><span className="text-red-400 text-xs block mb-1">X2={subIndices.X2}</span>W2={globalWeights.W2}</div>
+                         <div className="p-3 bg-[#242424] rounded"><span className="text-green-400 text-xs block mb-1">X3={subIndices.X3}</span>W3={globalWeights.W3}</div>
+                         <div className="p-3 bg-[#242424] rounded"><span className="text-gray-500 text-xs block mb-1">Bias</span>b={globalWeights.b||-3.0}</div>
+                      </div>
+                      <div className="text-xl font-mono text-gray-200 mb-6 p-4 bg-[#242424] rounded text-center">
+                        Z = {globalWeights.W1} * {subIndices.X1} + {globalWeights.W2} * {subIndices.X2} + {globalWeights.W3} * {subIndices.X3.toFixed(2)} {globalWeights.b||-3.0} = {zValue.toFixed(4)}
+                      </div>
+                      <div className="text-xl font-mono text-[#D4AF37] p-4 bg-[#242424] rounded text-center">
+                        P(Risk) = 1 / (1 + e^(-{zValue.toFixed(4)})) = {(probabilityPercent/100).toFixed(4)}
+                      </div>
+                   </div>
+                </div>
+             )
+           })
+        }} className="absolute top-4 right-4 z-20 p-2 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 hover:text-white hover:border-[#D4AF37] transition-all opacity-0 group-hover/main:opacity-100 hidden sm:flex">
+          <Maximize className="w-4 h-4" />
+        </button>}
         {probabilityPercent > threshold && <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl"></div>}
         <div className={`flex justify-between items-start ${expanded ? 'mb-6' : 'mb-4'} relative z-10`}>
           <div>
@@ -251,7 +335,11 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false }:
       {/* 三个子指数卡片 */}
       <div className={`grid ${expanded ? 'grid-cols-3 gap-6' : 'grid-cols-1 gap-3'} w-full`}>
         {/* X1 */}
-        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4 relative hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between">
+        <div 
+           className="bg-[#1A1A1A] border border-[#333333] rounded p-4 relative hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between group cursor-pointer"
+           onClick={() => handleSubIndexExpand('X1', '身份关联指数 X1 详情', 'border-blue-500', rawFeatures.identityNetwork, globalWeights.W1)}
+        >
+           {setExpandedPanel && <button className="absolute top-2 right-2 p-1.5 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"><Maximize className="w-3.5 h-3.5"/></button>}
            <div>
              <div className="flex justify-between items-center mb-3">
                <div className="flex items-center gap-2"><Users className={`${expanded ? 'w-5 h-5' : 'w-3.5 h-3.5'} text-blue-400`}/> <span className={`${expanded ? 'text-sm' : 'text-xs'} font-semibold text-gray-200`}>身份关联指数 X1</span></div>
@@ -265,7 +353,11 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false }:
            </div>
         </div>
         {/* X2 */}
-        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4 relative hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between">
+        <div 
+           className="bg-[#1A1A1A] border border-[#333333] rounded p-4 relative hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between group cursor-pointer"
+           onClick={() => handleSubIndexExpand('X2', '交易异常指数 X2 详情', 'border-red-500', rawFeatures.transactionAbnormality, globalWeights.W2)}
+        >
+           {setExpandedPanel && <button className="absolute top-2 right-2 p-1.5 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"><Maximize className="w-3.5 h-3.5"/></button>}
            <div>
              <div className="flex justify-between items-center mb-3">
                <div className="flex items-center gap-2"><Activity className={`${expanded ? 'w-5 h-5' : 'w-3.5 h-3.5'} text-red-400`}/> <span className={`${expanded ? 'text-sm' : 'text-xs'} font-semibold text-gray-200`}>交易异常指数 X2</span></div>
@@ -279,7 +371,11 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false }:
            </div>
         </div>
         {/* X3 */}
-        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4 relative hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between">
+        <div 
+           className="bg-[#1A1A1A] border border-[#333333] rounded p-4 relative hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between group cursor-pointer"
+           onClick={() => handleSubIndexExpand('X3', '外围牵连指数 X3 详情', 'border-green-500', rawFeatures.externalTrace, globalWeights.W3)}
+        >
+           {setExpandedPanel && <button className="absolute top-2 right-2 p-1.5 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"><Maximize className="w-3.5 h-3.5"/></button>}
            <div>
              <div className="flex justify-between items-center mb-3">
                <div className="flex items-center gap-2"><Search className={`${expanded ? 'w-5 h-5' : 'w-3.5 h-3.5'} text-green-400`}/> <span className={`${expanded ? 'text-sm' : 'text-xs'} font-semibold text-gray-200`}>外围牵连指数 X3</span></div>
@@ -310,8 +406,11 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false }:
                     <span className={`${expanded ? 'text-sm' : 'text-xs'} text-gray-200 font-medium`}>[{f.id}] {f.label}</span>
                     <span className={`${expanded ? 'text-sm' : 'text-[11px]'} font-mono ${f.value > 0.7 ? 'text-red-400' : 'text-gray-400'}`}>v = {f.value.toFixed(2)}</span>
                   </div>
-                  <div className={`${expanded ? 'text-xs' : 'text-[9px]'} text-gray-500 mb-3 font-mono`}>算法: {f.method}</div>
-                  <p className={`${expanded ? 'text-xs leading-relaxed' : 'text-[10px] leading-relaxed'} text-gray-400`}><strong className="text-gray-300">RAG 回溯:</strong> {f.evidence}</p>
+                  <div className={`${expanded ? 'text-xs' : 'text-[9px]'} text-gray-500 mb-2 font-mono`}>算法: {f.method}</div>
+                  <p className={`${expanded ? 'text-xs leading-relaxed' : 'text-[10px] leading-relaxed'} text-gray-400 mb-2`}><strong className="text-gray-300">RAG 回溯:</strong> {f.evidence}</p>
+                  <div className="flex justify-end mt-2">
+                     <button onClick={(e) => { e.stopPropagation(); onReadOriginal?.(f); }} className="text-[10px] text-gray-500 hover:text-[#D4AF37]">阅读原文</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -328,8 +427,11 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false }:
                     <span className={`${expanded ? 'text-sm' : 'text-xs'} text-gray-200 font-medium`}>[{f.id}] {f.label}</span>
                     <span className={`${expanded ? 'text-sm' : 'text-[11px]'} font-mono ${f.value > 0.7 ? 'text-red-400' : 'text-gray-400'}`}>v = {f.value.toFixed(2)}</span>
                   </div>
-                  <div className={`${expanded ? 'text-xs' : 'text-[9px]'} text-gray-500 mb-3 font-mono`}>算法: {f.method}</div>
-                  <p className={`${expanded ? 'text-xs leading-relaxed' : 'text-[10px] leading-relaxed'} text-gray-400`}><strong className="text-gray-300">RAG 回溯:</strong> {f.evidence}</p>
+                  <div className={`${expanded ? 'text-xs' : 'text-[9px]'} text-gray-500 mb-2 font-mono`}>算法: {f.method}</div>
+                  <p className={`${expanded ? 'text-xs leading-relaxed' : 'text-[10px] leading-relaxed'} text-gray-400 mb-2`}><strong className="text-gray-300">RAG 回溯:</strong> {f.evidence}</p>
+                  <div className="flex justify-end mt-2">
+                     <button onClick={(e) => { e.stopPropagation(); onReadOriginal?.(f); }} className="text-[10px] text-gray-500 hover:text-[#D4AF37]">阅读原文</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -346,8 +448,11 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false }:
                     <span className={`${expanded ? 'text-sm' : 'text-xs'} text-gray-200 font-medium`}>[{f.id}] {f.label}</span>
                     <span className={`${expanded ? 'text-sm' : 'text-[11px]'} font-mono ${f.value > 0.7 ? 'text-red-400' : 'text-gray-400'}`}>v = {f.value.toFixed(2)}</span>
                   </div>
-                  <div className={`${expanded ? 'text-xs' : 'text-[9px]'} text-gray-500 mb-3 font-mono`}>算法: {f.method}</div>
-                  <p className={`${expanded ? 'text-xs leading-relaxed' : 'text-[10px] leading-relaxed'} text-gray-400`}><strong className="text-gray-300">RAG 回溯:</strong> {f.evidence}</p>
+                  <div className={`${expanded ? 'text-xs' : 'text-[9px]'} text-gray-500 mb-2 font-mono`}>算法: {f.method}</div>
+                  <p className={`${expanded ? 'text-xs leading-relaxed' : 'text-[10px] leading-relaxed'} text-gray-400 mb-2`}><strong className="text-gray-300">RAG 回溯:</strong> {f.evidence}</p>
+                  <div className="flex justify-end mt-2">
+                     <button onClick={(e) => { e.stopPropagation(); onReadOriginal?.(f); }} className="text-[10px] text-gray-500 hover:text-[#D4AF37]">阅读原文</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -372,6 +477,11 @@ export default function Workspace() {
   const [showRuleSet, setShowRuleSet] = useState(false);
   const [lastAnalysisAt, setLastAnalysisAt] = useState<Date | null>(null);
   const [expandedPanel, setExpandedPanel] = useState<null | { title: string; type: string; content: React.ReactNode; }>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [evidenceToShow, setEvidenceToShow] = useState<any>(null);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   const [loadingProject, setLoadingProject] = useState(true);
 
@@ -749,7 +859,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
           {/* Quick Actions Base */}
           <div className="p-3 border-t border-[#333333] bg-[#242424] shrink-0 grid grid-cols-2 gap-2 relative">
              <button className="px-3 py-2 bg-[#1A1A1A] border border-[#333333] hover:border-[#D4AF37] text-gray-300 text-[11px] rounded transition-colors"
-                onClick={() => toast('请前往【项目管理】面板追加上传数据源', 'info')}>+ 追加数据源</button>
+                onClick={() => setShowUploadModal(true)}>+ 追加数据源</button>
              <button className="px-3 py-2 bg-[#1A1A1A] border border-[#333333] hover:border-[#D4AF37] text-gray-300 text-[11px] rounded transition-colors"
                 onClick={() => setShowRuleSet(!showRuleSet)}>切换规则集</button>
              
@@ -782,10 +892,12 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
               <RiskScoringModule 
                 data={data.riskScoring} 
                 onFeatureClick={setSelectedNode} 
+                setExpandedPanel={setExpandedPanel}
+                onReadOriginal={setEvidenceToShow}
                 onExpand={() => setExpandedPanel({ 
                   title: '全维风险评估与底层特征分析', 
                   type: 'riskScoring', 
-                  content: <RiskScoringModule data={data.riskScoring} onFeatureClick={setSelectedNode} expanded={true} /> 
+                  content: <RiskScoringModule data={data.riskScoring} onFeatureClick={setSelectedNode} expanded={true} setExpandedPanel={setExpandedPanel} onReadOriginal={setEvidenceToShow} /> 
                 })} 
               />
             ) : (
@@ -960,7 +1072,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                 setExpandedPanel({ 
                   title: '实体关系网络大图', 
                   type: 'graph', 
-                  content: <div className="w-full h-full min-h-[70vh]"><D3Graph entities={displayEntities} relationships={displayRels} onNodeClick={setSelectedNode} onEdgeClick={setSelectedEdge} /></div> 
+                  content: <div className="w-full h-full min-h-[70vh]"><D3Graph entities={displayEntities} relationships={displayRels} onNodeClick={setSelectedNode} onEdgeClick={setSelectedEdge} expanded={true} /></div> 
                 })
               }}
               className="absolute top-4 right-4 z-20 p-2 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 hover:text-white hover:border-[#D4AF37] transition-all opacity-0 group-hover:opacity-100 hidden sm:flex items-center gap-1.5 shadow-lg"
@@ -1144,7 +1256,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                            ... {r.source} 与 {r.target} 存在 {r.type || r.relationType} 证据: "{r.evidenceSnippet || r.evidence}" ...
                          </p>
                    <div className="mt-auto flex justify-end gap-2">
-                     <button onClick={() => toast(`原文节选: \n${r.evidenceSnippet || r.evidence}`, 'info')} className="text-[10px] text-gray-500 hover:text-[#D4AF37]">阅读原文</button>
+                     <button onClick={() => setEvidenceToShow(r)} className="text-[10px] text-gray-500 hover:text-[#D4AF37]">阅读原文</button>
                      <button onClick={(e) => {
                        toast('已摘录入底稿', 'success');
                              (e.target as HTMLButtonElement).innerText = '已添加';
@@ -1210,6 +1322,161 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
       
       {expandedPanel && <ExpandedPanelModal expandedPanel={expandedPanel} setExpandedPanel={setExpandedPanel} />}
       
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setShowUploadModal(false)}>
+          <div 
+            className="bg-[#1A1A1A] border border-[#333333] w-full max-w-lg rounded-lg shadow-2xl flex flex-col overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center px-6 py-4 border-b border-[#333333] bg-[#242424]">
+              <h2 className="text-sm font-semibold text-gray-200">追加数据源</h2>
+              <button disabled={isUploading} onClick={() => setShowUploadModal(false)} className="p-1 hover:bg-[#333333] rounded text-gray-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+               <div 
+                  className="border-2 border-dashed border-[#333333] rounded-lg p-8 text-center cursor-pointer hover:border-[#D4AF37]/50 hover:bg-[#2A2A2A] transition-all mb-4"
+                  onClick={() => uploadInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+                  onDrop={(e) => {
+                     e.preventDefault();
+                     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        const newFiles = Array.from(e.dataTransfer.files);
+                        setUploadFiles(prev => [...prev, ...newFiles]);
+                     }
+                  }}
+                >
+                  <input 
+                    type="file" 
+                    multiple 
+                    className="hidden" 
+                    ref={uploadInputRef}
+                    onChange={(e) => {
+                       if (e.target.files) {
+                         const newFiles = Array.from(e.target.files);
+                         setUploadFiles(prev => [...prev, ...newFiles]);
+                       }
+                       if (uploadInputRef.current) uploadInputRef.current.value = '';
+                    }}
+                  />
+                  <Upload className="w-8 h-8 text-gray-500 mx-auto mb-3" />
+                  <p className="text-sm text-gray-300 font-medium mb-1">点击或拖拽文件到此处</p>
+                  <p className="text-xs text-gray-500">支持 PDF, DOCX, XLSX, CSV, TXT, PNG, JPG 等格式</p>
+               </div>
+               
+               {uploadFiles.length > 0 && (
+                 <div className="space-y-2 mb-6 max-h-40 overflow-y-auto custom-scrollbar">
+                   {uploadFiles.map((f, i) => (
+                     <div key={i} className="flex items-center justify-between p-2 bg-[#242424] border border-[#333333] rounded text-sm">
+                       <div className="flex items-center gap-2 overflow-hidden">
+                         <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                         <span className="text-gray-300 truncate">{f.name}</span>
+                         <span className="text-[10px] text-gray-500 font-mono shrink-0">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
+                       </div>
+                       <button onClick={() => setUploadFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:bg-red-500/10 p-1 rounded transition-colors" disabled={isUploading}>
+                         <X className="w-3.5 h-3.5" />
+                       </button>
+                     </div>
+                   ))}
+                 </div>
+               )}
+               
+               <div className="flex justify-end gap-3 mt-2">
+                 <button 
+                   onClick={() => setShowUploadModal(false)}
+                   className="px-4 py-2 border border-[#333333] text-gray-400 hover:text-gray-200 hover:border-gray-500 rounded text-sm font-medium transition-colors"
+                   disabled={isUploading}
+                 >
+                   取消
+                 </button>
+                 <button 
+                   onClick={async () => {
+                     if (uploadFiles.length === 0) return toast("请先选择要上传的文件", "warning");
+                     setIsUploading(true);
+                     try {
+                        const formData = new FormData();
+                        uploadFiles.forEach(f => formData.append('files', f));
+                        const uploadRes = await fetch(`/api/projects/${id}/documents`, {
+                          method: 'POST',
+                          body: formData
+                        });
+                        if (!uploadRes.ok) throw new Error("上传失败");
+                        
+                        toast("数据源追加上传成功", "success");
+                        setShowUploadModal(false);
+                        setUploadFiles([]);
+                        fetchProject(); // refresh data
+                     } catch(e) {
+                        toast("上传失败，仅将模拟数据加入列表或接口错误", "warning");
+                        // Mock append
+                        const newDocs = uploadFiles.map((fac, i) => ({ id: Date.now()+i, fileName: fac.name, originalName: fac.name, sourceType: '' }));
+                        setData((prev:any) => ({...prev, documents: [...(prev.documents||[]), ...newDocs]}));
+                        setShowUploadModal(false);
+                        setUploadFiles([]);
+                        toast("已通过模拟模式加入文档列表", "success");
+                     } finally {
+                        setIsUploading(false);
+                     }
+                   }}
+                   className="px-4 py-2 bg-[#D4AF37] hover:bg-[#E5C048] text-black rounded text-sm font-bold transition-colors flex items-center gap-2"
+                   disabled={isUploading}
+                 >
+                   {isUploading ? <><Activity className="w-4 h-4 animate-spin"/> 上传中</> : '开始上传'}
+                 </button>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Evidence Source Modal */}
+      {evidenceToShow && (() => {
+        const src = evidenceToShow.evidenceSource;
+        const fallbackText = src?.originalText || evidenceToShow.evidenceSnippet || evidenceToShow.evidence;
+        return (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setEvidenceToShow(null)}>
+            <div className="bg-[#121212] border border-[#333333] w-full max-w-2xl rounded-lg shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center px-6 py-4 border-b border-[#333333] bg-[#1A1A1A]">
+                <h2 className="text-lg font-semibold text-gray-200 flex items-center gap-2"><FileText className="w-5 h-5 text-[#D4AF37]"/> 溯源取证原文</h2>
+                <button onClick={() => setEvidenceToShow(null)} className="p-1 hover:bg-[#333333] rounded text-gray-400">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6">
+                {src ? (
+                  <div className="flex flex-wrap gap-4 mb-4 text-xs font-mono text-gray-500">
+                    <div className="px-2 py-1 bg-[#242424] rounded border border-[#333333]">文档: <span className="text-gray-300">{src.documentName}</span></div>
+                    <div className="px-2 py-1 bg-[#242424] rounded border border-[#333333]">页码: <span className="text-gray-300">{src.page}</span></div>
+                    <div className="px-2 py-1 bg-[#242424] rounded border border-[#333333]">段落: <span className="text-gray-300">{src.paragraph}</span></div>
+                  </div>
+                ) : (
+                  <div className="mb-4 text-sm text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 rounded">
+                    暂无原文文档映射，仅保留结构化证据摘要。
+                  </div>
+                )}
+                
+                <h4 className="text-xs text-gray-400 mb-2 uppercase tracking-wider font-semibold">命中片段 / 内容</h4>
+                <div className="p-4 bg-[#1A1A1A] border border-[#333333] rounded text-sm text-gray-300 font-serif leading-relaxed min-h-[120px] max-h-[300px] overflow-y-auto">
+                  {fallbackText || "未提取到可用段落。"}
+                </div>
+                
+                <div className="mt-6 flex justify-end gap-3">
+                  <button onClick={() => {
+                     navigator.clipboard.writeText(fallbackText || '');
+                     toast("原文已复制到剪贴板", "success");
+                  }} className="px-4 py-2 bg-[#242424] hover:bg-[#333333] border border-[#333333] text-gray-300 rounded text-sm font-medium transition-colors">
+                    复制原文
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
