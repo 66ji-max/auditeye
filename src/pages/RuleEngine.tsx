@@ -57,7 +57,11 @@ export default function RuleEngine() {
         setAiWeights(data.weights);
         setAiSampleCount(data.sampleCount);
         setAiLastTrained(new Date().toLocaleString());
-        toast('模型权重刷新成功', 'success');
+        if (data.fallback) {
+          toast('样本不足，当前使用默认门类权重', 'warning');
+        } else {
+          toast('模型权重刷新成功', 'success');
+        }
       }
     } catch(e) {
       toast('训练失败', 'error');
@@ -419,8 +423,17 @@ export default function RuleEngine() {
                  ) : aiExtractionResult ? (
                     <div className="space-y-4 text-sm">
                        <div className="p-3 bg-[#1A1A1A] border border-[#333333] rounded">
-                         <span className="text-gray-500 text-xs block mb-1">Source Engine:</span>
-                         <span className="text-green-400 font-mono">{aiExtractionResult.source}</span>
+                         <span className="text-gray-500 text-xs block mb-1">AI 抽取接口状态:</span>
+                         <div className="text-gray-300 text-xs mt-1">
+                            <div>当前源: <span className="text-green-400 font-mono">{aiExtractionResult.source}</span></div>
+                            {aiExtractionResult.providerInfo && (
+                              <>
+                                <div>当前模式: <span className="text-[#D4AF37]">{aiExtractionResult.providerInfo.mode}</span></div>
+                                <div>当前模型: <span className="text-[#D4AF37]">{aiExtractionResult.providerInfo.model}</span></div>
+                                <div>API Key 状态: <span>{aiExtractionResult.providerInfo.apiKeyConfigured ? '已配置' : '未配置'}</span></div>
+                              </>
+                            )}
+                         </div>
                        </div>
                        
                        <div className="p-3 bg-[#1A1A1A] border border-[#333333] rounded">

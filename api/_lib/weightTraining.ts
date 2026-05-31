@@ -1,10 +1,14 @@
 
-export const trainCategoryWeights = (samples: any[]) => {
-    if (!samples || samples.length < 5) {
+export const trainCategoryWeights = (samples: any[], defaultWeights: any) => {
+    if (!samples || samples.length < 10) {
         return { fallback: true };
     }
     
-    let W1 = Math.random(), W2 = Math.random(), W3 = Math.random(), b = Math.random() - 2;
+    let W1 = defaultWeights?.W1 ?? 1.0;
+    let W2 = defaultWeights?.W2 ?? 1.0;
+    let W3 = defaultWeights?.W3 ?? 1.0;
+    let b = defaultWeights?.b ?? -2.0;
+
     const lr = 0.05;
     const epochs = 100;
     

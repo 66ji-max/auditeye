@@ -62,9 +62,18 @@ AUDITEYE_LLM_API_KEY="your_api_key_here"
 
 Vercel 部署时需要在 Project Settings → Environment Variables 中配置以下变量以启用 AI 证据抽取功能：
 
+如果使用第三方 OpenAI-compatible 聚合接口，请配置：
 ```bash
-GEMINI_API_KEY=你的 Google AI Studio API Key # 必填
-GOOGLE_AI_API_KEY=你的 Google AI Studio API Key # 选填（如果 GEMINI_API_KEY 不存在则回退到该值）
+LLM_API_KEY=你的第三方 API Key
+LLM_BASE_URL=https://max.openai365.top/v1
+LLM_MODEL=gemini-3.1-pro-preview
+LLM_FALLBACK_MODEL=gemini-3-flash-preview
+```
+
+为了保持向后兼容，如果以上 `LLM_API_KEY` 未配置，系统会回退读取官方 Gemini 接口配置：
+```bash
+GEMINI_API_KEY=你的 Google AI Studio API Key
+GOOGLE_AI_API_KEY=你的 Google AI Studio API Key # 选填
 ```
 
 说明：

@@ -1,10 +1,32 @@
 
-import { callGemini, getApiKey } from './aiClient.js';
+import { callLLM } from './aiClient.js';
+
+const parseJSON = (text: string) => {
+    let raw = text.trim();
+    if (raw.startsWith('```json')) {
+        raw = raw.slice(7);
+    } else if (raw.startsWith('```')) {
+        raw = raw.slice(3);
+    }
+    
+    if (raw.endsWith('```')) {
+        raw = raw.slice(0, -3);
+    }
+    
+    const match = raw.match(/\{[\s\S]*\}/);
+    const jsonStr = match ? match[0] : raw;
+    return JSON.parse(jsonStr);
+};
 
 export const extractEvidence = async (projectType: string, documentText: string) => {
-    const apiKey = getApiKey();
-    const mockResult = {
+    const defaultMockResult = {
       source: "mock-fallback",
+      providerInfo: {
+          mode: 'mock-fallback',
+          model: 'mock',
+          baseUrlConfigured: false,
+          apiKeyConfigured: false
+      },
       entities: [
         { name: "登XX发行主体", type: "COMPANY" },
         { name: "山东旺XX汽车零部件有限公司", type: "COMPANY" }
@@ -32,10 +54,6 @@ export const extractEvidence = async (projectType: string, documentText: string)
       }
     };
 
-    if (!apiKey) {
-        return mockResult;
-    }
-
     try {
         const prompt = `Extract entities, keywords, relationships, evidenceSnippets, and suggested raw risk features (x1a-x3b) from the following document.
         Project Type: ${projectType}
@@ -51,19 +69,26 @@ export const extractEvidence = async (projectType: string, documentText: string)
         }
         Return ONLY the JSON string.`;
 
-        const resultText = await callGemini(prompt, apiKey);
+        const { text, config } = await callLLM(prompt);
         
-        // basic json extraction
-        const match = resultText.match(/\{[\s\S]*\}/);
-        const jsonStr = match ? match[0] : resultText;
-        const parsed = JSON.parse(jsonStr);
+        if (config.mode === 'mock-fallback') {
+            return defaultMockResult;
+        }
+
+        const parsed = parseJSON(text);
 
         return {
-            source: "gemini-api",
+            source: config.mode === 'official-gemini' ? 'gemini-api' : 'llm-api',
+            providerInfo: {
+                mode: config.mode,
+                model: config.model,
+                baseUrlConfigured: config.baseUrlConfigured,
+                apiKeyConfigured: config.apiKeyConfigured
+            },
             ...parsed
         };
     } catch(e) {
-        console.error("Gemini Extraction failed, fallback to mock", e);
-        return mockResult;
+        console.error("LLM Extraction failed, fallback to mock");
+        return defaultMockResult;
     }
 };
