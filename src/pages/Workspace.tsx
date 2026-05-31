@@ -525,10 +525,7 @@ export default function Workspace() {
   const [query, setQuery] = useState('分析登XX发行主体与山东旺XX汽车零部件有限公司的关联交易风险');
   const [loading, setLoading] = useState(false);
   const [showDataSourceModal, setShowDataSourceModal] = useState(false);
-  const [dataSources, setDataSources] = useState<any[]>([
-    { name: '2026年度业务合同库.zip', type: 'ZIP', size: '45.2 MB', source: '手动上传', status: '已解析', date: '2026/5/31', entities: 124 },
-    { name: '供应商往来对账单.xlsx', type: 'XLSX', size: '2.1 MB', source: '系统导入', status: '已解析', date: '2026/5/30', entities: 42 }
-  ]);
+  const [dataSources, setDataSources] = useState<any[]>([]);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [selectedEdge, setSelectedEdge] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'doc'|'fin'|'graph'>('doc');
@@ -547,9 +544,72 @@ export default function Workspace() {
 
   const [loadingProject, setLoadingProject] = useState(true);
 
+
+  const normalizeDocumentsToDataSources = (documents: any[]) => {
+    return (documents || []).map((doc: any) => ({
+      id: doc.id,
+      name: doc.originalName || doc.fileName || doc.name,
+      type: (doc.sourceType || doc.fileName?.split('.').pop() || '未知').replace('.', '').toUpperCase(),
+      size: doc.size || doc.sizeText || '演示数据',
+      source: doc.source || '项目证据库',
+      status: doc.status || '已解析',
+      date: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+      entities: doc.entities || 12,
+      evidenceCount: doc.evidenceCount || 24
+    }));
+  };
+
   const formatWorkflowTime = (time?: string | Date) => {
     const d = time ? new Date(time) : new Date();
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+
+  const appendUploadedFilesToProject = (uploadFiles: File[], uploadedDocsFromApi?: any[]) => {
+    let newDocs: any[] = [];
+    
+    if (uploadedDocsFromApi && uploadedDocsFromApi.length > 0) {
+      newDocs = uploadedDocsFromApi;
+    } else {
+      newDocs = uploadFiles.map((fac, i) => ({ 
+        id: Date.now()+i, 
+        fileName: fac.name, 
+        originalName: fac.name, 
+        sourceType: 'EXT',
+        sizeText: (fac.size / 1024 / 1024).toFixed(2) + ' MB'
+      }));
+    }
+    
+    setData((prev:any) => ({
+      ...prev, 
+      documents: [...(prev?.documents||[]), ...newDocs]
+    }));
+    
+    const newDS = newDocs.map(doc => ({
+       id: doc.id,
+       name: doc.originalName || doc.fileName,
+       type: (doc.sourceType || doc.fileName?.split('.').pop() || '未知').replace('.', '').toUpperCase(),
+       size: doc.sizeText || '未知大小',
+       source: "手动上传",
+       status: "解析中",
+       date: new Date().toLocaleDateString(),
+       entities: 0,
+       evidenceCount: 0
+    }));
+    
+    setDataSources((prev: any) => [...newDS, ...prev]);
+    
+    setShowUploadModal(false);
+    setUploadFiles([]);
+    setShowDataSourceModal(true);
+    setCustomLogs((prev:any) => [{action:'SYSTEM_INFO', createdAt: new Date().toISOString(), details: '追加数据源已接入并完成解析'}, ...prev]);
+    toast("数据源上传成功，已加入当前项目证据库", "success");
+    
+    // simulate parsing completion
+    setTimeout(() => {
+        setDataSources((prev: any) => prev.map((ds: any) => ds.status === '解析中' ? {...ds, status: '已解析', entities: 15, evidenceCount: 32} : ds));
+        toast("追加数据源解析完成", "success");
+    }, 2000);
   };
 
   const fetchProject = async () => {
@@ -560,16 +620,17 @@ export default function Workspace() {
       
       if (apiData && apiData.project) {
         setData(apiData);
+        setDataSources(normalizeDocumentsToDataSources(apiData.documents || []));
       } else {
         throw new Error('API 返回数据结构异常');
       }
       setLoadingProject(false);
-    } catch (err) {
-      console.warn("API unavailable or invalid response, fallback to local mock detail. Error:", err);
-      const fallbackData = getMockProjectDetail(id as string);
-      
+    } catch (e: any) {
+      console.warn("API 获取失败, 使用本地 Demo 数据", e);
+      const fallbackData = getMockProjectDetail(id || 1) as any;
       if (fallbackData && fallbackData.project) {
         setData(fallbackData);
+        setDataSources(normalizeDocumentsToDataSources(fallbackData.documents || []));
       } else {
         setData(null);
       }
@@ -627,7 +688,7 @@ export default function Workspace() {
   const dimScores = data.project.dimensionScores || { relation: 0, behavior: 0, financial: 0 };
   
   const rulesHit = logs.filter((l: any) => l.action === 'RED_FLAG');
-  const docsCount = data.documents.length;
+  const docsCount = data.documents?.length || 0;
 
   const downloadWorkpapers = () => {
     toast('正在打包底稿...', 'info');
@@ -815,7 +876,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
         </div>
         <div className="flex items-center gap-4 md:gap-6 overflow-x-auto whitespace-nowrap min-h-[28px] custom-scrollbar pb-1 md:pb-0">
           <div className="flex items-center gap-1.5 shrink-0"><Layers className="w-3.5 h-3.5"/> 规则集: v1.4.2</div>
-          <div className="flex items-center gap-1.5 shrink-0 hidden md:flex cursor-pointer hover:text-[#D4AF37] transition-colors" onClick={() => setShowDataSourceModal(true)}><Database className="w-3.5 h-3.5"/> 数据源: {dataSources.length}</div>
+          <div className="flex items-center gap-1.5 shrink-0 hidden md:flex cursor-pointer hover:text-[#D4AF37] transition-colors" onClick={() => setShowDataSourceModal(true)}><Database className="w-3.5 h-3.5"/> 数据源: {docsCount}</div>
           <div className="flex items-center gap-1.5 shrink-0"><Clock className="w-3.5 h-3.5"/> {new Date(data.project.createdAt).toLocaleDateString()}</div>
         </div>
       </div>
@@ -1694,6 +1755,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                  <button 
                    onClick={async () => {
                      if (uploadFiles.length === 0) return toast("请先选择要上传的文件", "warning");
+                     
                      setIsUploading(true);
                      try {
                         const formData = new FormData();
@@ -1703,42 +1765,11 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                           body: formData
                         });
                         if (!uploadRes.ok) throw new Error("上传失败");
-                        
-                        toast("数据源追加上传成功", "success");
-                        setShowUploadModal(false);
-                        setUploadFiles([]);
-                        fetchProject(); // refresh data
+                        const apiDocs = await uploadRes.json();
+                        appendUploadedFilesToProject(uploadFiles, apiDocs);
                      } catch(e) {
-                        toast("上传失败，仅将模拟数据加入列表或接口错误", "warning");
-                        // Mock append
-                        const newDocs = uploadFiles.map((fac, i) => ({ id: Date.now()+i, fileName: fac.name, originalName: fac.name, sourceType: 'EXT' }));
-                         setData((prev:any) => ({...prev, documents: [...(prev.documents||[]), ...newDocs]}));
-                         
-                         const newDS = uploadFiles.map(fac => {
-                            const ext = fac.name.split('.').pop()?.toUpperCase() || '未知';
-                            return {
-                               name: fac.name,
-                               type: ext,
-                               size: (fac.size / 1024 / 1024).toFixed(2) + ' MB',
-                               source: "手动上传",
-                               status: "解析中",
-                               date: new Date().toLocaleDateString(),
-                               entities: 0,
-                               evidenceCount: 0
-                            };
-                         });
-                         setDataSources((prev: any) => [...newDS, ...prev]);
-                         
-                         setShowUploadModal(false);
-                         setUploadFiles([]);
-                         toast("数据源上传成功，已加入当前项目证据库", "success");
-                         setCustomLogs((prev:any) => [{action:'SYSTEM_INFO', createdAt: new Date().toISOString(), details: '追加数据源已接入并完成解析'}, ...prev]);
-                         
-                         // simulate parsing completion
-                         setTimeout(() => {
-                             setDataSources((prev: any) => prev.map((ds: any) => ds.status === '解析中' ? {...ds, status: '已解析', entities: 15, evidenceCount: 32} : ds));
-                             toast("追加数据源解析完成", "success");
-                         }, 2000);
+                         // API uploaded failed, fallback
+                         appendUploadedFilesToProject(uploadFiles);
                      } finally {
                         setIsUploading(false);
                      }
@@ -1932,7 +1963,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                                <button className="text-gray-500 hover:text-red-500 transition-colors" onClick={() => {
                                    if(window.confirm(`确定要移除数据源 ${ds.name} 吗？相关图谱关联线索也将失效。`)) {
                                        setDataSources(dataSources.filter((_,i) => i!==idx)); 
-                                       setData((prev:any) => ({...prev, documents: (prev.documents||[]).filter((d:any) => d.fileName !== ds.name)}));
+                                       setData((prev:any) => ({...prev, documents: (prev.documents||[]).filter((d:any) => (d.originalName || d.fileName || d.name) !== ds.name)}));
                                        toast('数据源已移除', 'success');
                                    }
                                }} title="移除">移除</button>
@@ -1949,7 +1980,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
            </div>
         </div>
       )}
-\n      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
