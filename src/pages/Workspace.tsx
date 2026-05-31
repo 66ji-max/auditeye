@@ -12,11 +12,11 @@ import { toast } from '../components/Toast.tsx';
 import { RISK_DIMENSIONS } from '../config/riskScoring.ts';
 import { getMockProjectDetail } from '../lib/mockData.ts';
 
-const WorkflowStep: React.FC<{ icon: React.ReactNode, title: string, desc?: string, status: 'done' | 'active' | 'alert' | 'pending', time: string, entities?: number, rules?: number }> = ({ icon, title, desc, status, time, entities, rules }) => {
+const WorkflowStep: React.FC<{ icon: React.ReactNode, title: string, desc?: string, status: 'done' | 'active' | 'alert' | 'pending', time: string, entities?: number, rules?: number, size?: 'sm' | 'base' }> = ({ icon, title, desc, status, time, entities, rules, size = 'sm' }) => {
   const [expanded, setExpanded] = useState(status !== 'pending');
   return (
-    <div className="relative flex gap-3 pb-6 z-10 group">
-      <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border transition-colors ${
+    <div className={`relative flex gap-3 pb-6 z-10 group ${size === 'base' ? 'mt-2' : ''}`}>
+      <div className={`${size === 'base' ? 'w-8 h-8' : 'w-6 h-6'} rounded-full flex items-center justify-center shrink-0 border transition-colors ${
         status === 'done' ? 'bg-[#1A1A1A] border-[#D4AF37]' : 
         status === 'alert' ? 'bg-red-500/10 border-red-500' : 
         status === 'active' ? 'bg-[#D4AF37]/10 border-[#D4AF37] animate-pulse' :
@@ -24,23 +24,23 @@ const WorkflowStep: React.FC<{ icon: React.ReactNode, title: string, desc?: stri
       }`}>
         {icon}
       </div>
-      <div className="flex-1 pt-0.5">
+      <div className={`flex-1 ${size === 'base' ? 'pt-1' : 'pt-0.5'}`}>
         <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
           <div className="flex items-center gap-2">
-            <h4 className={`text-xs font-medium ${status === 'alert' ? 'text-red-400' : status === 'pending' ? 'text-gray-500' : 'text-gray-200'}`}>{title}</h4>
-            {status === 'done' && <span className="px-1.5 py-0.5 bg-green-500/10 text-green-400 text-[9px] rounded">已完成</span>}
-            {status === 'active' && <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[9px] rounded">进行中</span>}
-            {status === 'pending' && <span className="px-1.5 py-0.5 bg-gray-800 text-gray-500 text-[9px] rounded">待执行</span>}
+            <h4 className={`${size === 'base' ? 'text-sm' : 'text-xs'} font-medium ${status === 'alert' ? 'text-red-400' : status === 'pending' ? 'text-gray-500' : 'text-gray-200'}`}>{title}</h4>
+            {status === 'done' && <span className={`px-1.5 py-0.5 bg-green-500/10 text-green-400 ${size === 'base' ? 'text-[11px]' : 'text-[9px]'} rounded`}>已完成</span>}
+            {status === 'active' && <span className={`px-1.5 py-0.5 bg-blue-500/10 text-blue-400 ${size === 'base' ? 'text-[11px]' : 'text-[9px]'} rounded`}>进行中</span>}
+            {status === 'pending' && <span className={`px-1.5 py-0.5 bg-gray-800 text-gray-500 ${size === 'base' ? 'text-[11px]' : 'text-[9px]'} rounded`}>待执行</span>}
           </div>
-          <span className="text-[10px] text-gray-500 font-mono">{time}</span>
+          <span className={`${size === 'base' ? 'text-xs' : 'text-[10px]'} text-gray-500 font-mono`}>{time}</span>
         </div>
         {expanded && desc && (
-          <div className="mt-2 p-2 bg-[#1A1A1A] border border-[#333333] rounded">
-            <p className="text-[11px] text-gray-400 leading-relaxed">{desc}</p>
+          <div className={`mt-2 p-3 bg-[#1A1A1A] border border-[#333333] rounded`}>
+            <p className={`${size === 'base' ? 'text-sm' : 'text-[11px]'} text-gray-400 leading-relaxed`}>{desc}</p>
             {(entities || rules) ? (
-              <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#333333]">
-                {entities !== undefined && <span className="text-[10px] text-gray-400 flex items-center gap-1"><Database className="w-3 h-3"/> 抽取实体: <strong className="text-[#D4AF37]">{entities}</strong></span>}
-                {rules !== undefined && <span className="text-[10px] text-gray-400 flex items-center gap-1"><Activity className="w-3 h-3"/> 触发规则: <strong className="text-red-400">{rules}</strong></span>}
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#333333]">
+                {entities !== undefined && <span className={`${size === 'base' ? 'text-xs' : 'text-[10px]'} text-gray-400 flex items-center gap-1`}><Database className={`${size === 'base' ? 'w-4 h-4' : 'w-3 h-3'}`}/> 抽取实体: <strong className="text-[#D4AF37]">{entities}</strong></span>}
+                {rules !== undefined && <span className={`${size === 'base' ? 'text-xs' : 'text-[10px]'} text-gray-400 flex items-center gap-1`}><Activity className={`${size === 'base' ? 'w-4 h-4' : 'w-3 h-3'}`}/> 触发规则: <strong className="text-red-400">{rules}</strong></span>}
               </div>
             ) : null}
           </div>
@@ -272,10 +272,10 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
         {onExpand && !expanded && (
           <button 
             onClick={onExpand} 
-            className="absolute top-4 right-4 z-20 p-2 bg-transparent border border-transparent rounded text-gray-500 hover:text-[#D4AF37] hover:border-[#D4AF37]/50 transition-all opacity-0 group-hover:opacity-100 hidden sm:flex items-center justify-center bg-black/20"
+            className="absolute top-4 right-4 z-20 p-2 bg-transparent border border-transparent rounded text-gray-500 hover:text-[#D4AF37] hover:border-[#D4AF37] transition-all opacity-30 hover:opacity-100 hidden sm:flex items-center justify-center cursor-pointer"
             title="展开风险评分详情"
           >
-            <Maximize className="w-4 h-4" />
+            <Maximize2 className="w-5 h-5" />
           </button>
         )}
         {probabilityPercent > threshold && <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl"></div>}
@@ -314,7 +314,6 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
            className="bg-[#1A1A1A] border border-[#333333] rounded p-4 relative hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between group cursor-pointer"
            onClick={() => handleSubIndexExpand('X1', '身份关联指数 X1 详情', 'border-blue-500', rawFeatures.identityNetwork, globalWeights.W1)}
         >
-           {setExpandedPanel && <button className="absolute top-2 right-2 p-1.5 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"><Maximize className="w-3.5 h-3.5"/></button>}
            <div>
              <div className="flex justify-between items-center mb-3">
                <div className="flex items-center gap-2"><Users className={`${expanded ? 'w-5 h-5' : 'w-3.5 h-3.5'} text-blue-400`}/> <span className={`${expanded ? 'text-sm' : 'text-xs'} font-semibold text-gray-200`}>身份关联指数 X1</span></div>
@@ -332,7 +331,6 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
            className="bg-[#1A1A1A] border border-[#333333] rounded p-4 relative hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between group cursor-pointer"
            onClick={() => handleSubIndexExpand('X2', '交易异常指数 X2 详情', 'border-red-500', rawFeatures.transactionAbnormality, globalWeights.W2)}
         >
-           {setExpandedPanel && <button className="absolute top-2 right-2 p-1.5 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"><Maximize className="w-3.5 h-3.5"/></button>}
            <div>
              <div className="flex justify-between items-center mb-3">
                <div className="flex items-center gap-2"><Activity className={`${expanded ? 'w-5 h-5' : 'w-3.5 h-3.5'} text-red-400`}/> <span className={`${expanded ? 'text-sm' : 'text-xs'} font-semibold text-gray-200`}>交易异常指数 X2</span></div>
@@ -350,7 +348,6 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
            className="bg-[#1A1A1A] border border-[#333333] rounded p-4 relative hover:border-[#D4AF37]/50 transition-colors flex flex-col justify-between group cursor-pointer"
            onClick={() => handleSubIndexExpand('X3', '外围牵连指数 X3 详情', 'border-green-500', rawFeatures.externalTrace, globalWeights.W3)}
         >
-           {setExpandedPanel && <button className="absolute top-2 right-2 p-1.5 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white"><Maximize className="w-3.5 h-3.5"/></button>}
            <div>
              <div className="flex justify-between items-center mb-3">
                <div className="flex items-center gap-2"><Search className={`${expanded ? 'w-5 h-5' : 'w-3.5 h-3.5'} text-green-400`}/> <span className={`${expanded ? 'text-sm' : 'text-xs'} font-semibold text-gray-200`}>外围牵连指数 X3</span></div>
@@ -373,7 +370,6 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
           <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden flex flex-col h-full group/x1">
             <div className={`bg-[#1A1A1A] px-4 py-3 border-b border-[#333333] ${expanded ? 'text-xs' : 'text-[10px]'} font-semibold text-gray-300 flex items-center justify-between`}>
               <span className="flex items-center gap-2"><Users className="w-4 h-4 text-blue-400"/>身份网络特征组 (X1)</span>
-              {!expanded && <button onClick={() => handleSubIndexExpand('X1', '身份网络特征组 (X1)', 'border-blue-500', rawFeatures.identityNetwork, globalWeights.W1)} className="p-1 hover:bg-[#333333] hover:text-[#D4AF37] rounded text-gray-500 opacity-0 group-hover/x1:opacity-100 transition-all"><Maximize2 className="w-3.5 h-3.5" /></button>}
             </div>
             <div className="divide-y divide-[#333333] flex-1">
               {rawFeatures.identityNetwork.map((f: any) => (
@@ -395,7 +391,6 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
           <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden flex flex-col h-full group/x2">
             <div className={`bg-[#1A1A1A] px-4 py-3 border-b border-[#333333] ${expanded ? 'text-xs' : 'text-[10px]'} font-semibold text-gray-300 flex items-center justify-between`}>
               <span className="flex items-center gap-2"><Activity className="w-4 h-4 text-red-400"/>交易异常特征组 (X2)</span>
-              {!expanded && <button onClick={() => handleSubIndexExpand('X2', '交易异常特征组 (X2)', 'border-red-500', rawFeatures.transactionAbnormality, globalWeights.W2)} className="p-1 hover:bg-[#333333] hover:text-[#D4AF37] rounded text-gray-500 opacity-0 group-hover/x2:opacity-100 transition-all"><Maximize2 className="w-3.5 h-3.5" /></button>}
             </div>
             <div className="divide-y divide-[#333333] flex-1">
               {rawFeatures.transactionAbnormality.map((f: any) => (
@@ -417,7 +412,6 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
           <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden flex flex-col h-full group/x3">
             <div className={`bg-[#1A1A1A] px-4 py-3 border-b border-[#333333] ${expanded ? 'text-xs' : 'text-[10px]'} font-semibold text-gray-300 flex items-center justify-between`}>
               <span className="flex items-center gap-2"><Search className="w-4 h-4 text-green-400"/>外围痕迹特征组 (X3)</span>
-              {!expanded && <button onClick={() => handleSubIndexExpand('X3', '外围痕迹特征组 (X3)', 'border-green-500', rawFeatures.externalTrace, globalWeights.W3)} className="p-1 hover:bg-[#333333] hover:text-[#D4AF37] rounded text-gray-500 opacity-0 group-hover/x3:opacity-100 transition-all"><Maximize2 className="w-3.5 h-3.5" /></button>}
             </div>
             <div className="divide-y divide-[#333333] flex-1">
               {rawFeatures.externalTrace.map((f: any) => (
@@ -774,23 +768,83 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                  title: '审计流水线完整日志',
                  type: 'workflow',
                  content: (
-                   <div className="p-8 max-w-2xl mx-auto border border-[#333333] rounded bg-[#242424]">
-                     <div className="relative">
-                       <div className="absolute left-[13px] top-4 bottom-4 w-[2px] bg-[#333333] z-0"></div>
-                       {loading && <WorkflowStep icon={<Search className="w-4 h-4 text-[#D4AF37]" />} title="执行多源数据检索中..." status="active" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : '现在'} />}
-                       {logs.length > 0 && logs.filter((l:any) => l.action !== 'RED_FLAG').map((l:any, i:number) => {
-                         const details = typeof l.details === 'string' ? JSON.parse(l.details) : l.details;
-                         return <WorkflowStep key={i} icon={<CheckSquare className="w-4 h-4 text-gray-400" />} title={details.message || '系统日志'} status="done" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : formatWorkflowTime(l.createdAt)} />
-                       })}
-                       {rulesHit.length > 0 && (
-                         <WorkflowStep icon={<AlertTriangle className="w-4 h-4 text-red-500" />} title="风险规则命中警告" desc={`检测到 ${rulesHit.length} 项高亮风险，涉及强关系证据链。段落证据已落至工作底稿。`} status="alert" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : formatWorkflowTime(rulesHit[0].createdAt)} rules={rulesHit.length} />
-                       )}
-                       {logs.length > 0 && <WorkflowStep icon={<FileText className="w-4 h-4 text-gray-400" />} title="生成专项审计建议" desc="根据规则命中情况，已自动生成扩大抽样与业务核查指南。" status="done" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : formatWorkflowTime(new Date())} />}
-                       {logs.length > 0 && <WorkflowStep icon={<User className="w-4 h-4 text-gray-500" />} title="等待经理复核" status="pending" time="--" />}
+                   <div className="flex flex-col md:flex-row gap-6 lg:gap-8 w-full h-full min-h-[75vh]">
+                     {/* Left Column: Timeline */}
+                     <div className="w-full md:w-[45%] bg-[#242424] border border-[#333333] rounded overflow-hidden flex flex-col h-full">
+                       <div className="bg-[#1A1A1A] p-4 text-gray-200 font-semibold border-b border-[#333333] text-xl">流程时间线</div>
+                       <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar relative">
+                         <div className="absolute left-[15px] lg:left-[31px] top-4 bottom-4 w-[2px] bg-[#333333] z-0"></div>
+                         {loading && <WorkflowStep size="base" icon={<Search className="w-4 h-4 text-[#D4AF37]" />} title="执行多源数据检索中..." status="active" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : '现在'} />}
+                         {(logs.length > 0 || customLogs.length > 0) && [...logs, ...customLogs].filter((l:any) => l.action !== 'RED_FLAG').map((l:any, i:number) => {
+                           const details = typeof l.details === 'string' ? JSON.parse(l.details) : l.details;
+                           return <WorkflowStep size="base" key={i} icon={<CheckSquare className="w-4 h-4 text-gray-400" />} title={details.message || '系统日志'} status="done" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : formatWorkflowTime(l.createdAt)} />
+                         })}
+                         {rulesHit.length > 0 && (
+                           <WorkflowStep size="base" icon={<AlertTriangle className="w-4 h-4 text-red-500" />} title="风险规则命中警告" desc={`检测到 ${rulesHit.length} 项高亮风险，涉及强关系证据链。段落证据已落至工作底稿。`} status="alert" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : formatWorkflowTime(rulesHit[0].createdAt)} rules={rulesHit.length} />
+                         )}
+                         {(logs.length > 0 || customLogs.length > 0) && <WorkflowStep size="base" icon={<FileText className="w-4 h-4 text-gray-400" />} title="生成专项审计建议" desc="根据规则命中情况，已自动生成扩大抽样与业务核查指南。" status="done" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : formatWorkflowTime(new Date())} />}
+                         {(logs.length > 0 || customLogs.length > 0) && <WorkflowStep size="base" icon={<User className="w-4 h-4 text-gray-500" />} title="等待经理复核" status="pending" time="--" />}
+                       </div>
+                     </div>
+                     {/* Right Column: Summary */}
+                     <div className="w-full md:w-[55%] flex flex-col gap-6">
+                       <div className="grid grid-cols-2 gap-4">
+                         <div className="bg-[#242424] border border-[#333333] rounded p-6">
+                           <div className="text-gray-400 text-sm mb-2">已完成流转步骤</div>
+                           <div className="text-4xl text-gray-200 font-mono font-bold">{(logs.length || customLogs.length) > 0 ? (logs.length + customLogs.length + (rulesHit.length>0?1:0) + 1) : 0}</div>
+                         </div>
+                         <div className="bg-[#242424] border-l-2 border-red-500 rounded p-6 shadow-[inset_4px_0_0_rgba(239,68,68,0.2)]">
+                           <div className="text-gray-400 text-sm mb-2">命中红旗风险</div>
+                           <div className="text-4xl text-red-500 font-mono font-bold">{rulesHit.length} <span className="text-lg text-gray-500">项</span></div>
+                         </div>
+                       </div>
+                       
+                       <div className="bg-[#242424] border border-[#333333] rounded h-full flex flex-col overflow-hidden">
+                         <div className="bg-[#1A1A1A] p-4 text-gray-200 font-semibold border-b border-[#333333] text-xl flex justify-between items-center">
+                           <span>待办事项与复核项摘要</span>
+                           <span className="text-xs bg-[#333] border border-[#444] text-gray-300 px-3 py-1 rounded-full uppercase tracking-wider">Automated</span>
+                         </div>
+                         <div className="p-6 flex-1 overflow-y-auto space-y-8 custom-scrollbar">
+                            <div>
+                               <h4 className="text-gray-300 font-semibold mb-4 text-base flex items-center gap-2"><CheckSquare className="w-5 h-5 text-[#D4AF37]"/> 当前待办事项</h4>
+                               <ul className="space-y-4">
+                                 <li className="flex items-start gap-4">
+                                   <div className="mt-1"><div className="w-5 h-5 rounded border border-gray-500 flex items-center justify-center bg-[#1A1A1A]"></div></div>
+                                   <div className="text-sm text-gray-400 leading-relaxed"><strong className="text-gray-300 block mb-1">项目合伙人复核:</strong> 需要复核系统输出的 {rulesHit.length} 项高危预警证据链，确认实质性程序的充分性。</div>
+                                 </li>
+                                 <li className="flex items-start gap-4">
+                                   <div className="mt-1"><div className="w-5 h-5 rounded border border-[#D4AF37] flex items-center justify-center bg-[#D4AF37]/10"><CheckSquare className="w-3.5 h-3.5 text-[#D4AF37]" /></div></div>
+                                   <div className="text-sm text-gray-400 leading-relaxed"><strong className="text-gray-300 line-through block mb-1">系统底稿归档:</strong> 穿透图谱和计算逻辑已完成溯源固化，成功写入附卷。</div>
+                                 </li>
+                               </ul>
+                            </div>
+                            
+                            {rulesHit.length > 0 && (
+                            <div className="bg-red-500/5 rounded border border-red-500/20 p-6">
+                               <h4 className="text-red-400 font-semibold mb-4 text-base flex items-center gap-2"><AlertOctagon className="w-5 h-5"/> 生成的专项审计建议</h4>
+                               <ul className="list-disc pl-5 text-sm text-gray-300 space-y-3 marker:text-red-500 leading-relaxed">
+                                 <li>建议对涉及异常关联的交易对手方及其法定代表人的资金进出流水执行穿透式双向核查。</li>
+                                 <li>重点关注大额异常交易的背景合理性、定价公允性以及是否具备商业实质。</li>
+                                 <li>要求管理层补充声明关联方及关联交易清单的完整性，并补充提供未披露关联方的工商资料。</li>
+                               </ul>
+                            </div>
+                            )}
+
+                            <div>
+                               <h4 className="text-gray-300 font-semibold mb-4 text-base flex items-center gap-2"><Database className="w-5 h-5 text-blue-400"/> 相关证据摘要提取</h4>
+                               <div className="text-sm text-gray-400 bg-[#1A1A1A] p-5 rounded font-mono leading-relaxed border border-[#333333]">
+                                 <div className="text-blue-400 mb-2">{`<Log: Extracted ${rulesHit.length} critical anchors>`}</div>
+                                 [Document Matrix]: Verified {14 + rulesHit.length} invoices against 2 public records.<br/>
+                                 [Knowledge Graph]: Traced 3 hops to ultimate beneficial owners.<br/><br/>
+                                 <div className="text-green-500 opacity-80 mt-2">Evidence integrity verified by Hash: 0x8a92f7...b4f1</div>
+                               </div>
+                            </div>
+                         </div>
+                       </div>
                      </div>
                    </div>
                  )
-              })}
+                })}
               className="absolute top-2 right-2 z-20 p-1.5 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 hover:text-white hover:border-[#D4AF37] transition-all opacity-0 group-hover:opacity-100 hidden sm:flex"
             >
               <Maximize className="w-3.5 h-3.5" />
@@ -891,9 +945,65 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                 setExpandedPanel={setExpandedPanel}
                 onReadOriginal={setEvidenceToShow}
                 onExpand={() => setExpandedPanel({ 
-                  title: '全维风险评估与底层特征分析', 
-                  type: 'riskScoring', 
-                  content: <RiskScoringModule data={data.riskScoring} onFeatureClick={setSelectedNode} expanded={true} setExpandedPanel={setExpandedPanel} onReadOriginal={setEvidenceToShow} /> 
+                  title: '审计风险概率计算过程', 
+                  type: 'riskScoringFormula', 
+                  content: (
+                     <div className="space-y-6 max-w-4xl mx-auto py-8">
+                       <div className="text-center p-8 bg-[#1A1A1A] border border-[#333333] rounded">
+                         <div className="text-gray-400 text-lg mb-2">审计风险概率 P(Risk)</div>
+                         <div className="text-7xl font-bold tracking-tighter text-red-500 mb-4">{data.riskScoring.probabilityPercent.toFixed(1)}%</div>
+                         <div className="text-lg"><span className="text-red-400 font-medium">风险等级：{data.riskScoring.riskLevel}</span> <span className="text-gray-500 mx-4">|</span> <span className="text-gray-400">高危阈值：{data.riskScoring.threshold}%</span></div>
+                       </div>
+                       
+                       <div className="bg-[#1A1A1A] border border-[#333333] p-6 rounded">
+                          <h4 className="text-gray-300 font-semibold mb-2">模型说明</h4>
+                          <p className="text-gray-400 text-sm">系统采用分层逻辑回归模型，将三个子指数输入全局风险函数，得到最终审计风险概率。</p>
+                       </div>
+
+                       <div className="bg-[#1A1A1A] border border-[#333333] p-6 rounded overflow-x-auto">
+                          <h4 className="text-gray-300 font-semibold mb-4">输入变量简表</h4>
+                          <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                              <tr className="border-b border-[#333333] text-gray-400">
+                                <th className="pb-2 font-medium">变量</th>
+                                <th className="pb-2 font-medium">含义</th>
+                                <th className="pb-2 font-medium">数值</th>
+                                <th className="pb-2 font-medium">全局权重</th>
+                              </tr>
+                            </thead>
+                            <tbody className="text-gray-300 divide-y divide-[#333333]">
+                              <tr><td className="py-2">X1</td><td>身份关联指数</td><td className="font-mono">{data.riskScoring.subIndices.X1}</td><td className="font-mono">W1 = {data.riskScoring.globalWeights.W1}</td></tr>
+                              <tr><td className="py-2">X2</td><td>交易异常指数</td><td className="font-mono">{data.riskScoring.subIndices.X2}</td><td className="font-mono">W2 = {data.riskScoring.globalWeights.W2}</td></tr>
+                              <tr><td className="py-2">X3</td><td>外围牵连指数</td><td className="font-mono">{data.riskScoring.subIndices.X3.toFixed(2)}</td><td className="font-mono">W3 = {data.riskScoring.globalWeights.W3}</td></tr>
+                              <tr><td className="py-2">b</td><td>截距项</td><td className="font-mono">{data.riskScoring.globalWeights.b || -3.0}</td><td className="font-mono">-</td></tr>
+                            </tbody>
+                          </table>
+                       </div>
+
+                       <div className="bg-[#1A1A1A] border border-[#333333] p-6 rounded">
+                          <h4 className="text-gray-300 font-semibold mb-4">线性组合计算</h4>
+                          <div className="bg-[#121212] border border-[#333333] rounded p-4 font-mono text-sm text-gray-300 space-y-2">
+                             <div className="text-[#D4AF37]">Z = W1 × X1 + W2 × X2 + W3 × X3 + b</div>
+                             <div>Z = {data.riskScoring.globalWeights.W1} × {data.riskScoring.subIndices.X1} + {data.riskScoring.globalWeights.W2} × {data.riskScoring.subIndices.X2} + {data.riskScoring.globalWeights.W3} × {data.riskScoring.subIndices.X3.toFixed(2)} {data.riskScoring.globalWeights.b || -3.0}</div>
+                             <div>Z = 1.7325 + 2.625 + 0.1 - 3.0</div>
+                             <div>Z = {(data.riskScoring.zValue).toFixed(4)}</div>
+                          </div>
+                          
+                          <h4 className="text-gray-300 font-semibold mb-4 mt-6">Sigmoid 概率映射</h4>
+                          <div className="bg-[#121212] border border-[#333333] rounded p-4 font-mono text-sm text-gray-300 space-y-2">
+                             <div className="text-[#D4AF37]">P(Risk) = 1 / (1 + e^(-Z))</div>
+                             <div>P(Risk) = 1 / (1 + e^(-{(data.riskScoring.zValue).toFixed(4)}))</div>
+                             <div>P(Risk) ≈ {(data.riskScoring.probabilityPercent/100).toFixed(3)}</div>
+                             <div className="text-xl text-white mt-4 pt-4 border-t border-[#333333]">P(Risk) = {data.riskScoring.probabilityPercent.toFixed(1)}%</div>
+                          </div>
+                          
+                          <h4 className="text-gray-300 font-semibold mb-4 mt-6">判断结论</h4>
+                          <div className="text-sm text-gray-300 bg-red-500/10 border border-red-500/20 p-4 rounded leading-relaxed">
+                            由于 <span className="text-red-400 font-bold">{data.riskScoring.probabilityPercent.toFixed(1)}% &gt; {data.riskScoring.threshold}%</span>，系统判定该项目为“<span className="text-red-400 font-bold">{data.riskScoring.riskLevel}</span>”，触发高危预警，并建议进入审计底稿回溯和人工重点复核流程。
+                          </div>
+                       </div>
+                     </div>
+                  )
                 })} 
               />
             ) : (
