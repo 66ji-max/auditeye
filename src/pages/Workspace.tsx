@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import { 
   ShieldAlert, Bot, User, Database, FileText, Users, AlertTriangle, 
   Activity, Network, TrendingDown, Link as LinkIcon, AlertOctagon, 
-  Download, FileSearch, Clock, CheckSquare, Maximize, DownloadCloud,
+  Download, FileSearch, Clock, CheckSquare, Maximize, Maximize2, DownloadCloud,
   Search, Bell, Settings, ChevronRight, Menu, ArrowLeft, Send, X, Layers,
   ChevronDown, Filter, GitBranch, Share2, Upload
 } from 'lucide-react';
@@ -187,9 +187,9 @@ const ExpandedPanelModal = ({ expandedPanel, setExpandedPanel }: any) => {
   }, [setExpandedPanel]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4" onClick={() => setExpandedPanel(null)}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setExpandedPanel(null)}>
       <div 
-        className="relative bg-[#121212] border border-[#333333] w-[96vw] max-w-[1600px] h-[92vh] rounded-lg shadow-2xl flex flex-col overflow-hidden" 
+        className="relative bg-[#121212] border border-[#333333] w-[96vw] max-w-[1680px] h-[94vh] rounded-lg shadow-2xl flex flex-col overflow-hidden" 
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-between items-center px-6 py-4 border-b border-[#333333] bg-[#1A1A1A] sticky top-0 z-50">
@@ -198,7 +198,7 @@ const ExpandedPanelModal = ({ expandedPanel, setExpandedPanel }: any) => {
             <X className="w-6 h-6" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 bg-[#121212] custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 bg-[#121212] custom-scrollbar" style={{ height: 'calc(94vh - 65px)' }}>
           {expandedPanel.content}
         </div>
       </div>
@@ -250,6 +250,13 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
                        <p className="text-gray-400 text-sm leading-relaxed">{f.explanation}</p>
                      </div>
                   </div>
+                  {onReadOriginal && (
+                    <div className="flex justify-end mt-4">
+                      <button onClick={(e) => { e.stopPropagation(); onReadOriginal(f); }} className="text-xs text-gray-400 hover:text-[#D4AF37] flex items-center gap-1 border border-gray-600 hover:border-[#D4AF37] px-3 py-1.5 rounded transition-colors">
+                        <FileText className="w-3.5 h-3.5" /> 阅读全文
+                      </button>
+                    </div>
+                  )}
                 </div>
              ))}
            </div>
@@ -259,50 +266,18 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
   };
   
   return (
-    <div className={`flex flex-col ${expanded ? 'gap-8' : 'gap-5'} pb-8 relative group h-full`}>
-      {onExpand && !expanded && (
-        <button onClick={onExpand} className="absolute top-0 right-0 z-20 p-1.5 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 hover:text-white hover:border-[#D4AF37] transition-all opacity-0 group-hover:opacity-100 hidden sm:flex">
-          <Maximize className="w-3.5 h-3.5" />
-        </button>
-      )}
-      
+    <div className={`flex flex-col ${expanded ? 'gap-8' : 'gap-5'} pb-8 h-full`}>
       {/* 顶部总览卡片 */}
-      <div className={`bg-gradient-to-br from-[#242424] to-[#1A1A1A] border border-[#333333] rounded ${expanded ? 'p-6' : 'p-4'} relative overflow-hidden shadow-lg group/main`}>
-        {setExpandedPanel && <button onClick={() => {
-           setExpandedPanel({
-             title: '全局风险评估公式 P(Risk)',
-             type: 'formula',
-             content: (
-                <div className="space-y-6">
-                   <div className="text-center p-8 bg-gradient-to-b from-[#242424] to-[#1A1A1A] rounded-xl border border-[#333333]">
-                      <div className="text-8xl font-bold tracking-tighter text-red-500 mb-4">{probabilityPercent.toFixed(1)}%</div>
-                      <div className="text-xl text-red-400 font-medium">{riskLevel} <span className="text-gray-500 mx-2">|</span> 高危阈值 &gt; {threshold}%</div>
-                      <p className="text-gray-300 mt-6 text-lg max-w-2xl mx-auto">{conclusion}</p>
-                   </div>
-                   <div className="bg-[#1A1A1A] rounded-xl border border-[#333333] p-8 mt-6">
-                      <h4 className="text-gray-400 mb-6 text-sm uppercase tracking-widest font-semibold">分层逻辑回归公式 (Logit)</h4>
-                      <div className="text-2xl font-mono text-[#D4AF37] mb-6 p-4 bg-[#242424] rounded text-center">
-                        Z = W1*X1 + W2*X2 + W3*X3 + b
-                      </div>
-                      <div className="grid grid-cols-4 gap-4 text-center font-mono text-gray-300 mb-8">
-                         <div className="p-3 bg-[#242424] rounded"><span className="text-blue-400 text-xs block mb-1">X1={subIndices.X1}</span>W1={globalWeights.W1}</div>
-                         <div className="p-3 bg-[#242424] rounded"><span className="text-red-400 text-xs block mb-1">X2={subIndices.X2}</span>W2={globalWeights.W2}</div>
-                         <div className="p-3 bg-[#242424] rounded"><span className="text-green-400 text-xs block mb-1">X3={subIndices.X3}</span>W3={globalWeights.W3}</div>
-                         <div className="p-3 bg-[#242424] rounded"><span className="text-gray-500 text-xs block mb-1">Bias</span>b={globalWeights.b||-3.0}</div>
-                      </div>
-                      <div className="text-xl font-mono text-gray-200 mb-6 p-4 bg-[#242424] rounded text-center">
-                        Z = {globalWeights.W1} * {subIndices.X1} + {globalWeights.W2} * {subIndices.X2} + {globalWeights.W3} * {subIndices.X3.toFixed(2)} {globalWeights.b||-3.0} = {zValue.toFixed(4)}
-                      </div>
-                      <div className="text-xl font-mono text-[#D4AF37] p-4 bg-[#242424] rounded text-center">
-                        P(Risk) = 1 / (1 + e^(-{zValue.toFixed(4)})) = {(probabilityPercent/100).toFixed(4)}
-                      </div>
-                   </div>
-                </div>
-             )
-           })
-        }} className="absolute top-4 right-4 z-20 p-2 bg-[#2A2A2A] border border-[#333333] rounded text-gray-400 hover:text-white hover:border-[#D4AF37] transition-all opacity-0 group-hover/main:opacity-100 hidden sm:flex">
-          <Maximize className="w-4 h-4" />
-        </button>}
+      <div className={`bg-gradient-to-br from-[#242424] to-[#1A1A1A] border border-[#333333] rounded ${expanded ? 'p-6' : 'p-4'} relative overflow-hidden shadow-lg group`}>
+        {onExpand && !expanded && (
+          <button 
+            onClick={onExpand} 
+            className="absolute top-4 right-4 z-20 p-2 bg-transparent border border-transparent rounded text-gray-500 hover:text-[#D4AF37] hover:border-[#D4AF37]/50 transition-all opacity-0 group-hover:opacity-100 hidden sm:flex items-center justify-center bg-black/20"
+            title="展开风险评分详情"
+          >
+            <Maximize className="w-4 h-4" />
+          </button>
+        )}
         {probabilityPercent > threshold && <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl"></div>}
         <div className={`flex justify-between items-start ${expanded ? 'mb-6' : 'mb-4'} relative z-10`}>
           <div>
@@ -395,9 +370,10 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
         <h3 className={`${expanded ? 'text-sm mb-4' : 'text-xs mb-3'} font-semibold text-gray-300 border-l-2 border-[#D4AF37] pl-3`}>风险量化 - 底层特征明细</h3>
         <div className={expanded ? 'grid grid-cols-3 gap-6' : 'space-y-4'}>
           
-          <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden flex flex-col h-full">
+          <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden flex flex-col h-full group/x1">
             <div className={`bg-[#1A1A1A] px-4 py-3 border-b border-[#333333] ${expanded ? 'text-xs' : 'text-[10px]'} font-semibold text-gray-300 flex items-center justify-between`}>
               <span className="flex items-center gap-2"><Users className="w-4 h-4 text-blue-400"/>身份网络特征组 (X1)</span>
+              {!expanded && <button onClick={() => handleSubIndexExpand('X1', '身份网络特征组 (X1)', 'border-blue-500', rawFeatures.identityNetwork, globalWeights.W1)} className="p-1 hover:bg-[#333333] hover:text-[#D4AF37] rounded text-gray-500 opacity-0 group-hover/x1:opacity-100 transition-all"><Maximize2 className="w-3.5 h-3.5" /></button>}
             </div>
             <div className="divide-y divide-[#333333] flex-1">
               {rawFeatures.identityNetwork.map((f: any) => (
@@ -416,9 +392,10 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
             </div>
           </div>
 
-          <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden flex flex-col h-full">
+          <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden flex flex-col h-full group/x2">
             <div className={`bg-[#1A1A1A] px-4 py-3 border-b border-[#333333] ${expanded ? 'text-xs' : 'text-[10px]'} font-semibold text-gray-300 flex items-center justify-between`}>
               <span className="flex items-center gap-2"><Activity className="w-4 h-4 text-red-400"/>交易异常特征组 (X2)</span>
+              {!expanded && <button onClick={() => handleSubIndexExpand('X2', '交易异常特征组 (X2)', 'border-red-500', rawFeatures.transactionAbnormality, globalWeights.W2)} className="p-1 hover:bg-[#333333] hover:text-[#D4AF37] rounded text-gray-500 opacity-0 group-hover/x2:opacity-100 transition-all"><Maximize2 className="w-3.5 h-3.5" /></button>}
             </div>
             <div className="divide-y divide-[#333333] flex-1">
               {rawFeatures.transactionAbnormality.map((f: any) => (
@@ -437,9 +414,10 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
             </div>
           </div>
 
-          <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden flex flex-col h-full">
+          <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden flex flex-col h-full group/x3">
             <div className={`bg-[#1A1A1A] px-4 py-3 border-b border-[#333333] ${expanded ? 'text-xs' : 'text-[10px]'} font-semibold text-gray-300 flex items-center justify-between`}>
               <span className="flex items-center gap-2"><Search className="w-4 h-4 text-green-400"/>外围痕迹特征组 (X3)</span>
+              {!expanded && <button onClick={() => handleSubIndexExpand('X3', '外围痕迹特征组 (X3)', 'border-green-500', rawFeatures.externalTrace, globalWeights.W3)} className="p-1 hover:bg-[#333333] hover:text-[#D4AF37] rounded text-gray-500 opacity-0 group-hover/x3:opacity-100 transition-all"><Maximize2 className="w-3.5 h-3.5" /></button>}
             </div>
             <div className="divide-y divide-[#333333] flex-1">
               {rawFeatures.externalTrace.map((f: any) => (
@@ -475,6 +453,9 @@ export default function Workspace() {
   const [activeTab, setActiveTab] = useState<'doc'|'fin'|'graph'>('doc');
   const [graphMode, setGraphMode] = useState<'all'|'minimal'>('all');
   const [showRuleSet, setShowRuleSet] = useState(false);
+  const [activeRuleSet, setActiveRuleSet] = useState('标准审计预警 (v1.4.2)');
+  const [customLogs, setCustomLogs] = useState<any[]>([]);
+  const [addedToDraft, setAddedToDraft] = useState<Set<number>>(new Set());
   const [lastAnalysisAt, setLastAnalysisAt] = useState<Date | null>(null);
   const [expandedPanel, setExpandedPanel] = useState<null | { title: string; type: string; content: React.ReactNode; }>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -818,9 +799,9 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
 
             {loading && <WorkflowStep icon={<Search className="w-3 h-3 text-[#D4AF37]" />} title="执行多源数据检索中..." status="active" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : '现在'} />}
             
-            {logs.length > 0 ? (
+            {(logs.length > 0 || customLogs.length > 0) ? (
               <>
-                {logs.filter((l:any) => l.action !== 'RED_FLAG').map((l:any, i:number) => {
+                {[...logs, ...customLogs].filter((l:any) => l.action !== 'RED_FLAG').map((l:any, i:number) => {
                   const details = typeof l.details === 'string' ? JSON.parse(l.details) : l.details;
                   return (
                     <WorkflowStep 
@@ -867,12 +848,27 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-[90%] mb-2 bg-[#1A1A1A] border border-[#333333] rounded shadow-2xl p-2 z-50">
                  <div className="text-[10px] text-gray-500 mb-2 uppercase">选择规则组合</div>
                  <div className="space-y-1">
-                   <button className="w-full text-left px-2 py-1.5 bg-[#D4AF37]/10 text-[#D4AF37] rounded text-[11px] font-medium border border-[#D4AF37]/30">标准审计预警 (v1.4.2)</button>
-                   <button className="w-full text-left px-2 py-1.5 text-gray-400 hover:bg-[#333] rounded text-[11px] transition-colors" onClick={() => {toast('暂无穿透关联黑盒权限', 'warning'); setShowRuleSet(false);}}>极度穿透关联模型</button>
-                   <button className="w-full text-left px-2 py-1.5 text-gray-400 hover:bg-[#333] rounded text-[11px] transition-colors flex items-center justify-between" disabled>
-                     <span className="opacity-50">快消行业专用模板</span>
-                     <span className="bg-gray-800 text-[9px] px-1 rounded">不可用</span>
-                   </button>
+                   {['标准审计预警 (v1.4.2)', '极度穿透关联模型', '快消行业专用模板'].map((rule) => {
+                     const isActive = activeRuleSet === rule;
+                     return (
+                       <button 
+                         key={rule}
+                         onClick={() => {
+                           setActiveRuleSet(rule);
+                           setShowRuleSet(false);
+                           toast(`已切换至 ${rule}`, "success");
+                           setCustomLogs(prev => [...prev, {
+                              createdAt: new Date().toISOString(),
+                              action: 'INFO',
+                              details: JSON.stringify({ message: `规则集已切换: ${rule}` })
+                           }]);
+                         }}
+                         className={`w-full text-left px-2 py-1.5 rounded text-[11px] font-medium transition-colors ${isActive ? 'bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30' : 'text-gray-400 hover:bg-[#333] border border-transparent'}`}
+                       >
+                         {rule}
+                       </button>
+                     );
+                   })}
                  </div>
                </div>
              )}
@@ -1016,7 +1012,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                                     <p className="text-sm text-gray-300 leading-relaxed mb-4">{d.description}</p>
                                     <div className="flex items-center gap-6 text-xs text-gray-500 pt-4 border-t border-[#333333]">
                                        <span className="flex items-center gap-1.5"><FileText className="w-4 h-4"/> 证据: 2份文档关联</span>
-                                       <span className="flex items-center gap-1.5"><Activity className="w-4 h-4"/> 前往审查 <ChevronRight className="w-4 h-4"/></span>
+                                       <button onClick={(e) => { e.stopPropagation(); setActiveTab('graph'); setExpandedPanel(null); }} className="flex items-center gap-1.5 hover:text-[#D4AF37] transition-colors"><Activity className="w-4 h-4"/> 前往审查 <ChevronRight className="w-4 h-4"/></button>
                                     </div>
                                   </div>
                                 )
@@ -1040,7 +1036,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                             <p className="text-[11px] text-gray-400 leading-relaxed mb-3">{d.description}</p>
                             <div className="flex items-center gap-4 text-[10px] text-gray-500 pt-2 border-t border-[#333333]">
                                <span className="flex items-center gap-1"><FileText className="w-3 h-3"/> 证据: 2份</span>
-                               <span className="flex items-center gap-1"><Activity className="w-3 h-3"/> 前往审查 <ChevronRight className="w-3 h-3"/></span>
+                               <button onClick={(e) => { e.stopPropagation(); setActiveTab('graph'); }} className="flex items-center gap-1 hover:text-[#D4AF37] transition-colors"><Activity className="w-3 h-3"/> 前往审查 <ChevronRight className="w-3 h-3"/></button>
                             </div>
                           </div>
                         )
@@ -1149,7 +1145,53 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                   )}
                 </div>
                 <div className="p-3 border-t border-[#333333] bg-[#1A1A1A]">
-                   <button onClick={() => toast('完整穿透画像功能敬请期待', 'info')} className="w-full py-2 bg-[#333333] hover:bg-[#444] text-xs font-medium rounded transition-colors text-gray-200">查看完整画像</button>
+                   <button onClick={() => {
+                     setExpandedPanel({
+                       title: `节点画像: ${selectedNode?.name || selectedEdge?.source || '未知节点'}`,
+                       type: 'profile',
+                       content: (
+                          <div className="space-y-6">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h3 className="text-3xl font-bold text-gray-200 mb-2">{selectedNode?.name || selectedEdge?.source}</h3>
+                                <div className="text-[#D4AF37] font-mono mb-4 text-sm bg-[#242424] px-3 py-1 rounded inline-block">实体类型: {selectedNode?.type || 'COMPANY'}</div>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-6">
+                              <div className="bg-[#1A1A1A] border border-[#333333] rounded p-6">
+                                <h4 className="text-sm font-semibold text-gray-400 mb-4 border-b border-[#333333] pb-2">工商属性</h4>
+                                <ul className="space-y-3 text-sm text-gray-300">
+                                  {Object.entries((selectedNode?.attributes || {})).map(([k, v]) => (
+                                    <li key={k} className="flex"><span className="text-gray-500 w-32">{k}:</span> <span className="flex-1 font-mono">{String(v)}</span></li>
+                                  ))}
+                                  {(!selectedNode?.attributes || Object.keys(selectedNode.attributes).length === 0) && (
+                                    <li className="text-gray-500">暂无属性数据</li>
+                                  )}
+                                </ul>
+                              </div>
+                              <div className="bg-[#1A1A1A] border border-[#333333] rounded p-6">
+                                <h4 className="text-sm font-semibold text-gray-400 mb-4 border-b border-[#333333] pb-2">关联关系统计</h4>
+                                <ul className="space-y-3 text-sm text-gray-300">
+                                  <li className="flex justify-between"><span className="text-gray-500">命中穿透图谱网络:</span> <span className="font-mono text-[#D4AF37] font-bold">是</span></li>
+                                  <li className="flex justify-between"><span className="text-gray-500">衍生风险关联数:</span> <span className="font-mono">累计 {Math.floor(Math.random() * 5 + 1)} 条</span></li>
+                                  <li className="flex justify-between"><span className="text-gray-500">高风险关系类型:</span> <span className="font-mono text-red-500">突击交易、实控同源</span></li>
+                                </ul>
+                              </div>
+                            </div>
+                            <div className="bg-[#1A1A1A] border border-[#333333] rounded p-6">
+                                <h4 className="text-sm font-semibold text-gray-400 mb-4 border-b border-[#333333] pb-2">智能穿透解释</h4>
+                                <p className="text-gray-300 leading-relaxed max-w-4xl text-sm">
+                                  基于审计大模型联合图谱计算，该节点在当前项目中处于核心关联汇聚点。根据底稿信息提取与公开信息查询比对，该笔交易主体及背后链条存在异常，可能涉及隐层绕道或利益输送。符合“实质重于形式”的认定标准。
+                                </p>
+                            </div>
+                            <div className="flex justify-end gap-4 mt-6 border-t border-[#333333] pt-6">
+                              <button onClick={() => setExpandedPanel(null)} className="px-6 py-2 bg-transparent text-gray-400 hover:text-white transition-colors">关闭</button>
+                              <button onClick={(e) => { toast('已加入审计底稿素材库', 'success'); (e.target as any).innerText = '已加入底稿'; }} className="px-6 py-2 bg-[#D4AF37]/10 border border-[#D4AF37]/50 text-[#D4AF37] font-medium rounded hover:bg-[#D4AF37]/20 transition-colors">加入底稿</button>
+                            </div>
+                          </div>
+                       )
+                     });
+                   }} className="w-full py-2 bg-[#333333] hover:bg-[#444] text-xs font-medium rounded transition-colors text-gray-200">查看完整画像</button>
                 </div>
               </div>
             )}
@@ -1240,29 +1282,40 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                   )}
                  {rels.map((r: any, i: number) => {
                     const isHighRisk = ['HIGH_RISK_OVERLAP', 'FORMER_NAME', 'ULTIMATE_CONTROLLER', 'DOCUMENT_MATCH', 'ABNORMAL_TRANSACTION', 'BUSINESS_CROSSCHECK', 'CONTACT_MATCH', 'RELATED_PARTY_TRANSACTION'].includes(r.relationType);
+                    const isAdded = addedToDraft.has(i);
                     return (
-                    <div key={i} className={`bg-[#242424] border ${isHighRisk ? 'border-red-500/50' : 'border-[#333333]'} rounded hover:border-[#D4AF37]/50 transition-colors flex flex-col`}>
-                      <div className="p-3 border-b border-[#333333] flex justify-between items-start">
+                    <div key={i} className={`bg-[#242424] border ${isHighRisk ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.05)]' : 'border-[#333333]'} rounded overflow-hidden hover:border-[#D4AF37]/50 transition-colors flex flex-col group`}>
+                      <div className="p-4 border-b border-[#333333] flex justify-between items-start bg-[#1A1A1A]">
                         <div>
-                          <div className={`text-[10px] font-medium ${isHighRisk ? 'text-red-400' : 'text-[#D4AF37]'} flex items-center gap-1 mb-1`}><FileText className="w-3 h-3" /> API 数据 / 公开库</div>
-                          <div className="text-xs text-gray-200 font-medium">段落锚点 #{i+102}</div>
+                          <div className={`text-[10px] font-bold tracking-wider ${isHighRisk ? 'text-red-400' : 'text-[#D4AF37]'} flex items-center gap-1.5 mb-1.5 uppercase`}>
+                            <FileText className="w-3.5 h-3.5" /> {r.evidenceSource?.documentName || 'API 数据 / 公开库'}
+                          </div>
+                          <div className="text-sm text-gray-200 font-medium">段落锚点 #{i+102}</div>
                         </div>
-                        <span className={`text-[9px] ${isHighRisk ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-gray-500 bg-[#1A1A1A] border-[#333333]'} px-1.5 py-0.5 rounded border`}>
-                          {isHighRisk ? '高风险预警' : 'Page 1'}
-                        </span>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className={`text-[10px] ${isHighRisk ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-green-400 bg-green-500/10 border-green-500/20'} px-2 py-0.5 rounded font-mono border`}>
+                            {isHighRisk ? '高风险预警' : '常态关联'}
+                          </span>
+                          <span className="text-[10px] text-[#D4AF37] font-mono">置信度: 98.7%</span>
+                        </div>
                       </div>
-                      <div className="p-3 flex-1 flex flex-col">
-                         <p className="text-[11px] text-gray-400 font-serif leading-relaxed line-clamp-3 mb-3">
-                           ... {r.source} 与 {r.target} 存在 {r.type || r.relationType} 证据: "{r.evidenceSnippet || r.evidence}" ...
+                      <div className="p-5 flex-1 flex flex-col">
+                         <div className="text-xs text-gray-400 mb-2 font-mono">关系映射: {r.source} → {r.target}</div>
+                         <p className="text-sm text-gray-300 font-serif leading-relaxed line-clamp-4 mb-4">
+                           提取核心片段：{r.evidenceSnippet || r.evidence || `在文档比对中，发现 ${r.source} 与 ${r.target} 存在 ${r.type || r.relationType} 证据。`}
                          </p>
-                   <div className="mt-auto flex justify-end gap-2">
-                     <button onClick={() => setEvidenceToShow(r)} className="text-[10px] text-gray-500 hover:text-[#D4AF37]">阅读原文</button>
-                     <button onClick={(e) => {
-                       toast('已摘录入底稿', 'success');
-                             (e.target as HTMLButtonElement).innerText = '已添加';
-                             (e.target as HTMLButtonElement).classList.replace('text-blue-400', 'text-green-500');
-                             (e.target as HTMLButtonElement).disabled = true;
-                           }} className="text-[10px] text-blue-400 font-medium hover:opacity-80">加入底稿</button>
+                         <div className="mt-auto pt-4 border-t border-[#333333] flex justify-between items-center opacity-80 group-hover:opacity-100 transition-opacity">
+                           <button onClick={(e) => { e.stopPropagation(); setEvidenceToShow(r); }} className="text-xs text-gray-400 hover:text-[#D4AF37] flex items-center gap-1 transition-colors border border-transparent hover:border-[#D4AF37]/30 px-2 py-1 rounded">
+                             <FileText className="w-3.5 h-3.5" /> 阅读全文
+                           </button>
+                           <button onClick={(e) => {
+                             e.stopPropagation();
+                             if (isAdded) return;
+                             setAddedToDraft(prev => new Set(prev).add(i));
+                             toast('已摘录入底稿', 'success');
+                           }} className={`text-xs font-medium px-3 py-1.5 rounded transition-all ${isAdded ? 'text-green-500 bg-green-500/10 cursor-default border border-transparent' : 'text-[#D4AF37] bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 border border-[#D4AF37]/30'}`}>
+                             {isAdded ? '已添加底稿' : '加入底稿'}
+                           </button>
                          </div>
                       </div>
                     </div>
@@ -1306,7 +1359,47 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
          </div>
 
          <div className="p-4 bg-[#242424] flex flex-col justify-center gap-2">
-           <button onClick={() => toast('审计报告及复核请求已发送至相关合伙人', 'success')} className="w-full py-2 bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#E5C048] hover:to-[#D4AF37] text-black font-bold text-[11px] rounded shadow-md flex items-center justify-center gap-2 transition-all">
+           <button onClick={() => {
+             setExpandedPanel({
+                title: '提交复核流转确认',
+                type: 'review_submit',
+                content: (
+                   <div className="space-y-6">
+                      <div className="bg-[#1A1A1A] p-6 rounded border border-[#333333]">
+                         <div className="flex justify-between items-center mb-6">
+                           <span className="text-gray-400">复核流转编号:</span>
+                           <span className="font-mono text-[#D4AF37] font-bold tracking-wider">REV-2026-{Math.floor(Math.random()*9000+1000)}</span>
+                         </div>
+                         <div className="flex justify-between items-center mb-6 border-t border-[#333333] pt-6">
+                           <span className="text-gray-400">提交对象:</span>
+                           <span className="text-gray-200">项目合伙人 / 质量经理</span>
+                         </div>
+                         <div className="border-t border-[#333333] pt-6">
+                           <span className="text-gray-400 block mb-4">流转打包内容:</span>
+                           <div className="grid grid-cols-2 gap-4">
+                             <div className="bg-[#242424] p-3 rounded flex items-center gap-3">
+                               <CheckSquare className="w-5 h-5 text-green-500" /> <span className="text-sm text-gray-200">全局风险评分计算书</span>
+                             </div>
+                             <div className="bg-[#242424] p-3 rounded flex items-center gap-3">
+                               <CheckSquare className="w-5 h-5 text-green-500" /> <span className="text-sm text-gray-200">红旗规则命中明细</span>
+                             </div>
+                             <div className="bg-[#242424] p-3 rounded flex items-center gap-3">
+                               <CheckSquare className="w-5 h-5 text-green-500" /> <span className="text-sm text-gray-200">关联图谱溯源证据链</span>
+                             </div>
+                             <div className="bg-[#242424] p-3 rounded flex items-center gap-3">
+                               <CheckSquare className="w-5 h-5 text-green-500" /> <span className="text-sm text-gray-200">审计工作底稿附卷</span>
+                             </div>
+                           </div>
+                         </div>
+                      </div>
+                      <div className="flex justify-end pt-4 border-t border-[#333333] gap-4">
+                         <button onClick={() => setExpandedPanel(null)} className="px-6 py-2 bg-transparent text-gray-400 hover:text-white transition-colors">取消</button>
+                         <button onClick={() => { setExpandedPanel(null); toast('已成功提交复核流转', 'success'); }} className="px-6 py-2 bg-[#D4AF37] text-black font-medium rounded hover:bg-[#E5C048] transition-colors">确认提交</button>
+                      </div>
+                   </div>
+                )
+             });
+           }} className="w-full py-2 bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#E5C048] hover:to-[#D4AF37] text-black font-bold text-[11px] rounded shadow-md flex items-center justify-center gap-2 transition-all">
              <Share2 className="w-3.5 h-3.5" /> 提交复核流转
            </button>
            <div className="grid grid-cols-2 gap-2">
@@ -1447,10 +1540,14 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
               </div>
               <div className="p-6">
                 {src ? (
-                  <div className="flex flex-wrap gap-4 mb-4 text-xs font-mono text-gray-500">
-                    <div className="px-2 py-1 bg-[#242424] rounded border border-[#333333]">文档: <span className="text-gray-300">{src.documentName}</span></div>
+                  <div className="flex flex-wrap gap-3 mb-4 text-xs font-mono text-gray-500 bg-[#1A1A1A] p-4 border border-[#333333] rounded">
+                    <div className="w-full mb-1 border-b border-[#333333] pb-2 flex justify-between">
+                      <span className="font-semibold text-gray-300">文档: {src.documentName}</span>
+                      <span className="text-[#D4AF37] px-2 py-0.5 bg-[#242424] rounded border border-[#333333]">{src.evidenceType || '综合分析'}</span>
+                    </div>
                     <div className="px-2 py-1 bg-[#242424] rounded border border-[#333333]">页码: <span className="text-gray-300">{src.page}</span></div>
                     <div className="px-2 py-1 bg-[#242424] rounded border border-[#333333]">段落: <span className="text-gray-300">{src.paragraph}</span></div>
+                    <div className="px-2 py-1 bg-[#242424] rounded border border-[#333333]">命中记录: <span className="text-gray-300">{evidenceToShow.source ? `${evidenceToShow.source} → ${evidenceToShow.target}` : evidenceToShow.label}</span></div>
                   </div>
                 ) : (
                   <div className="mb-4 text-sm text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 rounded">

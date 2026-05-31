@@ -2,8 +2,8 @@ import multer from 'multer';
 import { put } from '@vercel/blob';
 import { getDb } from '../../_lib/db.js';
 
-const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
-const MAX_FILE_SIZE = 4.3 * 1024 * 1024; // 4.3 MB
+const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt', '.xlsx', '.xls', '.csv', '.png', '.jpg', '.jpeg'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export const config = {
   api: {
@@ -56,6 +56,32 @@ export default async function handler(req: any, res: any) {
 
   const { id } = req.query;
 
+  if (['1001', '1002', '1003', '1004'].includes(id as string)) {
+    // Demo bypass validation
+    let formatError = false;
+    for (const file of files) {
+      const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+      const ext = originalName.includes('.') ? originalName.substring(originalName.lastIndexOf('.')).toLowerCase() : '';
+      if (!ALLOWED_EXTS.includes(ext)) { formatError = true; break; }
+    }
+    if (formatError) {
+      return res.status(400).json({ error: '仅支持 PDF、DOC、DOCX、TXT、XLSX、XLS、CSV、PNG、JPG 文件', errorCode: 'INVALID_FILE_TYPE' });
+    }
+    const fakeDocs = files.map((file, i) => {
+      const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+      return {
+        id: Date.now() + i,
+        fileName: originalName,
+        originalName: originalName,
+        sourceType: originalName.substring(originalName.lastIndexOf('.')),
+        blobUrl: '',
+        createdAt: new Date().toISOString(),
+        status: '已接入'
+      };
+    });
+    return res.status(200).json({ status: "success", documents: fakeDocs });
+  }
+
   // Verify project exists in DB
   try {
     const [project] = await sql`SELECT id FROM projects WHERE id = ${id as string}`;
@@ -85,7 +111,7 @@ export default async function handler(req: any, res: any) {
   }
 
   if (formatError) {
-    return res.status(400).json({ error: '仅支持 PDF、DOC、DOCX、TXT 文件', errorCode: 'INVALID_FILE_TYPE' });
+    return res.status(400).json({ error: '仅支持 PDF、DOC、DOCX、TXT、XLSX、XLS、CSV、PNG、JPG 文件', errorCode: 'INVALID_FILE_TYPE' });
   }
 
   const insertedDocs = [];
