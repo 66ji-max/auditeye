@@ -11,6 +11,7 @@ import * as d3 from 'd3';
 import { toast } from '../components/Toast.tsx';
 import { RISK_DIMENSIONS } from '../config/riskScoring.ts';
 import { getMockProjectDetail } from '../lib/mockData.ts';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const WorkflowStep: React.FC<{ icon: React.ReactNode, title: string, desc?: string, status: 'done' | 'active' | 'alert' | 'pending', time: string, entities?: number, rules?: number, size?: 'sm' | 'base' }> = ({ icon, title, desc, status, time, entities, rules, size = 'sm' }) => {
   const [expanded, setExpanded] = useState(status !== 'pending');
@@ -47,6 +48,7 @@ const WorkflowStep: React.FC<{ icon: React.ReactNode, title: string, desc?: stri
         )}
       </div>
     </div>
+    
   );
 };
 
@@ -517,7 +519,21 @@ const FeatureProfile = ({ feature, onReadOriginal, setExpandedPanel }: any) => {
     </div>
   );
 };
-export default function Workspace() {
+
+const parseLogDetails = (details: any) => {
+  if (!details) return { message: '系统日志' };
+  if (typeof details === 'object') return details;
+  if (typeof details === 'string') {
+    try {
+      return JSON.parse(details);
+    } catch {
+      return { message: details };
+    }
+  }
+  return { message: String(details) };
+};
+
+function WorkspaceInner() {
 
   const { id } = useParams();
   const navigate = useNavigate();
@@ -602,7 +618,7 @@ export default function Workspace() {
     setShowUploadModal(false);
     setUploadFiles([]);
     setShowDataSourceModal(true);
-    setCustomLogs((prev:any) => [{action:'SYSTEM_INFO', createdAt: new Date().toISOString(), details: '追加数据源已接入并完成解析'}, ...prev]);
+    setCustomLogs((prev:any) => [{action:'INFO', createdAt: new Date().toISOString(), details: JSON.stringify({ message: '追加数据源已接入并完成解析' })}, ...prev]);
     toast("数据源上传成功，已加入当前项目证据库", "success");
     
     // simulate parsing completion
@@ -696,15 +712,15 @@ export default function Workspace() {
     
     if (data.riskScoring) {
       riskEvaluationSection = `【全局风险评估】
-审计风险概率: ${data.riskScoring.probabilityPercent.toFixed(1)}% (${data.riskScoring.riskLevel}) 
-逻辑值 Z: ${data.riskScoring.zValue.toFixed(4)}
-高危预警阈值: ${data.riskScoring.threshold}%
-判断说明: ${data.riskScoring.conclusion}
+审计风险概率: ${Number(data.riskScoring?.probabilityPercent || 0).toFixed(1)}% (${(data.riskScoring?.riskLevel || "未评估")}) 
+逻辑值 Z: ${Number(data.riskScoring?.zValue || 0).toFixed(4)}
+高危预警阈值: ${(data.riskScoring?.threshold || 0)}%
+判断说明: ${(data.riskScoring?.conclusion || "暂无")}
 
 【三维子指数分析】
-X1 身份关联指数: ${data.riskScoring.subIndices.X1}
-X2 交易异常指数: ${data.riskScoring.subIndices.X2}
-X3 外围牵连指数: ${data.riskScoring.subIndices.X3}`;
+X1 身份关联指数: ${(data.riskScoring?.subIndices?.X1 || 0)}
+X2 交易异常指数: ${(data.riskScoring?.subIndices?.X2 || 0)}
+X3 外围牵连指数: ${(data.riskScoring?.subIndices?.X3 || 0)}`;
     } else {
       riskEvaluationSection = `【风险评估】
 综合评分: ${score} - ${riskLevel.label}
@@ -790,10 +806,10 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
   <div class="section">
     <h2>02 风险发现详情</h2>
     ${data.riskScoring ? `
-    <p>全局风险评估（基于分层逻辑回归模型）：<span class="risk-score">${data.riskScoring.probabilityPercent.toFixed(1)}%（${data.riskScoring.riskLevel}）</span></p>
-    <p>Z值：${data.riskScoring.zValue.toFixed(4)} | 高危阈值：P &gt; ${data.riskScoring.threshold}%</p>
-    <p><strong>判断说明：</strong>${data.riskScoring.conclusion}</p>
-    <p><strong>三维子指数：</strong>X1 身份关联指数 (${data.riskScoring.subIndices.X1}), X2 交易异常指数 (${data.riskScoring.subIndices.X2}), X3 外围牵连指数 (${data.riskScoring.subIndices.X3})</p>
+    <p>全局风险评估（基于分层逻辑回归模型）：<span class="risk-score">${Number(data.riskScoring?.probabilityPercent || 0).toFixed(1)}%（${(data.riskScoring?.riskLevel || "未评估")}）</span></p>
+    <p>Z值：${Number(data.riskScoring?.zValue || 0).toFixed(4)} | 高危阈值：P &gt; ${(data.riskScoring?.threshold || 0)}%</p>
+    <p><strong>判断说明：</strong>${(data.riskScoring?.conclusion || "暂无")}</p>
+    <p><strong>三维子指数：</strong>X1 身份关联指数 (${(data.riskScoring?.subIndices?.X1 || 0)}), X2 交易异常指数 (${(data.riskScoring?.subIndices?.X2 || 0)}), X3 外围牵连指数 (${(data.riskScoring?.subIndices?.X3 || 0)})</p>
     ` : `<p>综合风险评分：<span class="risk-score">${score}/100（${riskLevel.label}）</span></p>`}
     
     ${rulesHit.length > 0 ? rulesHit.map((r:any) => {
@@ -924,7 +940,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                          <div className="absolute left-[15px] lg:left-[31px] top-4 bottom-4 w-[2px] bg-[#333333] z-0"></div>
                          {loading && <WorkflowStep size="base" icon={<Search className="w-4 h-4 text-[#D4AF37]" />} title="执行多源数据检索中..." status="active" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : '现在'} />}
                          {(logs.length > 0 || customLogs.length > 0) && [...logs, ...customLogs].filter((l:any) => l.action !== 'RED_FLAG').map((l:any, i:number) => {
-                           const details = typeof l.details === 'string' ? JSON.parse(l.details) : l.details;
+                           const details = parseLogDetails(l.details);
                            return <WorkflowStep size="base" key={i} icon={<CheckSquare className="w-4 h-4 text-gray-400" />} title={details.message || '系统日志'} status="done" time={lastAnalysisAt ? formatWorkflowTime(lastAnalysisAt) : formatWorkflowTime(l.createdAt)} />
                          })}
                          {rulesHit.length > 0 && (
@@ -1004,7 +1020,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
             {(logs.length > 0 || customLogs.length > 0) ? (
               <>
                 {[...logs, ...customLogs].filter((l:any) => l.action !== 'RED_FLAG').map((l:any, i:number) => {
-                  const details = typeof l.details === 'string' ? JSON.parse(l.details) : l.details;
+                  const details = parseLogDetails(l.details);
                   return (
                     <WorkflowStep 
                       key={i}
@@ -1099,8 +1115,8 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                      <div className="space-y-6 max-w-4xl mx-auto py-8">
                        <div className="text-center p-8 bg-[#1A1A1A] border border-[#333333] rounded">
                          <div className="text-gray-400 text-lg mb-2">审计风险概率 P(Risk)</div>
-                         <div className="text-7xl font-bold tracking-tighter text-red-500 mb-4">{data.riskScoring.probabilityPercent.toFixed(1)}%</div>
-                         <div className="text-lg"><span className="text-red-400 font-medium">风险等级：{data.riskScoring.riskLevel}</span> <span className="text-gray-500 mx-4">|</span> <span className="text-gray-400">高危阈值：{data.riskScoring.threshold}%</span></div>
+                         <div className="text-7xl font-bold tracking-tighter text-red-500 mb-4">{Number(data.riskScoring?.probabilityPercent || 0).toFixed(1)}%</div>
+                         <div className="text-lg"><span className="text-red-400 font-medium">风险等级：{(data.riskScoring?.riskLevel || "未评估")}</span> <span className="text-gray-500 mx-4">|</span> <span className="text-gray-400">高危阈值：{(data.riskScoring?.threshold || 0)}%</span></div>
                        </div>
                        
                        <div className="bg-[#1A1A1A] border border-[#333333] p-6 rounded">
@@ -1120,10 +1136,10 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                               </tr>
                             </thead>
                             <tbody className="text-gray-300 divide-y divide-[#333333]">
-                              <tr><td className="py-2">X1</td><td>身份关联指数</td><td className="font-mono">{data.riskScoring.subIndices.X1}</td><td className="font-mono">W1 = {data.riskScoring.globalWeights.W1}</td></tr>
-                              <tr><td className="py-2">X2</td><td>交易异常指数</td><td className="font-mono">{data.riskScoring.subIndices.X2}</td><td className="font-mono">W2 = {data.riskScoring.globalWeights.W2}</td></tr>
-                              <tr><td className="py-2">X3</td><td>外围牵连指数</td><td className="font-mono">{data.riskScoring.subIndices.X3.toFixed(2)}</td><td className="font-mono">W3 = {data.riskScoring.globalWeights.W3}</td></tr>
-                              <tr><td className="py-2">b</td><td>截距项</td><td className="font-mono">{data.riskScoring.globalWeights.b || -3.0}</td><td className="font-mono">-</td></tr>
+                              <tr><td className="py-2">X1</td><td>身份关联指数</td><td className="font-mono">{(data.riskScoring?.subIndices?.X1 || 0)}</td><td className="font-mono">W1 = {(data.riskScoring?.globalWeights?.W1 || 0)}</td></tr>
+                              <tr><td className="py-2">X2</td><td>交易异常指数</td><td className="font-mono">{(data.riskScoring?.subIndices?.X2 || 0)}</td><td className="font-mono">W2 = {(data.riskScoring?.globalWeights?.W2 || 0)}</td></tr>
+                              <tr><td className="py-2">X3</td><td>外围牵连指数</td><td className="font-mono">{Number(data.riskScoring?.subIndices?.X3 || 0).toFixed(2)}</td><td className="font-mono">W3 = {(data.riskScoring?.globalWeights?.W3 || 0)}</td></tr>
+                              <tr><td className="py-2">b</td><td>截距项</td><td className="font-mono">{(data.riskScoring?.globalWeights?.b || -3.0) || -3.0}</td><td className="font-mono">-</td></tr>
                             </tbody>
                           </table>
                        </div>
@@ -1132,22 +1148,22 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                           <h4 className="text-gray-300 font-semibold mb-4">线性组合计算</h4>
                           <div className="bg-[#121212] border border-[#333333] rounded p-4 font-mono text-sm text-gray-300 space-y-2">
                              <div className="text-[#D4AF37]">Z = W1 × X1 + W2 × X2 + W3 × X3 + b</div>
-                             <div>Z = {data.riskScoring.globalWeights.W1} × {data.riskScoring.subIndices.X1} + {data.riskScoring.globalWeights.W2} × {data.riskScoring.subIndices.X2} + {data.riskScoring.globalWeights.W3} × {data.riskScoring.subIndices.X3.toFixed(2)} {data.riskScoring.globalWeights.b || -3.0}</div>
+                             <div>Z = {(data.riskScoring?.globalWeights?.W1 || 0)} × {(data.riskScoring?.subIndices?.X1 || 0)} + {(data.riskScoring?.globalWeights?.W2 || 0)} × {(data.riskScoring?.subIndices?.X2 || 0)} + {(data.riskScoring?.globalWeights?.W3 || 0)} × {Number(data.riskScoring?.subIndices?.X3 || 0).toFixed(2)} {(data.riskScoring?.globalWeights?.b || -3.0) || -3.0}</div>
                              <div>Z = 1.7325 + 2.625 + 0.1 - 3.0</div>
-                             <div>Z = {(data.riskScoring.zValue).toFixed(4)}</div>
+                             <div>Z = {((data.riskScoring?.zValue || 0)).toFixed(4)}</div>
                           </div>
                           
                           <h4 className="text-gray-300 font-semibold mb-4 mt-6">Sigmoid 概率映射</h4>
                           <div className="bg-[#121212] border border-[#333333] rounded p-4 font-mono text-sm text-gray-300 space-y-2">
                              <div className="text-[#D4AF37]">P(Risk) = 1 / (1 + e^(-Z))</div>
-                             <div>P(Risk) = 1 / (1 + e^(-{(data.riskScoring.zValue).toFixed(4)}))</div>
-                             <div>P(Risk) ≈ {(data.riskScoring.probabilityPercent/100).toFixed(3)}</div>
-                             <div className="text-xl text-white mt-4 pt-4 border-t border-[#333333]">P(Risk) = {data.riskScoring.probabilityPercent.toFixed(1)}%</div>
+                             <div>P(Risk) = 1 / (1 + e^(-{((data.riskScoring?.zValue || 0)).toFixed(4)}))</div>
+                             <div>P(Risk) ≈ {((data.riskScoring?.probabilityPercent || 0)/100).toFixed(3)}</div>
+                             <div className="text-xl text-white mt-4 pt-4 border-t border-[#333333]">P(Risk) = {Number(data.riskScoring?.probabilityPercent || 0).toFixed(1)}%</div>
                           </div>
                           
                           <h4 className="text-gray-300 font-semibold mb-4 mt-6">判断结论</h4>
                           <div className="text-sm text-gray-300 bg-red-500/10 border border-red-500/20 p-4 rounded leading-relaxed">
-                            由于 <span className="text-red-400 font-bold">{data.riskScoring.probabilityPercent.toFixed(1)}% &gt; {data.riskScoring.threshold}%</span>，系统判定该项目为“<span className="text-red-400 font-bold">{data.riskScoring.riskLevel}</span>”，触发高危预警，并建议进入审计底稿回溯和人工重点复核流程。
+                            由于 <span className="text-red-400 font-bold">{Number(data.riskScoring?.probabilityPercent || 0).toFixed(1)}% &gt; {(data.riskScoring?.threshold || 0)}%</span>，系统判定该项目为“<span className="text-red-400 font-bold">{(data.riskScoring?.riskLevel || "未评估")}</span>”，触发高危预警，并建议进入审计底稿回溯和人工重点复核流程。
                           </div>
                        </div>
                      </div>
@@ -1765,8 +1781,8 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                           body: formData
                         });
                         if (!uploadRes.ok) throw new Error("上传失败");
-                        const apiDocs = await uploadRes.json();
-                        appendUploadedFilesToProject(uploadFiles, apiDocs);
+                        const apiResult = await uploadRes.json();
+                        appendUploadedFilesToProject(uploadFiles, apiResult.documents || []);
                      } catch(e) {
                          // API uploaded failed, fallback
                          appendUploadedFilesToProject(uploadFiles);
@@ -1943,6 +1959,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                                               </div>
                                            </div>
                                         </div>
+    
                                       )
                                    });
                                }} title="预览">预览</button>
@@ -1987,5 +2004,14 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #666; }
       `}} />
     </div>
+  );
+}
+
+
+export default function Workspace() {
+  return (
+    <ErrorBoundary>
+      <WorkspaceInner />
+    </ErrorBoundary>
   );
 }
