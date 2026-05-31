@@ -39,7 +39,116 @@ export const demoProjectDetailsMap: Record<string, any> = {
       { source: '登XX发行主体', target: '山东富XX', relationType: 'ABNORMAL_TRANSACTION', evidenceSnippet: '交易金额异常：2010年 96.39万，2011年 389.02万。' },
       { source: '登XX发行主体', target: '山东旺XX汽车零部件有限公司', relationType: 'ABNORMAL_TRANSACTION', evidenceSnippet: '连年暴增：2012年突增至 770.13万。' },
       { source: '山东富XX', target: '广州富XX', relationType: 'BUSINESS_CROSSCHECK', evidenceSnippet: '【业务交叉查询】通过对“山东富XX与广州富XX”等主体进行历史单据比对，系统在300万份发票及合同底稿中，精准定位到其历史联系方式、联系传真及业务单据制作者存在高度重合（匹配信度：99.2%）。' }
-    ]
+    ],
+    riskScoring: {
+      rawFeatures: {
+        identityNetwork: [
+          {
+            id: "x1a",
+            label: "实控网重合度",
+            value: 0.85,
+            method: "Jaccard 相似度",
+            evidence: "算法抓取“突击更名”及“海外主体高度相似”的事实。",
+            explanation: "发行人与相关主体在实际控制网络中存在较高重合度。",
+            subIndex: "X1"
+          },
+          {
+            id: "x1b",
+            label: "控制链路层级",
+            value: 0.90,
+            method: "知识图谱最短路径",
+            evidence: "图谱算法发现“4级跨地域逐层控股”。",
+            explanation: "控制链路复杂，存在绕层控股和跨地域控制特征。",
+            subIndex: "X1"
+          },
+          {
+            id: "x1c",
+            label: "高管流转频繁度",
+            value: 0.00,
+            method: "时间衰减二分图",
+            evidence: "经查双方高管无交叉兼职，属于静默特征。",
+            explanation: "高管维度未发现明显异常，因此该项不拉高风险。",
+            subIndex: "X1"
+          }
+        ],
+        transactionAbnormality: [
+          {
+            id: "x2a",
+            label: "空壳化概率",
+            value: 0.95,
+            method: "孤立森林 / NLP 对比",
+            evidence: "NLP 对比发现传真、电话、装箱单模板完全一致，皮包公司特征极其恶劣。",
+            explanation: "交易对手存在明显空壳化、皮包化特征，是最核心风险点之一。",
+            subIndex: "X2"
+          },
+          {
+            id: "x2b",
+            label: "交易额陡峭度",
+            value: 0.85,
+            method: "时序斜率",
+            evidence: "2012 年突击交易 770 万，曲线斜率极陡。",
+            explanation: "交易额在短期内异常上升，显示出突击交易风险。",
+            subIndex: "X2"
+          },
+          {
+            id: "x2c",
+            label: "定价偏离方差",
+            value: 0.15,
+            method: "Z-score",
+            evidence: "毛利被刻意平滑，暂未发现明显定价异常。",
+            explanation: "定价偏离维度暂未发现强异常，因此该项权重贡献较低。",
+            subIndex: "X2"
+          }
+        ],
+        externalTrace: [
+          {
+            id: "x3a",
+            label: "利益绑定涉诉率",
+            value: 0.20,
+            method: "NLP 涉案金额 / 净资产",
+            evidence: "仅存在零星小额诉讼。",
+            explanation: "外围涉诉痕迹较弱，仅形成轻微风险提示。",
+            subIndex: "X3"
+          },
+          {
+            id: "x3b",
+            label: "资产异动频次",
+            value: 0.20,
+            method: "泊松分布异常低概率事件",
+            evidence: "暂无强异常资产异动证据。",
+            explanation: "暂未发现强异常资产异动，仅保留低强度外围风险。",
+            subIndex: "X3"
+          }
+        ]
+      },
+      localWeights: {
+        X1: { x1a: 0.45, x1b: 0.45, x1c: 0.10 },
+        X2: { x2a: 0.40, x2b: 0.40, x2c: 0.20 },
+        X3: { x3a: 0.50, x3b: 0.50 }
+      },
+      globalWeights: {
+        W1: 2.2,
+        W2: 3.5,
+        W3: 0.5,
+        b: -3.0
+      },
+      subIndices: {
+        X1: 0.7875,
+        X2: 0.75,
+        X3: 0.20
+      },
+      zValue: 1.4575,
+      probability: 0.811,
+      probabilityPercent: 81.1,
+      threshold: 75,
+      riskLevel: "极高风险",
+      warning: "高危预警",
+      triggeredActions: [
+        "触发审计底稿回溯",
+        "触发 RAG 证据回链"
+      ],
+      conclusion: "系统输出风险概率为 81.1%，超过 75% 高危阈值，说明该项目存在显著关联交易风险，需要进入底稿回溯和重点审计程序。"
+    }
   },
   '1002': {
     project: { id: '1002', name: "绿能科技IPO主体资金流穿透", scenario: "IPO审查", createdAt: new Date(Date.now() - 86400000).toISOString() },
