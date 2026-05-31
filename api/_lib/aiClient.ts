@@ -61,7 +61,16 @@ const callOpenAICompatible = async (prompt: string, config: any, useFallback: bo
         })
     });
     
-    if (!res.ok) throw new Error(`OpenAI-compatible API Error: ${res.status} ${res.statusText}`);
+    if (!res.ok) {
+        let errStr = res.statusText;
+        try {
+            const errData = await res.json();
+            errStr = JSON.stringify(errData.error || errData);
+        } catch (e) {}
+        const error: any = new Error(`OpenAI-compatible API Error: ${errStr}`);
+        error.status = res.status;
+        throw error;
+    }
     const data = await res.json();
     return data.choices?.[0]?.message?.content || '';
 };
@@ -76,7 +85,16 @@ const callOfficialGemini = async (prompt: string, config: any) => {
             generationConfig: { temperature: 0.1 }
         })
     });
-    if (!res.ok) throw new Error(`Gemini API Error: ${res.status} ${res.statusText}`);
+    if (!res.ok) {
+         let errStr = res.statusText;
+         try {
+             const errData = await res.json();
+             errStr = JSON.stringify(errData.error || errData);
+         } catch (e) {}
+         const error: any = new Error(`Gemini API Error: ${errStr}`);
+         error.status = res.status;
+         throw error;
+    }
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 };
@@ -86,27 +104,62 @@ export const callLLM = async (prompt: string) => {
     
     let resultText = '';
     
+    let baseUrlHost = null;
+    try {
+        if (config.baseUrl) {
+            baseUrlHost = new URL(config.baseUrl).host;
+        }
+    } catch(e) {}
+
+    const providerInfo: any = {
+        mode: config.mode,
+        model: config.model,
+        fallbackModel: config.fallbackModel,
+        baseUrlConfigured: config.baseUrlConfigured,
+        apiKeyConfigured: config.apiKeyConfigured,
+        baseUrlHost: baseUrlHost,
+        failureStage: "none",
+        errorStatus: null,
+        errorMessage: null
+    };
+
+    if (config.mode === 'mock-fallback') {
+        providerInfo.failureStage = 'missing-env';
+        providerInfo.errorMessage = 'No API key configured';
+        return { text: '', providerInfo };
+    }
+    
     if (config.mode === 'openai-compatible') {
         try {
             resultText = await callOpenAICompatible(prompt, config, false);
-        } catch (e) {
-            console.error("OpenAI-compatible call failed, trying fallback model", e);
+        } catch (e: any) {
+            providerInfo.failureStage = 'primary-model-failed';
+            providerInfo.errorStatus = e.status || null;
+            providerInfo.errorMessage = e.message || String(e);
+
             if (config.fallbackModel) {
                 try {
                     resultText = await callOpenAICompatible(prompt, config, true);
-                } catch (e2) {
-                    console.error("Fallback model failed", e2);
-                    throw e2;
+                    providerInfo.failureStage = "none";
+                    providerInfo.errorStatus = null;
+                    providerInfo.errorMessage = null;
+                    providerInfo.model = config.fallbackModel; // show successful use
+                } catch (e2: any) {
+                    providerInfo.failureStage = "fallback-model-failed";
+                    providerInfo.errorStatus = e2.status || providerInfo.errorStatus;
+                    providerInfo.errorMessage = e2.message || String(e2);
                 }
-            } else {
-                throw e;
             }
         }
     } else if (config.mode === 'official-gemini') {
-         resultText = await callOfficialGemini(prompt, config);
-    } else {
-        throw new Error("mock-fallback");
+         try {
+             resultText = await callOfficialGemini(prompt, config);
+         } catch (e: any) {
+             providerInfo.failureStage = 'primary-model-failed';
+             providerInfo.errorStatus = e.status || null;
+             providerInfo.errorMessage = e.message || String(e);
+         }
     }
     
-    return { text: resultText, config };
+    return { text: resultText, providerInfo };
 };

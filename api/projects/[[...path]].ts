@@ -40,74 +40,151 @@ function getJsonBody(req: any) {
 
 export default async function handler(req: any, res: any) {
   const rawPath = req.query.path;
-  const pathParts = Array.isArray(rawPath) ? rawPath : (typeof rawPath === 'string' ? rawPath.split('/') : []);
+  let pathParts = Array.isArray(rawPath) ? rawPath : (typeof rawPath === 'string' ? rawPath.split('/') : []);
+  pathParts = pathParts.filter(Boolean);
   const sql = getDb();
 
   // /api/projects
-  if (pathParts.length === 0) {
-    if (req.method === 'GET') {
-      let dbProjects: any[] = [];
-      if (sql) {
-        try {
-          const rows = await sql`
-            SELECT p.*, 
-            (SELECT COUNT(*) FROM documents d WHERE d.project_id = p.id) as doc_count
-            FROM projects p 
-            ORDER BY p.created_at DESC
-          `;
-          dbProjects = rows.map((p: any) => ({
-            id: String(p.id),
-            name: p.name,
-            scenario: p.scenario,
-            riskScore: p.risk_score != null ? Number(p.risk_score) : 0,
-            riskLevel: p.risk_level ? p.risk_level : { label: '未评级', color: 'bg-gray-500' },
-            docCount: Number(p.doc_count) || 0,
-            createdAt: p.created_at ? new Date(p.created_at).toISOString() : new Date().toISOString()
-          }));
-        } catch (err) {}
-      }
-      return res.status(200).json([...dbProjects, ...mockProjects]);
-      
-    } else if (req.method === 'POST') {
-      if (!sql) return res.status(503).json({ error: "数据库尚未配置" });
-      const body: any = await getJsonBody(req);
-      const { name, scenario } = body || {};
-      if (!name) return res.status(400).json({ error: "项目名称不能为空" });
-
-      const projectId = 'PROJ-' + Date.now() + Math.floor(Math.random()*900+100);
-      const scene = scenario || 'IPO关联交易核查';
-
+  if (req.method === 'GET' && pathParts.length === 0) {
+    let dbProjects: any[] = [];
+    if (sql) {
       try {
-        const initialProfile = generateInitialRiskProfile(scene);
-        
-        await sql`
-          INSERT INTO projects (id, name, scenario, risk_score, risk_level, dimension_scores)
-          VALUES (${projectId}, ${name}, ${scene}, ${initialProfile.totalScore}, ${initialProfile.level}::jsonb, ${initialProfile.dimensionScores}::jsonb)
+        const rows = await sql`
+          SELECT p.*, 
+          (SELECT COUNT(*) FROM documents d WHERE d.project_id = p.id) as doc_count
+          FROM projects p 
+          ORDER BY p.created_at DESC
         `;
-        
-        for (const log of initialProfile.logs) {
-          await sql`INSERT INTO audit_logs (project_id, action, details) VALUES (${projectId}, ${log.action}, ${log.details}::jsonb)`;
-        }
-        for (const hit of initialProfile.ruleHits) {
-          await sql`
-             INSERT INTO audit_logs (project_id, action, details)
-             VALUES (${projectId}, 'RED_FLAG', ${JSON.stringify({ 
-               ruleName: hit.ruleName, ruleId: hit.ruleId, dimension: hit.dimension, 
-               scoreImpact: hit.scoreImpact, description: hit.description, severity: hit.severity 
-             })}::jsonb)
-          `;
-        }
-        await sql`INSERT INTO entities (project_id, type, name, attributes) VALUES (${projectId}, 'COMPANY', ${name + ' (查验标的)'}, ${JSON.stringify({ status: '新建' })}::jsonb)`;
-        return res.status(201).json({ id: projectId, name, scenario: scene, status: "created" });
-      } catch (err: any) {
-        return res.status(500).json({ error: "真实项目插入数据库失败", detail: err.message });
-      }
+        dbProjects = rows.map((p: any) => ({
+          id: String(p.id),
+          name: p.name,
+          scenario: p.scenario,
+          riskScore: p.risk_score != null ? Number(p.risk_score) : 0,
+          riskLevel: p.risk_level ? p.risk_level : { label: '未评级', color: 'bg-gray-500' },
+          docCount: Number(p.doc_count) || 0,
+          createdAt: p.created_at ? new Date(p.created_at).toISOString() : new Date().toISOString()
+        }));
+      } catch (err) {}
     }
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    return res.status(200).json([...dbProjects, ...mockProjects]);
+  }
+  
+  if (req.method === 'POST' && pathParts.length === 0) {
+    if (!sql) return res.status(503).json({ error: "数据库尚未配置" });
+    const body: any = await getJsonBody(req);
+    const { name, scenario } = body || {};
+    if (!name) return res.status(400).json({ error: "项目名称不能为空" });
+
+    const projectId = 'PROJ-' + Date.now() + Math.floor(Math.random()*900+100);
+    const scene = scenario || 'IPO关联交易核查';
+
+    try {
+      const initialProfile = generateInitialRiskProfile(scene);
+      
+      await sql`
+        INSERT INTO projects (id, name, scenario, risk_score, risk_level, dimension_scores)
+        VALUES (${projectId}, ${name}, ${scene}, ${initialProfile.totalScore}, ${initialProfile.level}::jsonb, ${initialProfile.dimensionScores}::jsonb)
+      `;
+      
+      for (const log of initialProfile.logs) {
+        await sql`INSERT INTO audit_logs (project_id, action, details) VALUES (${projectId}, ${log.action}, ${log.details}::jsonb)`;
+      }
+      for (const hit of initialProfile.ruleHits) {
+        await sql`
+           INSERT INTO audit_logs (project_id, action, details)
+           VALUES (${projectId}, 'RED_FLAG', ${JSON.stringify({ 
+             ruleName: hit.ruleName, ruleId: hit.ruleId, dimension: hit.dimension, 
+             scoreImpact: hit.scoreImpact, description: hit.description, severity: hit.severity 
+           })}::jsonb)
+        `;
+      }
+      await sql`INSERT INTO entities (project_id, type, name, attributes) VALUES (${projectId}, 'COMPANY', ${name + ' (查验标的)'}, ${JSON.stringify({ status: '新建' })}::jsonb)`;
+      return res.status(201).json({ id: projectId, name, scenario: scene, status: "created" });
+    } catch (err: any) {
+      return res.status(500).json({ error: "真实项目插入数据库失败", detail: err.message });
+    }
   }
 
-  // /api/projects/:id
-  const id = pathParts[0];
+  // Handle pathParts.length === 1 (GET /api/projects/:id or DELETE /api/projects/:id)
+  if (pathParts.length === 1) {
+    const id = pathParts[0];
+
+    if (req.method === 'GET') {
+      const mockDetail = getMockProjectDetail(id as string);
+      if (["1001", "1002", "1003", "1004"].includes(id as string) && mockDetail) {
+        return res.status(200).json(mockDetail);
+      }
+      
+      if (sql) {
+        try {
+          const [project] = await sql`SELECT * FROM projects WHERE id = ${id}`;
+          if (project) {
+            const documents = await sql`SELECT * FROM documents WHERE project_id = ${id}`;
+            const audit_logs = await sql`SELECT * FROM audit_logs WHERE project_id = ${id} ORDER BY created_at ASC`;
+            const entities = await sql`SELECT * FROM entities WHERE project_id = ${id}`;
+            const relationships = await sql`SELECT * FROM relationships WHERE project_id = ${id}`;
+
+            return res.status(200).json({
+               project: {
+                 id: project.id, name: project.name, scenario: project.scenario,
+                 riskScore: Number(project.risk_score), riskLevel: project.risk_level,
+                 dimensionScores: project.dimension_scores, createdAt: project.created_at
+               },
+               documents: documents.map((d: any) => ({
+                  id: d.id, fileName: d.file_name, originalName: d.original_name,
+                  sourceType: d.source_type, blobUrl: d.blob_url, createdAt: d.uploaded_at
+               })),
+               audit_logs: audit_logs.map((l: any) => ({
+                  action: l.action, details: JSON.stringify(l.details), createdAt: l.created_at
+               })),
+               entities: entities.map((e: any) => ({
+                  type: e.type, name: e.name, attributes: e.attributes
+               })),
+               relationships: relationships.map((r: any) => ({
+                  source: r.source, target: r.target, type: r.relation_type, evidence: r.evidence_snippet
+               }))
+            });
+          }
+        } catch (err) {}
+      }
+
+      if (mockDetail) return res.status(200).json(mockDetail);
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    if (req.method === 'DELETE') {
+      const cookies = parse(req.headers.cookie || '');
+      const isAdmin = cookies.admin_session === 'authenticated';
+      const isRollback = req.headers['x-rollback-request'] === 'true';
+
+      if (!isAdmin && !isRollback) return res.status(403).json({ error: '只有管理员可删除项目', errorCode: 'FORBIDDEN' });
+      if (!sql) return res.status(503).json({ error: 'Database not available', errorCode: 'UPLOAD_FAILED' });
+
+      try {
+        const [project] = await sql`SELECT id FROM projects WHERE id = ${id}`;
+        if (!project) return res.status(400).json({ error: '演示模板不可删除', errorCode: 'DEMO_PROJECT' });
+
+        const docs = await sql`SELECT blob_url FROM documents WHERE project_id = ${id} AND blob_url IS NOT NULL`;
+        const blobUrls = docs.map((d: any) => d.blob_url).filter(Boolean);
+        if (blobUrls.length > 0) {
+           try { await del(blobUrls); } catch (e) {}
+        }
+
+        await sql`DELETE FROM relationships WHERE project_id = ${id}`;
+        await sql`DELETE FROM entities WHERE project_id = ${id}`;
+        await sql`DELETE FROM audit_logs WHERE project_id = ${id}`;
+        await sql`DELETE FROM documents WHERE project_id = ${id}`;
+        await sql`DELETE FROM projects WHERE id = ${id}`;
+
+        return res.status(200).json({ success: true });
+      } catch (err) {
+        return res.status(500).json({ error: '删除失败' });
+      }
+    }
+  }
+
+  // Default path id logic below for multiple path fragments
+  const id = pathParts[0] || '';
   
   // /api/projects/:id/analyze
   if (pathParts.length > 1 && pathParts[1] === 'analyze') {
@@ -202,80 +279,6 @@ export default async function handler(req: any, res: any) {
       }
     }
     return res.status(200).json({ status: "success", documents: insertedDocs });
-  }
-
-  // /api/projects/:id
-  if (req.method === 'DELETE') {
-    const cookies = parse(req.headers.cookie || '');
-    const isAdmin = cookies.admin_session === 'authenticated';
-    const isRollback = req.headers['x-rollback-request'] === 'true';
-
-    if (!isAdmin && !isRollback) return res.status(403).json({ error: '只有管理员可删除项目', errorCode: 'FORBIDDEN' });
-    if (!sql) return res.status(503).json({ error: 'Database not available', errorCode: 'UPLOAD_FAILED' });
-
-    try {
-      const [project] = await sql`SELECT id FROM projects WHERE id = ${id}`;
-      if (!project) return res.status(400).json({ error: '演示模板不可删除', errorCode: 'DEMO_PROJECT' });
-
-      const docs = await sql`SELECT blob_url FROM documents WHERE project_id = ${id} AND blob_url IS NOT NULL`;
-      const blobUrls = docs.map((d: any) => d.blob_url).filter(Boolean);
-      if (blobUrls.length > 0) {
-         try { await del(blobUrls); } catch (e) {}
-      }
-
-      await sql`DELETE FROM relationships WHERE project_id = ${id}`;
-      await sql`DELETE FROM entities WHERE project_id = ${id}`;
-      await sql`DELETE FROM audit_logs WHERE project_id = ${id}`;
-      await sql`DELETE FROM documents WHERE project_id = ${id}`;
-      await sql`DELETE FROM projects WHERE id = ${id}`;
-
-      return res.status(200).json({ success: true });
-    } catch (err) {
-      return res.status(500).json({ error: '删除失败' });
-    }
-  }
-
-  if (req.method === 'GET') {
-    const mockDetail = getMockProjectDetail(id as string);
-    if (["1001", "1002", "1003", "1004"].includes(id as string) && mockDetail) {
-      return res.status(200).json(mockDetail);
-    }
-    
-    if (sql) {
-      try {
-        const [project] = await sql`SELECT * FROM projects WHERE id = ${id}`;
-        if (project) {
-          const documents = await sql`SELECT * FROM documents WHERE project_id = ${id}`;
-          const audit_logs = await sql`SELECT * FROM audit_logs WHERE project_id = ${id} ORDER BY created_at ASC`;
-          const entities = await sql`SELECT * FROM entities WHERE project_id = ${id}`;
-          const relationships = await sql`SELECT * FROM relationships WHERE project_id = ${id}`;
-
-          return res.status(200).json({
-             project: {
-               id: project.id, name: project.name, scenario: project.scenario,
-               riskScore: Number(project.risk_score), riskLevel: project.risk_level,
-               dimensionScores: project.dimension_scores, createdAt: project.created_at
-             },
-             documents: documents.map((d: any) => ({
-                id: d.id, fileName: d.file_name, originalName: d.original_name,
-                sourceType: d.source_type, blobUrl: d.blob_url, createdAt: d.uploaded_at
-             })),
-             audit_logs: audit_logs.map((l: any) => ({
-                action: l.action, details: JSON.stringify(l.details), createdAt: l.created_at
-             })),
-             entities: entities.map((e: any) => ({
-                type: e.type, name: e.name, attributes: e.attributes
-             })),
-             relationships: relationships.map((r: any) => ({
-                source: r.source, target: r.target, type: r.relation_type, evidence: r.evidence_snippet
-             }))
-          });
-        }
-      } catch (err) {}
-    }
-
-    if (mockDetail) return res.status(200).json(mockDetail);
-    return res.status(404).json({ error: 'Project not found' });
   }
 
   return res.status(405).json({ error: 'Method Not Allowed' });

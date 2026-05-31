@@ -25,7 +25,10 @@ export const extractEvidence = async (projectType: string, documentText: string)
           mode: 'mock-fallback',
           model: 'mock',
           baseUrlConfigured: false,
-          apiKeyConfigured: false
+          apiKeyConfigured: false,
+          failureStage: "none",
+          errorStatus: null,
+          errorMessage: null
       },
       entities: [
         { name: "登XX发行主体", type: "COMPANY" },
@@ -69,26 +72,37 @@ export const extractEvidence = async (projectType: string, documentText: string)
         }
         Return ONLY the JSON string.`;
 
-        const { text, config } = await callLLM(prompt);
+        const { text, providerInfo } = await callLLM(prompt);
         
-        if (config.mode === 'mock-fallback') {
-            return defaultMockResult;
+        let parsed = null;
+        if (text) {
+            try {
+                parsed = parseJSON(text);
+            } catch (jsonErr: any) {
+                providerInfo.failureStage = "json-parse-failed";
+                providerInfo.errorMessage = jsonErr.message;
+            }
+        } else if (providerInfo.failureStage === "none" && providerInfo.mode !== "mock-fallback") {
+            providerInfo.failureStage = "empty-response";
+            providerInfo.errorMessage = "LLM returned empty output";
         }
 
-        const parsed = parseJSON(text);
+        if (!parsed) {
+             const result = { ...defaultMockResult };
+             result.providerInfo = { ...result.providerInfo, ...providerInfo };
+             return result;
+        }
 
         return {
-            source: config.mode === 'official-gemini' ? 'gemini-api' : 'llm-api',
-            providerInfo: {
-                mode: config.mode,
-                model: config.model,
-                baseUrlConfigured: config.baseUrlConfigured,
-                apiKeyConfigured: config.apiKeyConfigured
-            },
+            source: providerInfo.mode === 'official-gemini' ? 'gemini-api' : 'llm-api',
+            providerInfo,
             ...parsed
         };
-    } catch(e) {
+    } catch(e: any) {
         console.error("LLM Extraction failed, fallback to mock");
-        return defaultMockResult;
+        const fallback = { ...defaultMockResult };
+        fallback.providerInfo.failureStage = "unknown";
+        fallback.providerInfo.errorMessage = e.message || String(e);
+        return fallback;
     }
 };
