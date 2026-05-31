@@ -174,6 +174,142 @@ const D3Graph = ({ entities, relationships, onNodeClick, onEdgeClick }: { entiti
   return <div ref={containerRef} className="absolute inset-0 z-0 bg-[#1A1A1A]" />;
 }
 
+const RiskScoringModule = ({ data, onFeatureClick }: { data: any, onFeatureClick?: (feature: any) => void }) => {
+  if (!data) return null;
+  const { probabilityPercent, riskLevel, threshold, zValue, warning, subIndices, rawFeatures, conclusion, globalWeights } = data;
+  
+  return (
+    <div className="flex flex-col gap-5 pb-8">
+      {/* 顶部总览卡片 */}
+      <div className="bg-gradient-to-br from-[#242424] to-[#1A1A1A] border border-[#333333] rounded p-4 relative overflow-hidden shadow-lg">
+        {probabilityPercent > threshold && <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl"></div>}
+        <div className="flex justify-between items-start mb-4 relative z-10">
+          <div>
+            <h3 className="text-xs text-gray-400 font-medium tracking-wider mb-1">审计风险概率 P(Risk)</h3>
+            <div className="flex items-end gap-3">
+              <span className={`text-4xl font-bold tracking-tighter ${probabilityPercent > threshold ? 'text-red-500' : 'text-[#D4AF37]'}`}>
+                {probabilityPercent.toFixed(1)}%
+              </span>
+              <span className={`text-xs px-2 py-1 rounded mb-1.5 font-medium border ${probabilityPercent > threshold ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-[#D4AF37]/10 text-[#D4AF37] border-[#D4AF37]/20'}`}>
+                {riskLevel}
+              </span>
+              {warning && (
+                <span className="text-xs px-2 py-1 rounded mb-1.5 font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3"/> {warning}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] text-gray-500 font-mono">算法模型：分层逻辑回归</div>
+            <div className="text-[10px] text-gray-400 font-mono mt-1">Z = {zValue.toFixed(4)}</div>
+            <div className="text-[10px] text-gray-500 font-mono mt-1">高危阈值 P &gt; {threshold}%</div>
+          </div>
+        </div>
+        <p className="text-[11px] text-gray-300 leading-relaxed border-t border-[#333333] pt-3 relative z-10">
+          <strong>判断说明：</strong>{conclusion}
+        </p>
+      </div>
+
+      {/* 三个子指数卡片 */}
+      <div className="grid grid-cols-1 gap-3">
+        {/* X1 */}
+        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-3 relative hover:border-[#D4AF37]/50 transition-colors">
+           <div className="flex justify-between items-center mb-2">
+             <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-blue-400"/> <span className="text-xs font-semibold text-gray-200">身份关联指数 X1</span></div>
+             <span className="text-lg font-bold text-gray-100 font-mono">{subIndices.X1}</span>
+           </div>
+           <div className="text-[10px] text-gray-500 mb-2 font-mono">全局权重 W1 = {globalWeights.W1}</div>
+           <div className="h-1 w-full bg-[#242424] rounded-full overflow-hidden mb-2"><div className="h-full bg-blue-500" style={{ width: `${Math.min(subIndices.X1 * 100, 100)}%` }}></div></div>
+           <p className="text-[10px] text-gray-400">重点评估控制链路溯源及实际控制网络重叠嫌疑。</p>
+        </div>
+        {/* X2 */}
+        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-3 relative hover:border-[#D4AF37]/50 transition-colors">
+           <div className="flex justify-between items-center mb-2">
+             <div className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 text-red-400"/> <span className="text-xs font-semibold text-gray-200">交易异常指数 X2</span></div>
+             <span className="text-lg font-bold text-gray-100 font-mono">{subIndices.X2}</span>
+           </div>
+           <div className="text-[10px] text-gray-500 mb-2 font-mono">全局权重 W2 = {globalWeights.W2}</div>
+           <div className="h-1 w-full bg-[#242424] rounded-full overflow-hidden mb-2"><div className="h-full bg-red-500" style={{ width: `${Math.min(subIndices.X2 * 100, 100)}%` }}></div></div>
+           <p className="text-[10px] text-gray-400">本案例核心风险来源，高度空壳化与短时大额突击交易。</p>
+        </div>
+        {/* X3 */}
+        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-3 relative hover:border-[#D4AF37]/50 transition-colors">
+           <div className="flex justify-between items-center mb-2">
+             <div className="flex items-center gap-1.5"><Search className="w-3.5 h-3.5 text-green-400"/> <span className="text-xs font-semibold text-gray-200">外围牵连指数 X3</span></div>
+             <span className="text-lg font-bold text-gray-100 font-mono">{subIndices.X3.toFixed(2)}</span>
+           </div>
+           <div className="text-[10px] text-gray-500 mb-2 font-mono">全局权重 W3 = {globalWeights.W3}</div>
+           <div className="h-1 w-full bg-[#242424] rounded-full overflow-hidden mb-2"><div className="h-full bg-green-500" style={{ width: `${Math.min(subIndices.X3 * 100, 100)}%` }}></div></div>
+           <p className="text-[10px] text-gray-400">目前法律诉讼及注册资本变更动作相对静默。</p>
+        </div>
+      </div>
+
+      {/* 底层特征列表 */}
+      <div>
+        <h3 className="text-xs font-semibold text-gray-300 mb-3 border-l-2 border-[#D4AF37] pl-2">风险量化 - 底层特征明细</h3>
+        <div className="space-y-4">
+          
+          <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden">
+            <div className="bg-[#1A1A1A] px-3 py-2 border-b border-[#333333] text-[10px] font-semibold text-gray-400 flex items-center justify-between">
+              <span>身份网络特征组 (X1)</span>
+            </div>
+            <div className="divide-y divide-[#333333]">
+              {rawFeatures.identityNetwork.map((f: any) => (
+                <div key={f.id} className="p-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors" onClick={() => onFeatureClick?.(f)}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs text-gray-200 font-medium">[{f.id}] {f.label}</span>
+                    <span className={`text-[11px] font-mono ${f.value > 0.7 ? 'text-red-400' : 'text-gray-400'}`}>v = {f.value.toFixed(2)}</span>
+                  </div>
+                  <div className="text-[9px] text-gray-500 mb-2 font-mono">算法: {f.method}</div>
+                  <p className="text-[10px] text-gray-400 leading-relaxed"><strong className="text-gray-300">RAG 回溯:</strong> {f.evidence}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden">
+            <div className="bg-[#1A1A1A] px-3 py-2 border-b border-[#333333] text-[10px] font-semibold text-gray-400 flex items-center justify-between">
+              <span>交易异常特征组 (X2)</span>
+            </div>
+            <div className="divide-y divide-[#333333]">
+              {rawFeatures.transactionAbnormality.map((f: any) => (
+                <div key={f.id} className="p-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors" onClick={() => onFeatureClick?.(f)}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs text-gray-200 font-medium">[{f.id}] {f.label}</span>
+                    <span className={`text-[11px] font-mono ${f.value > 0.7 ? 'text-red-400' : 'text-gray-400'}`}>v = {f.value.toFixed(2)}</span>
+                  </div>
+                  <div className="text-[9px] text-gray-500 mb-2 font-mono">算法: {f.method}</div>
+                  <p className="text-[10px] text-gray-400 leading-relaxed"><strong className="text-gray-300">RAG 回溯:</strong> {f.evidence}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden">
+            <div className="bg-[#1A1A1A] px-3 py-2 border-b border-[#333333] text-[10px] font-semibold text-gray-400 flex items-center justify-between">
+              <span>外围痕迹特征组 (X3)</span>
+            </div>
+            <div className="divide-y divide-[#333333]">
+              {rawFeatures.externalTrace.map((f: any) => (
+                <div key={f.id} className="p-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors" onClick={() => onFeatureClick?.(f)}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs text-gray-200 font-medium">[{f.id}] {f.label}</span>
+                    <span className={`text-[11px] font-mono ${f.value > 0.7 ? 'text-red-400' : 'text-gray-400'}`}>v = {f.value.toFixed(2)}</span>
+                  </div>
+                  <div className="text-[9px] text-gray-500 mb-2 font-mono">算法: {f.method}</div>
+                  <p className="text-[10px] text-gray-400 leading-relaxed"><strong className="text-gray-300">RAG 回溯:</strong> {f.evidence}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Workspace() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -271,16 +407,33 @@ export default function Workspace() {
 
   const downloadWorkpapers = () => {
     toast('正在打包底稿...', 'info');
+    let riskEvaluationSection = '';
+    
+    if (data.riskScoring) {
+      riskEvaluationSection = `【全局风险评估】
+审计风险概率: ${data.riskScoring.probabilityPercent.toFixed(1)}% (${data.riskScoring.riskLevel}) 
+逻辑值 Z: ${data.riskScoring.zValue.toFixed(4)}
+高危预警阈值: ${data.riskScoring.threshold}%
+判断说明: ${data.riskScoring.conclusion}
+
+【三维子指数分析】
+X1 身份关联指数: ${data.riskScoring.subIndices.X1}
+X2 交易异常指数: ${data.riskScoring.subIndices.X2}
+X3 外围牵连指数: ${data.riskScoring.subIndices.X3}`;
+    } else {
+      riskEvaluationSection = `【风险评估】
+综合评分: ${score} - ${riskLevel.label}
+身份关联识别: ${dimScores.identity} 分
+交易行为异常: ${dimScores.behavior} 分
+外围关联佐证: ${dimScores.circumstantial} 分`;
+    }
+
     const content = `=============== AuditEye 综合审计底稿 ===============
 项目名称: ${data.project?.name}
 场景: ${data.project?.scenario}
 创建时间: ${new Date(data.project?.createdAt).toLocaleString()}
 --------------------------------------------------
-【风险评估】
-综合评分: ${score} - ${riskLevel.label}
-身份关联识别: ${dimScores.identity} 分
-交易行为异常: ${dimScores.behavior} 分
-外围关联佐证: ${dimScores.circumstantial} 分
+${riskEvaluationSection}
 --------------------------------------------------
 【红旗规则命中】
 ${rulesHit.length > 0 ? rulesHit.map((r: any, i: number) => {
@@ -351,7 +504,12 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
 
   <div class="section">
     <h2>02 风险发现详情</h2>
-    <p>综合风险评分：<span class="risk-score">${score}/100（${riskLevel.label}）</span></p>
+    ${data.riskScoring ? `
+    <p>全局风险评估（基于分层逻辑回归模型）：<span class="risk-score">${data.riskScoring.probabilityPercent.toFixed(1)}%（${data.riskScoring.riskLevel}）</span></p>
+    <p>Z值：${data.riskScoring.zValue.toFixed(4)} | 高危阈值：P &gt; ${data.riskScoring.threshold}%</p>
+    <p><strong>判断说明：</strong>${data.riskScoring.conclusion}</p>
+    <p><strong>三维子指数：</strong>X1 身份关联指数 (${data.riskScoring.subIndices.X1}), X2 交易异常指数 (${data.riskScoring.subIndices.X2}), X3 外围牵连指数 (${data.riskScoring.subIndices.X3})</p>
+    ` : `<p>综合风险评分：<span class="risk-score">${score}/100（${riskLevel.label}）</span></p>`}
     
     ${rulesHit.length > 0 ? rulesHit.map((r:any) => {
       const d = JSON.parse(r.details);
@@ -542,83 +700,89 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
           
           <div className="p-4 space-y-5">
             {/* Main Score Area */}
-            <div className="flex gap-4">
-              <div className="w-32 h-32 shrink-0 bg-gradient-to-br from-[#242424] to-[#1A1A1A] border border-[#333333] rounded-full flex flex-col items-center justify-center relative shadow-inner">
-                {score > 75 && <div className="absolute inset-0 rounded-full border-2 border-red-500/50 animate-ping opacity-20"></div>}
-                <div className="text-[10px] text-gray-400 mb-0.5">综合评分</div>
-                <div className={`text-4xl font-bold tracking-tighter ${riskLevel.color}`}>{score}</div>
-                <div className="text-[10px] text-gray-500 mt-1 uppercase">{riskLevel.label}</div>
-              </div>
-              <div className="flex-1 flex flex-col justify-center space-y-3">
-                <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.identity?.name || '身份关联识别'} (最高 {RISK_DIMENSIONS.identity?.maxScore || 60}分)</span> <span className="text-red-400">{dimScores.identity} 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-red-500" style={{ width: `${(dimScores.identity / (RISK_DIMENSIONS.identity?.maxScore || 60)) * 100}%` }}></div></div>
+            {data.riskScoring ? (
+              <RiskScoringModule data={data.riskScoring} />
+            ) : (
+              <>
+                <div className="flex gap-4">
+                  <div className="w-32 h-32 shrink-0 bg-gradient-to-br from-[#242424] to-[#1A1A1A] border border-[#333333] rounded-full flex flex-col items-center justify-center relative shadow-inner">
+                    {score > 75 && <div className="absolute inset-0 rounded-full border-2 border-red-500/50 animate-ping opacity-20"></div>}
+                    <div className="text-[10px] text-gray-400 mb-0.5">综合评分</div>
+                    <div className={`text-4xl font-bold tracking-tighter ${riskLevel.color}`}>{score}</div>
+                    <div className="text-[10px] text-gray-500 mt-1 uppercase">{riskLevel.label}</div>
+                  </div>
+                  <div className="flex-1 flex flex-col justify-center space-y-3">
+                    <div>
+                      <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.identity?.name || '身份关联识别'} (最高 {RISK_DIMENSIONS.identity?.maxScore || 60}分)</span> <span className="text-red-400">{dimScores.identity} 分</span></div>
+                      <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-red-500" style={{ width: `${(dimScores.identity / (RISK_DIMENSIONS.identity?.maxScore || 60)) * 100}%` }}></div></div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.behavior?.name || '交易行为异常'} (最高 {RISK_DIMENSIONS.behavior?.maxScore || 30}分)</span> <span className="text-[#D4AF37]">{dimScores.behavior} 分</span></div>
+                      <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-[#D4AF37]" style={{ width: `${(dimScores.behavior / (RISK_DIMENSIONS.behavior?.maxScore || 30)) * 100}%` }}></div></div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.circumstantial?.name || '外围关联佐证'} (最高 {RISK_DIMENSIONS.circumstantial?.maxScore || 10}分)</span> <span className="text-green-500">{dimScores.circumstantial} 分</span></div>
+                      <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${(dimScores.circumstantial / (RISK_DIMENSIONS.circumstantial?.maxScore || 10)) * 100}%` }}></div></div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.behavior?.name || '交易行为异常'} (最高 {RISK_DIMENSIONS.behavior?.maxScore || 30}分)</span> <span className="text-[#D4AF37]">{dimScores.behavior} 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-[#D4AF37]" style={{ width: `${(dimScores.behavior / (RISK_DIMENSIONS.behavior?.maxScore || 30)) * 100}%` }}></div></div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-[10px] mb-1"><span className="text-gray-400">{RISK_DIMENSIONS.circumstantial?.name || '外围关联佐证'} (最高 {RISK_DIMENSIONS.circumstantial?.maxScore || 10}分)</span> <span className="text-green-500">{dimScores.circumstantial} 分</span></div>
-                  <div className="h-1.5 w-full bg-[#242424] rounded-full overflow-hidden"><div className="h-full bg-green-500" style={{ width: `${(dimScores.circumstantial / (RISK_DIMENSIONS.circumstantial?.maxScore || 10)) * 100}%` }}></div></div>
-                </div>
-              </div>
-            </div>
 
-            {/* Hit Rules List */}
-            <div>
-               <h3 className="text-xs font-semibold text-gray-300 mb-3 border-l-2 border-[#D4AF37] pl-2">命中规则列表</h3>
-               <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden">
-                 <table className="w-full text-left text-[10px]">
-                   <thead className="bg-[#1A1A1A] border-b border-[#333333] text-gray-400">
-                     <tr>
-                       <th className="px-3 py-2 font-medium">规则名称</th>
-                       <th className="px-3 py-2 font-medium">维度</th>
-                       <th className="px-3 py-2 font-medium text-right">贡献分</th>
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y divide-[#333333]">
-                     {rulesHit.length > 0 ? rulesHit.map((l:any, i:number) => {
-                       const d = JSON.parse(l.details);
-                       const dimName = d.dimension ? RISK_DIMENSIONS[d.dimension as keyof typeof RISK_DIMENSIONS]?.name : '综合';
-                       return (
-                         <tr key={i} className="hover:bg-[#2A2A2A]">
-                           <td className="px-3 py-2 text-gray-200">{d.ruleName}</td>
-                           <td className="px-3 py-2 text-gray-500">{dimName}</td>
-                           <td className="px-3 py-2 text-right text-red-400">+{d.scoreImpact}</td>
+                {/* Hit Rules List */}
+                <div>
+                   <h3 className="text-xs font-semibold text-gray-300 mb-3 border-l-2 border-[#D4AF37] pl-2">命中规则列表</h3>
+                   <div className="border border-[#333333] rounded bg-[#242424] overflow-hidden">
+                     <table className="w-full text-left text-[10px]">
+                       <thead className="bg-[#1A1A1A] border-b border-[#333333] text-gray-400">
+                         <tr>
+                           <th className="px-3 py-2 font-medium">规则名称</th>
+                           <th className="px-3 py-2 font-medium">维度</th>
+                           <th className="px-3 py-2 font-medium text-right">贡献分</th>
                          </tr>
-                       )
-                     }) : (
-                       <tr><td colSpan={3} className="px-3 py-4 text-center text-gray-500">暂无违规命中</td></tr>
-                     )}
-                   </tbody>
-                 </table>
-               </div>
-            </div>
-            
-            {/* Top Red Flags Details */}
-            <div>
-               <h3 className="text-xs font-semibold text-gray-300 mb-3 border-l-2 border-[#D4AF37] pl-2">红旗分析摘要</h3>
-               <div className="space-y-2">
-                 {rulesHit.map((l:any, i:number) => {
-                    const d = JSON.parse(l.details);
-                    return (
-                      <div key={i} className="p-3 bg-[#242424] border border-red-500/20 rounded shadow-sm hover:border-red-500/50 transition-colors cursor-pointer">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] font-semibold text-red-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> {d.ruleName}</span>
-                          <span className="text-[9px] px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded border border-red-500/20">{d.severity.toUpperCase()}</span>
-                        </div>
-                        <p className="text-[11px] text-gray-400 leading-relaxed mb-3">{d.description}</p>
-                        <div className="flex items-center gap-4 text-[10px] text-gray-500 pt-2 border-t border-[#333333]">
-                           <span className="flex items-center gap-1"><FileText className="w-3 h-3"/> 证据: 2份</span>
-                           <span className="flex items-center gap-1"><Activity className="w-3 h-3"/> 前往审查 <ChevronRight className="w-3 h-3"/></span>
-                        </div>
-                      </div>
-                    )
-                 })}
-                 {rulesHit.length === 0 && <div className="text-xs text-gray-500">正常</div>}
-               </div>
-            </div>
+                       </thead>
+                       <tbody className="divide-y divide-[#333333]">
+                         {rulesHit.length > 0 ? rulesHit.map((l:any, i:number) => {
+                           const d = JSON.parse(l.details);
+                           const dimName = d.dimension ? RISK_DIMENSIONS[d.dimension as keyof typeof RISK_DIMENSIONS]?.name : '综合';
+                           return (
+                             <tr key={i} className="hover:bg-[#2A2A2A]">
+                               <td className="px-3 py-2 text-gray-200">{d.ruleName}</td>
+                               <td className="px-3 py-2 text-gray-500">{dimName}</td>
+                               <td className="px-3 py-2 text-right text-red-400">+{d.scoreImpact}</td>
+                             </tr>
+                           )
+                         }) : (
+                           <tr><td colSpan={3} className="px-3 py-4 text-center text-gray-500">暂无违规命中</td></tr>
+                         )}
+                       </tbody>
+                     </table>
+                   </div>
+                </div>
+                
+                {/* Top Red Flags Details */}
+                <div>
+                   <h3 className="text-xs font-semibold text-gray-300 mb-3 border-l-2 border-[#D4AF37] pl-2">红旗分析摘要</h3>
+                   <div className="space-y-2">
+                     {rulesHit.map((l:any, i:number) => {
+                        const d = JSON.parse(l.details);
+                        return (
+                          <div key={i} className="p-3 bg-[#242424] border border-red-500/20 rounded shadow-sm hover:border-red-500/50 transition-colors cursor-pointer">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[11px] font-semibold text-red-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> {d.ruleName}</span>
+                              <span className="text-[9px] px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded border border-red-500/20">{d.severity.toUpperCase()}</span>
+                            </div>
+                            <p className="text-[11px] text-gray-400 leading-relaxed mb-3">{d.description}</p>
+                            <div className="flex items-center gap-4 text-[10px] text-gray-500 pt-2 border-t border-[#333333]">
+                               <span className="flex items-center gap-1"><FileText className="w-3 h-3"/> 证据: 2份</span>
+                               <span className="flex items-center gap-1"><Activity className="w-3 h-3"/> 前往审查 <ChevronRight className="w-3 h-3"/></span>
+                            </div>
+                          </div>
+                        )
+                     })}
+                     {rulesHit.length === 0 && <div className="text-xs text-gray-500">正常</div>}
+                   </div>
+                </div>
+              </>
+            )}
 
           </div>
         </div>
