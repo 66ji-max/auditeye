@@ -1,32 +1,91 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Plus, Activity, Edit3, Trash2, Shield, Calendar, User } from 'lucide-react';
+import { Settings, Plus, Activity, Edit3, Trash2, Shield, Calendar, User, Search, Play, FileText, CheckCircle, AlertTriangle, AlertOctagon, RefreshCw, X, File } from 'lucide-react';
 import { toast } from '../components/Toast.tsx';
 
-export default function RuleEngine() {
-  const [rules, setRules] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+const MOCK_RULE_SETS = {
+  standard: [
+    { id: 'R-X1A', name: '实控网重合度检测', category: '身份网络', trigger: 'Jaccard > 0.8', weight: 85, status: 'enabled', lastHit: '2026/05/30', owner: 'System' },
+    { id: 'R-X2C', name: '大额进出异常波动', category: '交易异常', trigger: 'Z-score > 3', weight: 90, status: 'enabled', lastHit: '2026/05/29', owner: 'System' },
+    { id: 'R-X3B', name: '利益绑定涉诉率', category: '外围痕迹', trigger: '包含"破产"等判定', weight: 60, status: 'enabled', lastHit: '2026/05/25', owner: 'System' }
+  ],
+  extreme: [
+    { id: 'R-E1', name: '深度穿透：5级法定代表人环绕', category: '极度穿透', trigger: 'Hop Count >= 5 && Cycle = True', weight: 95, status: 'enabled', lastHit: '2026/05/28', owner: 'System' },
+    { id: 'R-E2', name: '暗网资金流向模式', category: '极度穿透', trigger: '匹配离岸账户特征', weight: 100, status: 'enabled', lastHit: '-', owner: 'System' }
+  ],
+  fmcg: [
+    { id: 'R-C1', name: '渠道商压货反向退货', category: '快消专用', trigger: '月底销量激增+次月退货', weight: 75, status: 'enabled', lastHit: '2026/05/31', owner: 'User' },
+    { id: 'R-C2', name: '区域串货模糊匹配', category: '快消专用', trigger: '物流轨迹跨区', weight: 65, status: 'disabled', lastHit: '2026/05/10', owner: 'User' }
+  ]
+};
 
-  useEffect(() => {
-    fetch('/api/rules')
-      .then(res => {
-        if (!res.ok) throw new Error('网络请求失败');
-        return res.json();
-      })
-      .then(data => {
-        setRules(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-        toast('加载规则集失败，请稍后重试', 'error');
+export default function RuleEngine() {
+  const [currentSet, setCurrentSet] = useState<'standard'|'extreme'|'fmcg'>('standard');
+  const [rules, setRules] = useState<any[]>(MOCK_RULE_SETS.standard);
+  const [loading, setLoading] = useState(false);
+  
+  // Modals / Drawers
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [selectedRule, setSelectedRule] = useState<any>(null);
+  
+  const [showNewRule, setShowNewRule] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showDisable, setShowDisable] = useState(false);
+
+  const [sandboxResult, setSandboxResult] = useState<any>(null);
+  const [sandboxInput, setSandboxInput] = useState('山东旺XX汽车零部件有限公司');
+  const [runningTest, setRunningTest] = useState(false);
+
+  const handleSetChange = (key: 'standard'|'extreme'|'fmcg', name: string) => {
+    setLoading(true);
+    setCurrentSet(key);
+    setTimeout(() => {
+      setRules(MOCK_RULE_SETS[key]);
+      setLoading(false);
+      toast(`已切换至 ${name}`, 'success');
+    }, 400);
+  };
+
+  const handleRunTest = () => {
+    if (!sandboxInput) return;
+    setRunningTest(true);
+    setSandboxResult(null);
+    setTimeout(() => {
+      setRunningTest(false);
+      setSandboxResult({
+        hitRules: ['R-X1A: 实控网重合度检测', 'R-E1: 深度穿透：5级法定代表人环绕'],
+        features: 'x1a, x2a',
+        evidence: '段落: "2026年3月该主体资金流向与离岸账户重合度达85%"',
+        risk: '极高贡献 (+0.34)',
+        toDraft: true
       });
-  }, []);
+      toast('沙箱测试运行完成', 'success');
+    }, 1500);
+  };
+
+  const handleSaveRule = () => {
+    setShowNewRule(false);
+    toast('规则已保存并进入待审核状态', 'success');
+    // Mock local addition
+    setRules([{ id: 'R-NEW', name: '新规则测试', category: '自定义', trigger: '条件 > X', weight: 50, status: 'disabled', lastHit: '-', owner: 'Current User' }, ...rules]);
+  };
+
+  const handleConfirmDisable = () => {
+    setRules(rules.map(r => r.id === selectedRule?.id ? { ...r, status: 'disabled' } : r));
+    setShowDisable(false);
+    toast('该规则已被停用', 'success');
+  };
+
+  const handleSaveEdit = () => {
+    setShowEdit(false);
+    toast('规则修改已生效', 'success');
+  };
 
   return (
-    <div className="h-full w-full bg-[#1A1A1A] p-6 text-gray-200 overflow-y-auto custom-scrollbar">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+    <div className="h-full w-full bg-[#1A1A1A] p-6 text-gray-200 overflow-y-auto custom-scrollbar relative">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* Top Header */}
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Settings className="w-6 h-6 text-[#D4AF37]" />
@@ -34,76 +93,247 @@ export default function RuleEngine() {
             </h1>
             <p className="text-xs text-gray-500 mt-1">管理并调试用于实体交叉验证与风险评分的规则集版本。</p>
           </div>
-          <button onClick={() => toast('审计规则编辑需管理员权限', 'warning')} className="px-4 py-2 bg-[#D4AF37] hover:bg-[#E5C048] text-[#1A1A1A] font-medium text-sm rounded shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center gap-2">
+          <button onClick={() => setShowNewRule(true)} className="px-4 py-2 bg-[#D4AF37] hover:bg-[#E5C048] text-[#1A1A1A] font-medium text-sm rounded shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center gap-2 transition-all">
             <Plus className="w-4 h-4" /> 新建规则
           </button>
         </div>
 
-        <div className="bg-[#242424] border border-[#333333] rounded-lg shadow-lg overflow-hidden">
-          {loading ? (
-            <div className="p-8 flex justify-center items-center text-gray-500 text-sm">
-              <div className="w-5 h-5 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin mr-3"></div>
-              正在加载审计规则...
-            </div>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#1A1A1A] border-b border-[#333333] text-gray-400 text-xs">
-                <tr>
-                  <th className="px-4 py-3 font-medium">规则编号 / 名称</th>
-                  <th className="px-4 py-3 font-medium">风险维度</th>
-                  <th className="px-4 py-3 font-medium">风险权重 (0-100)</th>
-                  <th className="px-4 py-3 font-medium">状态</th>
-                  <th className="px-4 py-3 font-medium">更新人 & 时间</th>
-                  <th className="px-4 py-3 text-right font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#333333]">
-                {rules.map((r, i) => (
-                  <tr key={i} className="hover:bg-[#1f1f1f] transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-mono text-[10px] text-gray-500 mb-0.5">{r.id}</div>
-                      <div className="font-medium text-gray-200 text-xs">{r.name}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-1 bg-[#1A1A1A] border border-[#333333] rounded text-[10px] text-gray-300">
-                        {r.category}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-[#1A1A1A] rounded-full overflow-hidden border border-[#333333]">
-                          <div className="h-full bg-[#D4AF37]" style={{ width: `${Math.min(100, r.weight)}%` }}></div>
-                        </div>
-                        <span className="font-mono text-xs text-gray-400">{r.weight}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded text-[10px] ${r.status === 'enabled' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-500 border border-gray-700'}`}>
-                        {r.status === 'enabled' ? '生效中' : '已停用'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-[11px] text-gray-400 flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1"><User className="w-3 h-3"/> {r.owner}</div>
-                        <div className="flex items-center gap-1"><Calendar className="w-3 h-3"/> {r.updatedAt}</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => toast('审计规则编辑需管理员权限', 'warning')} className="p-1.5 text-gray-400 hover:text-[#D4AF37] transition-colors"><Edit3 className="w-4 h-4" /></button>
-                      <button onClick={() => toast('核心内置规则禁止删除', 'error')} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    </td>
-                  </tr>
-                ))}
-                {rules.length === 0 && (
+        {/* Overview Card */}
+        <div className="bg-[#242424] border border-[#333333] p-6 rounded-lg grid grid-cols-5 gap-4">
+           <div>
+             <div className="text-gray-400 text-xs mb-1">当前规则集</div>
+             <div className="text-gray-100 font-semibold truncate">{currentSet === 'standard' ? '标准审计预警 v1.4.2' : currentSet === 'extreme' ? '极度穿透关联模型' : '快消行业专用模板'}</div>
+           </div>
+           <div>
+             <div className="text-gray-400 text-xs mb-1">生效规则数</div>
+             <div className="text-gray-100 font-mono font-semibold text-xl">{rules.filter(r => r.status==='enabled').length}</div>
+           </div>
+           <div>
+             <div className="text-gray-400 text-xs mb-1">高危规则数</div>
+             <div className="text-red-400 font-mono font-semibold text-xl">{rules.filter(r => r.weight > 80).length}</div>
+           </div>
+           <div>
+             <div className="text-gray-400 text-xs mb-1">最近一次调参</div>
+             <div className="text-gray-100 font-mono text-sm">2026/5/31</div>
+           </div>
+           <div>
+             <div className="text-gray-400 text-xs mb-1">模型版本</div>
+             <div className="text-[#D4AF37] font-semibold text-sm">Layered Risk Scoring v2.0</div>
+           </div>
+        </div>
+
+        {/* Rule Sets Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#333333]">
+           <button onClick={() => handleSetChange('standard', '标准审计预警 v1.4.2')} className={`px-4 py-2 whitespace-nowrap text-sm rounded-t ${currentSet === 'standard' ? 'bg-[#333333] text-[#D4AF37] font-medium border-b-2 border-[#D4AF37]' : 'text-gray-400 hover:text-gray-200 hover:bg-[#242424]'}`}>标准审计预警 v1.4.2</button>
+           <button onClick={() => handleSetChange('extreme', '极度穿透关联模型')} className={`px-4 py-2 whitespace-nowrap text-sm rounded-t ${currentSet === 'extreme' ? 'bg-[#333333] text-[#D4AF37] font-medium border-b-2 border-[#D4AF37]' : 'text-gray-400 hover:text-gray-200 hover:bg-[#242424]'}`}>极度穿透关联模型</button>
+           <button onClick={() => handleSetChange('fmcg', '快消行业专用模板')} className={`px-4 py-2 whitespace-nowrap text-sm rounded-t ${currentSet === 'fmcg' ? 'bg-[#333333] text-[#D4AF37] font-medium border-b-2 border-[#D4AF37]' : 'text-gray-400 hover:text-gray-200 hover:bg-[#242424]'}`}>快消行业专用模板</button>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Main Table */}
+          <div className="flex-1 bg-[#242424] border border-[#333333] rounded-lg shadow-lg overflow-hidden">
+            {loading ? (
+              <div className="p-12 flex justify-center items-center text-gray-500 text-sm">
+                <div className="w-5 h-5 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin mr-3"></div>
+                加载规则集...
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="bg-[#1A1A1A] border-b border-[#333333] text-gray-400 text-xs">
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500 text-xs">暂无配置规则</td>
+                    <th className="px-4 py-3 font-medium">规则名称</th>
+                    <th className="px-4 py-3 font-medium">触发条件</th>
+                    <th className="px-4 py-3 font-medium">权重</th>
+                    <th className="px-4 py-3 font-medium">状态</th>
+                    <th className="px-4 py-3 font-medium">最近命中</th>
+                    <th className="px-4 py-3 text-right font-medium">操作</th>
                   </tr>
+                </thead>
+                <tbody className="divide-y divide-[#333333]">
+                  {rules.map((r, i) => (
+                    <tr key={i} className="hover:bg-[#1f1f1f] transition-colors cursor-pointer" onClick={() => { setSelectedRule(r); setShowDrawer(true); }}>
+                      <td className="px-4 py-3">
+                        <div className="font-mono text-[10px] text-gray-500 mb-0.5">{r.id}</div>
+                        <div className="font-medium text-gray-200 text-xs">{r.name}</div>
+                        <div className="text-[10px] text-gray-500">{r.category}</div>
+                      </td>
+                      <td className="px-4 py-3 text-[11px] font-mono text-gray-400 max-w-[150px] truncate" title={r.trigger}>
+                         {r.trigger}
+                      </td>
+                      <td className="px-4 py-3">
+                         <div className={`font-mono text-xs ${r.weight > 80 ? 'text-red-400' : 'text-[#D4AF37]'}`}>{r.weight}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded text-[10px] ${r.status === 'enabled' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-500 border border-gray-700'}`}>
+                          {r.status === 'enabled' ? '生效中' : '已停用'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-400">{r.lastHit}</td>
+                      <td className="px-4 py-3 text-right space-x-1" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => { setSelectedRule(r); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-[#D4AF37] rounded transition-colors"><Edit3 className="w-4 h-4" /></button>
+                        <button onClick={() => { setSelectedRule(r); setShowDisable(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-red-500 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Sandbox Box */}
+          <div className="w-full lg:w-80 bg-[#1A1A1A] border border-[#333333] rounded-lg shadow-lg flex flex-col shrink-0 h-min">
+             <div className="p-4 border-b border-[#333333] flex items-center gap-2">
+                <Play className="w-4 h-4 text-[#D4AF37]" />
+                <span className="font-semibold text-sm">规则测试沙箱</span>
+             </div>
+             <div className="p-4 space-y-4">
+                <div>
+                   <label className="text-xs text-gray-400 mb-1 block">测试实体/项目名：</label>
+                   <input type="text" value={sandboxInput} onChange={e=>setSandboxInput(e.target.value)} className="w-full bg-[#242424] border border-[#333333] rounded px-3 py-2 text-xs focus:border-[#D4AF37] focus:outline-none transition-colors" />
+                </div>
+                <button onClick={handleRunTest} disabled={runningTest} className="w-full py-2 bg-[#2A2A2A] hover:bg-[#333333] border border-[#444] rounded text-sm transition-colors flex items-center justify-center gap-2">
+                   {runningTest ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                   执行推演
+                </button>
+                
+                {sandboxResult && (
+                   <div className="mt-4 border-t border-[#333333] pt-4 space-y-3">
+                      <div className="text-xs text-[#D4AF37] font-semibold mb-2">测试结果：</div>
+                      <div className="bg-[#242424] p-3 rounded border border-[#333333] text-xs space-y-2">
+                         <div className="text-gray-400">命中规则: <span className="text-red-400 block break-all">{sandboxResult.hitRules.join(', ')}</span></div>
+                         <div className="text-gray-400">特征映射: <span className="text-gray-200">{sandboxResult.features}</span></div>
+                         <div className="text-gray-400">风险贡献: <span className="text-red-400">{sandboxResult.risk}</span></div>
+                         <div className="text-gray-400">底稿落库: <span className="text-green-400">是</span></div>
+                      </div>
+                   </div>
                 )}
-              </tbody>
-            </table>
-          )}
+             </div>
+          </div>
         </div>
       </div>
+
+      {/* Modals & Drawers */}
+      
+      {/* 规则详情抽屉 */}
+      {showDrawer && selectedRule && (
+         <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm" onClick={() => setShowDrawer(false)}>
+            <div className="w-[450px] bg-[#1A1A1A] border-l border-[#333333] h-full shadow-2xl p-6 overflow-y-auto space-y-6" onClick={e=>e.stopPropagation()}>
+               <div className="flex justify-between items-center pb-4 border-b border-[#333333]">
+                  <h3 className="text-lg font-bold text-gray-200">规则详情</h3>
+                  <button onClick={() => setShowDrawer(false)} className="text-gray-500 hover:text-white"><X className="w-5 h-5"/></button>
+               </div>
+               
+               <div>
+                  <div className="text-[10px] text-gray-500 font-mono mb-1">{selectedRule.id}</div>
+                  <div className="text-xl font-bold text-[#D4AF37] mb-2">{selectedRule.name}</div>
+                  <span className={`px-2 py-1 rounded text-[10px] ${selectedRule.status === 'enabled' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-500 border border-gray-700'}`}>
+                    {selectedRule.status === 'enabled' ? '生效中' : '已停用'}
+                  </span>
+               </div>
+               
+               <div className="space-y-4">
+                  <div className="bg-[#242424] p-4 rounded border border-[#333333]">
+                     <div className="text-xs text-gray-500 mb-2">判断逻辑 & 触发条件</div>
+                     <div className="font-mono text-sm text-red-400 break-all">{selectedRule.trigger}</div>
+                  </div>
+                  
+                  <div className="bg-[#242424] p-4 rounded border border-[#333333] grid grid-cols-2 gap-4">
+                     <div>
+                        <div className="text-xs text-gray-500 mb-1">风险维度</div>
+                        <div className="text-gray-200 text-sm">{selectedRule.category}</div>
+                     </div>
+                     <div>
+                        <div className="text-xs text-gray-500 mb-1">风险权重</div>
+                        <div className={`text-sm font-mono ${selectedRule.weight > 80 ? 'text-red-400' : 'text-[#D4AF37]'}`}>{selectedRule.weight}</div>
+                     </div>
+                  </div>
+                  
+                  <div className="bg-[#242424] p-4 rounded border border-[#333333]">
+                     <div className="text-xs text-gray-500 mb-2">示例命中证据</div>
+                     <p className="text-gray-300 text-sm italic leading-relaxed">"在审计图谱中，当两个企业享有 80% 相同的关键管理人员，并发生虚假交易迹象时，此规则将介入增加预警分数。"</p>
+                  </div>
+                  
+                  <div className="bg-[#242424] p-4 rounded border border-[#333333]">
+                     <div className="text-xs text-gray-500 mb-2">自动审计建议</div>
+                     <p className="text-gray-300 text-sm leading-relaxed">建议将命中此规则的样本标红，并在凭证检查环节增加 50% 额外抽样。重点核对外围资金流水与工商系统历史变更记录。</p>
+                  </div>
+               </div>
+               
+               <div className="pt-4 border-t border-[#333333] flex justify-end gap-3">
+                 <button onClick={() => { setShowDrawer(false); setShowEdit(true); }} className="px-4 py-2 border border-[#333333] rounded hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors text-sm">编辑参数</button>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* 新建/编辑规则弹窗 */}
+      {(showNewRule || showEdit) && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => {setShowNewRule(false); setShowEdit(false)}}>
+            <div className="bg-[#242424] border border-[#333333] w-[500px] rounded-lg shadow-2xl p-6 space-y-5" onClick={e=>e.stopPropagation()}>
+               <div className="flex justify-between items-center pb-3 border-b border-[#333333]">
+                 <h3 className="text-lg font-bold text-gray-200">{showNewRule ? '新建风险规则' : '编辑规则参数'}</h3>
+                 <button onClick={() => {setShowNewRule(false); setShowEdit(false)}} className="text-gray-500 hover:text-white"><X className="w-5 h-5"/></button>
+               </div>
+               <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">规则名称</label>
+                    <input type="text" className="w-full bg-[#1A1A1A] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:border-[#D4AF37] focus:outline-none" defaultValue={showEdit && selectedRule ? selectedRule.name : ''} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">风险维度</label>
+                      <select className="w-full bg-[#1A1A1A] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:border-[#D4AF37] focus:outline-none">
+                         <option>身份网络</option>
+                         <option>交易异常</option>
+                         <option>外围痕迹</option>
+                         <option>极度穿透</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">设置权重 (0-100)</label>
+                      <input type="number" className="w-full bg-[#1A1A1A] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:border-[#D4AF37] focus:outline-none" defaultValue={showEdit && selectedRule ? selectedRule.weight : 50} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">触发条件表达式 (Expression)</label>
+                    <input type="text" className="w-full bg-[#1A1A1A] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:border-[#D4AF37] focus:outline-none font-mono text-xs" defaultValue={showEdit && selectedRule ? selectedRule.trigger : ''} placeholder="e.g. JaccardSimilarity > 0.8" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">规则描述说明</label>
+                    <textarea rows={3} className="w-full bg-[#1A1A1A] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:border-[#D4AF37] focus:outline-none"></textarea>
+                  </div>
+               </div>
+               <div className="pt-4 flex justify-end gap-3">
+                 <button onClick={() => {setShowNewRule(false); setShowEdit(false)}} className="px-4 py-2 hover:bg-[#333333] rounded text-gray-300 transition-colors text-sm">取消</button>
+                 <button onClick={showNewRule ? handleSaveRule : handleSaveEdit} className="px-4 py-2 bg-[#D4AF37] hover:bg-[#E5C048] text-[#1A1A1A] rounded font-medium shadow-lg transition-colors text-sm">
+                   保存配置
+                 </button>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* 停用确认弹窗 */}
+      {showDisable && selectedRule && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowDisable(false)}>
+            <div className="bg-[#242424] border border-[#333333] w-[400px] rounded-lg shadow-2xl p-6 space-y-5 transform transition-all" onClick={e=>e.stopPropagation()}>
+               <div className="flex items-center gap-3 text-red-400">
+                  <AlertTriangle className="w-6 h-6" />
+                  <h3 className="text-lg font-bold">停用规则确认</h3>
+               </div>
+               <p className="text-sm text-gray-300">
+                 确定要停用规则 <span className="font-bold text-white">{selectedRule.name}</span> 吗？停用后该规则将不再参与全局风险评分与预警计算，但会保留在列表中且历史评估记录不受影响。
+               </p>
+               <div className="pt-4 flex justify-end gap-3">
+                 <button onClick={() => setShowDisable(false)} className="px-4 py-2 border border-[#333333] hover:bg-[#333333] rounded text-gray-300 transition-colors text-sm">取消</button>
+                 <button onClick={handleConfirmDisable} className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded font-medium shadow-lg transition-colors text-sm">
+                   确认停用
+                 </button>
+               </div>
+            </div>
+         </div>
+      )}
+
     </div>
   );
 }

@@ -378,7 +378,7 @@ export default function ProjectList() {
                       <td className="px-5 py-4">
                         <span className="flex items-center gap-1.5 text-[11px]">
                           {isAdmin ? (
-                            <><Shield className="w-3.5 h-3.5 text-amber-500" /> <span className="text-amber-500">管理员权限</span></>
+                            <><Shield className="w-3.5 h-3.5 text-amber-500" /> <span className="text-amber-500">审计全权</span></>
                           ) : (
                             <><User className="w-3.5 h-3.5 text-gray-400" /> <span className="text-gray-400">用户只读</span></>
                           )}

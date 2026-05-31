@@ -206,7 +206,9 @@ const ExpandedPanelModal = ({ expandedPanel, setExpandedPanel }: any) => {
   );
 };
 
-const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, setExpandedPanel, onReadOriginal }: { data: any, onFeatureClick?: (feature: any) => void, onExpand?: () => void, expanded?: boolean, setExpandedPanel?: any, onReadOriginal?: (feature:any) => void }) => {
+// Feature details modal state
+let WorkspaceFeatureModal;
+const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, setExpandedPanel, onReadOriginal, openFeatureImage }: { data: any, onFeatureClick?: (feature: any) => void, onExpand?: () => void, expanded?: boolean, setExpandedPanel?: any, onReadOriginal?: (feature:any) => void, openFeatureImage?: (feature:any) => void }) => {
   if (!data) return null;
   const { probabilityPercent, riskLevel, threshold, zValue, warning, subIndices, rawFeatures, conclusion, globalWeights, localWeights } = data;
   
@@ -268,7 +270,10 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
   return (
     <div className={`flex flex-col ${expanded ? 'gap-8' : 'gap-5'} pb-8 h-full`}>
       {/* 顶部总览卡片 */}
-      <div className={`bg-gradient-to-br from-[#242424] to-[#1A1A1A] border border-[#333333] rounded ${expanded ? 'p-6' : 'p-4'} relative overflow-hidden shadow-lg group`}>
+      <div 
+         className={`bg-gradient-to-br from-[#242424] to-[#1A1A1A] border border-[#333333] rounded ${expanded ? 'p-6' : 'p-4'} relative overflow-hidden shadow-lg group ${onExpand && !expanded ? 'cursor-pointer hover:border-[#D4AF37]/60 hover:shadow-[0_0_15px_rgba(212,175,55,0.1)]' : ''}`}
+         onClick={onExpand && !expanded ? (e) => { e.stopPropagation(); onExpand(); } : undefined}
+      >
         {onExpand && !expanded && (
           <button 
             onClick={onExpand} 
@@ -436,12 +441,73 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
   );
 };
 
+
+const FeatureProfile = ({ feature, onReadOriginal, setExpandedPanel }: any) => {
+  return (
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4">
+           <div className="text-gray-500 text-xs mb-1">特征编号 & 名称</div>
+           <div className="text-[#D4AF37] font-bold text-lg">{feature.id} - {feature.label}</div>
+        </div>
+        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4">
+           <div className="text-gray-500 text-xs mb-1">风险等级与当前值</div>
+           <div className="flex items-end gap-3 text-red-400 font-bold text-lg">
+             高风险 <span className="text-gray-300 font-mono text-base ml-2">v = {feature.value.toFixed(2)}</span>
+           </div>
+        </div>
+        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4">
+           <div className="text-gray-500 text-xs mb-1">算法映射来源</div>
+           <div className="text-gray-300 font-mono text-sm">{feature.method || '逻辑判断'}</div>
+        </div>
+        <div className="bg-[#1A1A1A] border border-[#333333] rounded p-4">
+           <div className="text-gray-500 text-xs mb-1">局部贡献权重</div>
+           <div className="text-gray-300 font-mono text-sm">{feature.localWeight || '0.45'}</div>
+        </div>
+      </div>
+
+      <div className="bg-[#242424] border border-[#333333] rounded p-5 space-y-4">
+        <div>
+          <h4 className="text-gray-300 font-semibold mb-2">RAG 证据摘要</h4>
+          <p className="text-gray-400 text-sm leading-relaxed">{feature.logic || feature.explanation || '命中审计风险底稿中的多项指标特征，需重点穿透。'}</p>
+        </div>
+        <div>
+          <h4 className="text-gray-300 font-semibold mb-2 mt-4 text-sm flex items-center gap-2">关联实体与关系</h4>
+          <div className="flex gap-2">
+            <span className="px-2 py-1 bg-[#1A1A1A] border border-[#333333] rounded text-xs text-blue-400">目标审计企业 (Target)</span>
+            <span className="px-2 py-1 border border-dashed border-gray-600 rounded text-xs text-gray-500">- 资金流入 -</span>
+            <span className="px-2 py-1 bg-[#1A1A1A] border border-[#333333] rounded text-xs text-blue-400">关联对手方 (Counterparty)</span>
+          </div>
+        </div>
+        
+        <div className="pt-4 border-t border-[#333333] space-y-3">
+          <h4 className="text-white font-semibold">系统审计建议动作</h4>
+          <ul className="text-sm text-gray-400 space-y-2 list-disc pl-5">
+            <li>优先调取目标账户的历史交易流水并检查凭证。</li>
+            <li>穿透法人网络，审查是否存在隐蔽实控人变更。</li>
+          </ul>
+        </div>
+        
+        <div className="flex gap-3 pt-4 border-t border-[#333333]">
+           <button onClick={() => { if(onReadOriginal){onReadOriginal(feature);} setExpandedPanel(null); }} className="px-4 py-2 border border-[#333333] rounded text-sm hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors">查询原文证据</button>
+           <button onClick={() => { toast('已成功加入审计工作底稿', 'success'); }} className="px-4 py-2 bg-[#D4AF37] text-black font-semibold rounded text-sm hover:bg-[#E5C048] transition-colors">加入工作底稿</button>
+        </div>
+      </div>
+    </div>
+  );
+};
 export default function Workspace() {
+
   const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
   const [query, setQuery] = useState('分析登XX发行主体与山东旺XX汽车零部件有限公司的关联交易风险');
   const [loading, setLoading] = useState(false);
+  const [showDataSourceModal, setShowDataSourceModal] = useState(false);
+  const [dataSources, setDataSources] = useState<any[]>([
+    { name: '2026年度业务合同库.zip', type: 'ZIP', size: '45.2 MB', source: '手动上传', status: '已解析', date: '2026/5/31', entities: 124 },
+    { name: '供应商往来对账单.xlsx', type: 'XLSX', size: '2.1 MB', source: '系统导入', status: '已解析', date: '2026/5/30', entities: 42 }
+  ]);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [selectedEdge, setSelectedEdge] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'doc'|'fin'|'graph'>('doc');
@@ -728,7 +794,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
         </div>
         <div className="flex items-center gap-4 md:gap-6 overflow-x-auto whitespace-nowrap min-h-[28px] custom-scrollbar pb-1 md:pb-0">
           <div className="flex items-center gap-1.5 shrink-0"><Layers className="w-3.5 h-3.5"/> 规则集: v1.4.2</div>
-          <div className="flex items-center gap-1.5 shrink-0 hidden md:flex"><Database className="w-3.5 h-3.5"/> 数据源: 4</div>
+          <div className="flex items-center gap-1.5 shrink-0 hidden md:flex cursor-pointer hover:text-[#D4AF37] transition-colors" onClick={() => setShowDataSourceModal(true)}><Database className="w-3.5 h-3.5"/> 数据源: 4</div>
           <div className="flex items-center gap-1.5 shrink-0"><Clock className="w-3.5 h-3.5"/> {new Date(data.project.createdAt).toLocaleDateString()}</div>
         </div>
       </div>
@@ -802,7 +868,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                        <div className="bg-[#242424] border border-[#333333] rounded h-full flex flex-col overflow-hidden">
                          <div className="bg-[#1A1A1A] p-4 text-gray-200 font-semibold border-b border-[#333333] text-xl flex justify-between items-center">
                            <span>待办事项与复核项摘要</span>
-                           <span className="text-xs bg-[#333] border border-[#444] text-gray-300 px-3 py-1 rounded-full uppercase tracking-wider">Automated</span>
+                           <span className="text-xs bg-[#333] border border-[#444] text-gray-300 px-3 py-1 rounded-full uppercase tracking-wider">系统自动生成</span>
                          </div>
                          <div className="p-6 flex-1 overflow-y-auto space-y-8 custom-scrollbar">
                             <div>
@@ -833,10 +899,10 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                             <div>
                                <h4 className="text-gray-300 font-semibold mb-4 text-base flex items-center gap-2"><Database className="w-5 h-5 text-blue-400"/> 相关证据摘要提取</h4>
                                <div className="text-sm text-gray-400 bg-[#1A1A1A] p-5 rounded font-mono leading-relaxed border border-[#333333]">
-                                 <div className="text-blue-400 mb-2">{`<Log: Extracted ${rulesHit.length} critical anchors>`}</div>
-                                 [Document Matrix]: Verified {14 + rulesHit.length} invoices against 2 public records.<br/>
-                                 [Knowledge Graph]: Traced 3 hops to ultimate beneficial owners.<br/><br/>
-                                 <div className="text-green-500 opacity-80 mt-2">Evidence integrity verified by Hash: 0x8a92f7...b4f1</div>
+                                 <div className="text-blue-400 mb-2">{`<日志：已抽取 ${rulesHit.length} 个关键风险锚点>`}</div>
+                                 [文档矩阵]：已将 {14 + rulesHit.length} 份发票/交易底稿与 2 条公开工商记录完成交叉验证。<br/>
+                                 [知识图谱]：已完成 3 层路径穿透，并定位至最终受益所有人。<br/><br/>
+                                 <div className="text-green-500 opacity-80 mt-2">证据完整性校验通过，哈希指纹：0x8a92f7...b4f1</div>
                                </div>
                             </div>
                          </div>
