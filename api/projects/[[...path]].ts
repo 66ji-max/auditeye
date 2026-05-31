@@ -2,7 +2,41 @@ import { getDb } from '../_lib/db.js';
 import { mockProjects, getMockProjectDetail } from '../_lib/mockData.js';
 import { generateInitialRiskProfile } from '../_lib/initialRiskProfile.js';
 import { parse } from 'cookie';
-import { del } from '@vercel/blob';
+import { del, put } from '@vercel/blob';
+import multer from 'multer';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt', '.xlsx', '.xls', '.csv', '.png', '.jpg', '.jpeg'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_FILE_SIZE }, 
+});
+
+function runMiddleware(req: any, res: any, fn: any) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result: any) => {
+      if (result instanceof Error) return reject(result);
+      return resolve(result);
+    });
+  });
+}
+
+function getJsonBody(req: any) {
+  return new Promise((resolve) => {
+    let body = '';
+    req.on('data', (chunk: any) => { body += chunk.toString() });
+    req.on('end', () => {
+      try { resolve(body ? JSON.parse(body) : {}); } catch (e) { resolve({}); }
+    });
+  });
+}
 
 export default async function handler(req: any, res: any) {
   const rawPath = req.query.path;
@@ -36,7 +70,8 @@ export default async function handler(req: any, res: any) {
       
     } else if (req.method === 'POST') {
       if (!sql) return res.status(503).json({ error: "数据库尚未配置" });
-      const { name, scenario } = req.body || {};
+      const body: any = await getJsonBody(req);
+      const { name, scenario } = body || {};
       if (!name) return res.status(400).json({ error: "项目名称不能为空" });
 
       const projectId = 'PROJ-' + Date.now() + Math.floor(Math.random()*900+100);
@@ -77,6 +112,96 @@ export default async function handler(req: any, res: any) {
   // /api/projects/:id/analyze
   if (pathParts.length > 1 && pathParts[1] === 'analyze') {
      return res.status(200).json({ status: "success", result: "mocked" });
+  }
+
+  // /api/projects/:id/documents
+  if (pathParts.length > 1 && pathParts[1] === 'documents') {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method Not Allowed' });
+    }
+
+    if (!sql) return res.status(503).json({ error: '上传失败，请重试', errorCode: 'UPLOAD_FAILED' });
+    if (!process.env.BLOB_READ_WRITE_TOKEN) return res.status(503).json({ error: '上传失败，请重试', errorCode: 'UPLOAD_FAILED' });
+
+    try {
+      await runMiddleware(req, res, upload.array('files'));
+    } catch (e: any) {
+      if (e.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: '文件太大，请压缩后重试', errorCode: 'FILE_TOO_LARGE' });
+      }
+      return res.status(400).json({ error: '上传失败，请重试', errorCode: 'UPLOAD_FAILED' });
+    }
+
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: '上传失败，请重试', errorCode: 'UPLOAD_FAILED' });
+    }
+
+    if (['1001', '1002', '1003', '1004'].includes(id as string)) {
+      let formatError = false;
+      for (const file of files) {
+        const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        const ext = originalName.includes('.') ? originalName.substring(originalName.lastIndexOf('.')).toLowerCase() : '';
+        if (!ALLOWED_EXTS.includes(ext)) { formatError = true; break; }
+      }
+      if (formatError) {
+        return res.status(400).json({ error: '仅支持 PDF、DOC、DOCX、TXT、XLSX、XLS、CSV、PNG、JPG 文件', errorCode: 'INVALID_FILE_TYPE' });
+      }
+      const fakeDocs = files.map((file, i) => {
+        const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        return {
+          id: Date.now() + i,
+          fileName: originalName,
+          originalName: originalName,
+          sourceType: originalName.substring(originalName.lastIndexOf('.')),
+          blobUrl: '',
+          createdAt: new Date().toISOString(),
+          status: '已接入'
+        };
+      });
+      return res.status(200).json({ status: "success", documents: fakeDocs });
+    }
+
+    try {
+      const [project] = await sql`SELECT id FROM projects WHERE id = ${id as string}`;
+      if (!project) return res.status(404).json({ error: '上传失败，请重试', errorCode: 'UPLOAD_FAILED' });
+    } catch (err: any) {
+      return res.status(500).json({ error: '上传失败，请重试', errorCode: 'UPLOAD_FAILED' });
+    }
+
+    let formatError = false;
+    for (const file of files) {
+      const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+      const ext = originalName.includes('.') ? originalName.substring(originalName.lastIndexOf('.')).toLowerCase() : '';
+      if (!ALLOWED_EXTS.includes(ext)) { formatError = true; break; }
+      if (file.size > MAX_FILE_SIZE) return res.status(413).json({ error: '文件太大，请压缩后重试', errorCode: 'FILE_TOO_LARGE' });
+    }
+    if (formatError) return res.status(400).json({ error: '仅支持 PDF、DOC、DOCX、TXT、XLSX、XLS、CSV、PNG、JPG 文件', errorCode: 'INVALID_FILE_TYPE' });
+
+    const insertedDocs = [];
+    for (const file of files) {
+      const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+      const ext = originalName.substring(originalName.lastIndexOf('.')).toLowerCase();
+      try {
+        const randomId = Math.random().toString(36).substring(2, 10);
+        const safeBlobKey = `audit-files/${id}/${Date.now()}-${randomId}${ext}`;
+        
+        const blobResult = await put(safeBlobKey, file.buffer, { access: 'public' });
+        
+        const [doc] = await sql`
+           INSERT INTO documents (project_id, file_name, original_name, source_type, blob_url)
+           VALUES (${id as string}, ${safeBlobKey}, ${originalName}, ${ext}, ${blobResult.url})
+           RETURNING id, file_name, original_name, source_type, blob_url, uploaded_at
+        `;
+        insertedDocs.push({
+          id: doc.id, fileName: doc.file_name, originalName: doc.original_name,
+          sourceType: doc.source_type, blobUrl: doc.blob_url, createdAt: doc.uploaded_at
+        });
+      } catch(e: any) {
+        return res.status(500).json({ error: '上传失败，请重试', errorCode: 'UPLOAD_FAILED' });
+      }
+    }
+    return res.status(200).json({ status: "success", documents: insertedDocs });
   }
 
   // /api/projects/:id
