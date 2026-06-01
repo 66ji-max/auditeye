@@ -41,25 +41,48 @@ export default async function handler(req: any, res: any) {
             return res.status(200).json(result);
             
         } else if (action === 'train-weights') {
-            const { projectType = "IPO关联交易核查", samples = [] } = req.body || {};
+            const { projectType = "IPO关联交易核查", samples = [], method = "logistic" } = req.body || {};
             let finalWeights = getWeightsByProjectType(projectType);
-            const trained = trainCategoryWeights(samples, finalWeights);
             
-            let sampleCount = samples.length;
-            if (!trained.fallback) {
-                finalWeights = { W1: trained.W1, W2: trained.W2, W3: trained.W3, b: trained.b };
-                saveOrCacheWeights(projectType, finalWeights);
+            if (method === "basic-mlp") {
+                const { basicNeuralWeightTraining } = await import('../_lib/basicNeuralWeightTraining.js');
+                const trained = basicNeuralWeightTraining(samples, finalWeights);
+                
+                if (!trained.fallback) {
+                    finalWeights = trained.derivedCategoryWeights;
+                    saveOrCacheWeights(projectType, finalWeights);
+                }
+                
+                return res.status(200).json({
+                    projectType,
+                    method: "basic-mlp",
+                    weights: finalWeights,
+                    sampleCount: trained.sampleCount,
+                    fallback: trained.fallback,
+                    trainingMethod: trained.trainingMethod,
+                    featureImportance: trained.featureImportance,
+                    explanation: trained.explanation
+                });
             } else {
-                sampleCount = samples.length < 10 ? samples.length : 48; // demo
-            }
+                const trained = trainCategoryWeights(samples, finalWeights);
+                
+                let sampleCount = samples.length;
+                if (!trained.fallback) {
+                    finalWeights = { W1: trained.W1, W2: trained.W2, W3: trained.W3, b: trained.b };
+                    saveOrCacheWeights(projectType, finalWeights);
+                } else {
+                    sampleCount = samples.length < 10 ? samples.length : 48; // demo
+                }
 
-            return res.status(200).json({
-                projectType,
-                weights: finalWeights,
-                sampleCount: sampleCount,
-                trainingMethod: "weak-supervised logistic regression",
-                fallback: !!trained.fallback
-            });
+                return res.status(200).json({
+                    projectType,
+                    method: "logistic",
+                    weights: finalWeights,
+                    sampleCount: sampleCount,
+                    trainingMethod: "weak-supervised logistic regression",
+                    fallback: !!trained.fallback
+                });
+            }
             
         } else if (action === 'predict-risk') {
             const { projectType = "IPO关联交易核查", X1 = 0, X2 = 0, X3 = 0 } = req.body || {};

@@ -346,25 +346,48 @@ async function startServer() {
       const { trainCategoryWeights } = await import("./api/_lib/weightTraining.js");
       const { saveOrCacheWeights, getWeightsByProjectType } = await import("./api/_lib/modelWeights.js");
       
-      const { projectType = "IPO关联交易核查", samples = [] } = req.body || {};
+      const { projectType = "IPO关联交易核查", samples = [], method = "logistic" } = req.body || {};
       let finalWeights = getWeightsByProjectType(projectType);
-      const trained = trainCategoryWeights(samples, finalWeights);
       
-      let sampleCount = samples.length;
-      if (!trained.fallback) {
-          finalWeights = { W1: trained.W1, W2: trained.W2, W3: trained.W3, b: trained.b };
-          saveOrCacheWeights(projectType, finalWeights);
+      if (method === "basic-mlp") {
+          const { basicNeuralWeightTraining } = await import("./api/_lib/basicNeuralWeightTraining.js");
+          const trained = basicNeuralWeightTraining(samples, finalWeights);
+          
+          if (!trained.fallback) {
+              finalWeights = trained.derivedCategoryWeights;
+              saveOrCacheWeights(projectType, finalWeights);
+          }
+          
+          res.status(200).json({
+              projectType,
+              method: "basic-mlp",
+              weights: finalWeights,
+              sampleCount: trained.sampleCount,
+              fallback: trained.fallback,
+              trainingMethod: trained.trainingMethod,
+              featureImportance: trained.featureImportance,
+              explanation: trained.explanation
+          });
       } else {
-          sampleCount = samples.length < 10 ? samples.length : 48; // demo
-      }
+          const trained = trainCategoryWeights(samples, finalWeights);
+          
+          let sampleCount = samples.length;
+          if (!trained.fallback) {
+              finalWeights = { W1: trained.W1, W2: trained.W2, W3: trained.W3, b: trained.b };
+              saveOrCacheWeights(projectType, finalWeights);
+          } else {
+              sampleCount = samples.length < 10 ? samples.length : 48; // demo
+          }
 
-      res.status(200).json({
-          projectType,
-          weights: finalWeights,
-          sampleCount: sampleCount,
-          trainingMethod: "weak-supervised logistic regression",
-          fallback: !!trained.fallback
-      });
+          res.status(200).json({
+              projectType,
+              method: "logistic",
+              weights: finalWeights,
+              sampleCount: sampleCount,
+              trainingMethod: "weak-supervised logistic regression",
+              fallback: !!trained.fallback
+          });
+      }
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

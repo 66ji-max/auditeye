@@ -34,12 +34,16 @@ export default function RuleEngine() {
   const [sandboxResult, setSandboxResult] = useState<any>(null);
   const [sandboxInput, setSandboxInput] = useState('山东旺XX汽车零部件有限公司');
   const [runningTest, setRunningTest] = useState(false);
+  const [trainMethod, setTrainMethod] = useState<'logistic'|'basic-mlp'>('logistic');
   const [aiWeights, setAiWeights] = useState<any>({
     W1: 2.2, W2: 3.5, W3: 0.5, b: -3.0
   });
   const [aiSampleCount, setAiSampleCount] = useState(48);
   const [aiLastTrained, setAiLastTrained] = useState('2026/05/31');
   const [aiExtractionResult, setAiExtractionResult] = useState<any>(null);
+  const [aiModelType, setAiModelType] = useState<string>('logistic');
+  const [aiFeatureImportance, setAiFeatureImportance] = useState<any>(null);
+  const [aiExplanation, setAiExplanation] = useState<string>('');
   const [showAiTest, setShowAiTest] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -50,13 +54,19 @@ export default function RuleEngine() {
       const res = await fetch('/api/ml/train-weights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectType: currentSet === 'standard' ? 'IPO关联交易核查' : '其它项目门类' })
+        body: JSON.stringify({ 
+          projectType: currentSet === 'standard' ? 'IPO关联交易核查' : '其它项目门类',
+          method: trainMethod
+        })
       });
       const data = await res.json();
       if (data.weights) {
         setAiWeights(data.weights);
         setAiSampleCount(data.sampleCount);
         setAiLastTrained(new Date().toLocaleString());
+        setAiModelType(data.method || 'logistic');
+        setAiFeatureImportance(data.featureImportance || null);
+        setAiExplanation(data.explanation || '');
         if (data.fallback) {
           toast('样本不足，当前使用默认门类权重', 'warning');
         } else {
@@ -270,31 +280,68 @@ export default function RuleEngine() {
 
           {/* AI Weight Module */}
           <div className="w-full lg:w-80 bg-[#1A1A1A] border border-[#333333] rounded-lg shadow-lg flex flex-col shrink-0 mt-6 h-min">
-             <div className="p-4 border-b border-[#333333] flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[#D4AF37]" />
-                <span className="font-semibold text-sm">模型权重来源 (AI Engine)</span>
+             <div className="p-4 border-b border-[#333333] flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-[#D4AF37]" />
+                  <span className="font-semibold text-sm">模型权重来源 (AI Engine)</span>
+                </div>
              </div>
              <div className="p-4 space-y-4">
                 <div className="text-xs text-gray-400">
                    <div>当前项目类型： <span className="text-gray-200">{currentSet === 'standard' ? 'IPO关联交易核查' : '快消/其他'}</span></div>
-                   <div className="mt-2 text-gray-200 font-mono text-[10px] bg-[#242424] p-2 rounded border border-[#333333]">
-                     W1 = {aiWeights.W1}<br/>
-                     W2 = {aiWeights.W2}<br/>
-                     W3 = {aiWeights.W3}<br/>
-                     b  = {aiWeights.b}
+                   
+                   <div className="mt-3 block text-gray-500 mb-1">训练算法选择</div>
+                   <select 
+                      value={trainMethod} 
+                      onChange={e => setTrainMethod(e.target.value as 'logistic' | 'basic-mlp')}
+                      className="w-full bg-[#242424] border border-[#333333] rounded px-2 py-1.5 text-xs text-white focus:border-[#D4AF37] focus:outline-none transition-colors"
+                   >
+                     <option value="logistic">弱监督逻辑回归 (默认可解释)</option>
+                     <option value="basic-mlp">基础神经网络 MLP (实验)</option>
+                   </select>
+
+                   <div className="mt-3 text-gray-200 font-mono text-[10px] bg-[#242424] p-3 rounded border border-[#333333] leading-relaxed">
+                     <span className="text-gray-500 block mb-1">映射结果类别权重：</span>
+                     <span className="text-[#D4AF37]">W1</span> = {aiWeights.W1}<br/>
+                     <span className="text-[#D4AF37]">W2</span> = {aiWeights.W2}<br/>
+                     <span className="text-[#D4AF37]">W3</span> = {aiWeights.W3}<br/>
+                     <span className="text-[#D4AF37]">b</span>  = {aiWeights.b}
                    </div>
-                   <div className="mt-2">训练方式：弱监督逻辑回归</div>
+                   
+                   {aiModelType === 'basic-mlp' && aiFeatureImportance && (
+                     <div className="mt-3 text-gray-300 font-mono text-[10px] bg-[#1A1A1A] p-2 rounded border border-[#333333] leading-relaxed">
+                       <span className="text-gray-500 block mb-1">底层特征重要性 (Feature Importance)：</span>
+                       <div className="grid grid-cols-2 gap-x-2">
+                         {Object.entries(aiFeatureImportance).map(([key, val]) => (
+                           <div key={key}>
+                             {key}: {typeof val === 'number' ? val.toFixed(3) : val}
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                   
+                   <div className="mt-3">当前运行模型：<span className={aiModelType === 'basic-mlp' ? "text-[#D4AF37]" : "text-gray-200"}>{aiModelType === 'basic-mlp' ? '基础神经网络 MLP' : '弱监督逻辑回归'}</span></div>
                    <div>样本数量：{aiSampleCount}</div>
-                   <div>提取来源：Gemini API / Mock Fallback</div>
                    <div>最近训练：{aiLastTrained}</div>
+
+                   {aiExplanation && (
+                      <div className="mt-3 p-2 bg-blue-500/10 border border-blue-500/20 text-blue-300 rounded text-[10px] leading-relaxed">
+                        {aiExplanation}
+                      </div>
+                   )}
+                   
+                   <div className="mt-3 text-gray-500 text-[10px] leading-relaxed italic">
+                     系统支持两类权重学习方式：逻辑回归用于生成可解释的 W1/W2/W3；基础神经网络 MLP 用于学习底层特征重要性，并将结果投影为可解释权重。当前 Demo 默认使用逻辑回归稳定输出，神经网络作为可扩展训练模块。
+                   </div>
                 </div>
                 
-                <div className="flex gap-2">
-                  <button onClick={handleTrainWeights} disabled={isTraining} className="flex-1 py-2 bg-[#2A2A2A] hover:bg-[#333333] border border-[#444] rounded text-xs transition-colors flex items-center justify-center gap-2">
-                     {isTraining ? '训练中...' : '重新训练权重'}
+                <div className="flex flex-col gap-2 pt-2">
+                  <button onClick={handleTrainWeights} disabled={isTraining} className="w-full py-2 bg-[#D4AF37] hover:bg-[#E5C048] text-[#1A1A1A] font-medium rounded text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(212,175,55,0.2)]">
+                     {isTraining ? '训练中...' : '启动权重学习'}
                   </button>
-                  <button onClick={handleTestExtraction} disabled={isExtracting} className="flex-1 py-2 bg-[#1A1A1A] text-[#D4AF37] hover:bg-[#D4AF37]/10 border border-[#D4AF37]/50 rounded text-xs transition-colors flex items-center justify-center gap-2">
-                     测试 AI 抽取
+                  <button onClick={handleTestExtraction} disabled={isExtracting} className="w-full py-2 bg-[#2A2A2A] hover:bg-[#333333] border border-[#444] rounded text-xs transition-colors flex items-center justify-center gap-2">
+                     测试 AI 抽取 (LLM)
                   </button>
                 </div>
              </div>
