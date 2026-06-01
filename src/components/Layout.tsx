@@ -24,7 +24,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <header className="h-12 bg-[#1A1A1A] border-b border-[#333333] flex items-center justify-between px-6 shrink-0 z-50">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2 text-[#D4AF37] font-bold text-lg tracking-wide cursor-pointer" onClick={() => navigate('/')}>
-            <ShieldAlert className="w-5 h-5" />
+            <img src="/favicon.svg" alt="AuditEye Logo" className="w-5 h-5" />
             <span>AuditEye</span>
           </div>
 

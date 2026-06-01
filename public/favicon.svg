@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Shield outline -->
+  <path d="M256,48 L104,115.6 C104,115.6 104,264.4 104,312 C104,386 256,464 256,464 C256,464 408,386 408,312 C408,264.4 408,115.6 408,115.6 L256,48 Z" fill="none" stroke="#D4AF37" stroke-width="40" stroke-linejoin="round"/>
+  <!-- Abstract Eye/Core -->
+  <path d="M176,256 C176,256 216,200 256,200 C296,200 336,256 336,256 C336,256 296,312 256,312 C216,312 176,256 176,256 Z" fill="none" stroke="#D4AF37" stroke-width="32" stroke-linejoin="round"/>
+  <!-- Pupil -->
+  <circle cx="256" cy="256" r="28" fill="#D4AF37"/>
+</svg>
