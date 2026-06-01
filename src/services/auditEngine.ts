@@ -38,12 +38,47 @@ export class AuditEngine {
     // 1. Process Uploaded Documents
     if (projectId) {
       logs.push(`Inspecting uploaded documents for Project ${projectId}...`);
-      const docs = db.prepare('SELECT * FROM documents WHERE projectId = ?').all(projectId) as any[];
+      
+      let docs: any[] = [];
+      try {
+        docs = db.prepare('SELECT * FROM documents WHERE projectId = ?').all(projectId) as any[];
+      } catch(e) {}
+
+      try {
+        const { listProjectDocuments } = await import('../../api/_lib/neonDocumentStore.ts');
+        const neonDocs = await listProjectDocuments(projectId);
+        neonDocs.forEach(nd => {
+          if (!docs.find(d => d.id === nd.id || d.originalName === nd.originalName)) {
+             docs.push(nd);
+          }
+        });
+      } catch(e: any) {
+        logs.push(`Warning: Could not fetch from Neon DB - ${e.message}`);
+      }
+
       if (docs.length > 0) {
         for (const doc of docs) {
           logs.push(`Extracting text from: ${doc.originalName}`);
-          const filePath = path.join(process.cwd(), 'uploads', doc.fileName);
-          const blockText = await parseDocument(filePath, doc.originalName);
+          
+          let blockText = '';
+          
+          if (doc.extractedText && doc.extractedText.length > 0 && doc.extractedText !== '[System] Extraction failed: ') {
+             blockText = doc.extractedText;
+             logs.push(`Using pre-extracted text for ${doc.originalName}`);
+          } else if (doc.blobUrl) {
+             const { parseDocumentFromUrl, parseDocument } = await import('./documentParser.ts');
+             blockText = await parseDocumentFromUrl(doc.blobUrl, doc.originalName);
+             if (!blockText.startsWith("[System]")) {
+                try {
+                  const { updateDocumentExtractedText } = await import('../../api/_lib/neonDocumentStore.ts');
+                  await updateDocumentExtractedText(doc.id, blockText, "parsed");
+                } catch(e) {}
+             }
+          } else {
+             const { parseDocument } = await import('./documentParser.ts');
+             const filePath = path.join(process.cwd(), 'uploads', doc.fileName);
+             blockText = await parseDocument(filePath, doc.originalName);
+          }
           
           if (blockText.includes('System]')) {
             logs.push(`Warning: ${doc.originalName} - ${blockText.substring(0, 100)}`);

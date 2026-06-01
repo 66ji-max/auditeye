@@ -568,10 +568,11 @@ function WorkspaceInner() {
       type: (doc.sourceType || doc.fileName?.split('.').pop() || '未知').replace('.', '').toUpperCase(),
       size: doc.size || doc.sizeText || '演示数据',
       source: doc.source || '项目证据库',
-      status: doc.status || '已解析',
-      date: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
-      entities: doc.entities || 12,
-      evidenceCount: doc.evidenceCount || 24
+      status: doc.status === 'uploaded' ? (doc.parseStatus === 'parsed' ? '已解析' : (doc.parseStatus === 'failed' ? '解析失败' : '排队中')) : (doc.status || '已解析'),
+      date: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : (doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : new Date().toLocaleDateString()),
+      entities: doc.entities || parseInt((doc.sizeBytes/(1024*10)).toFixed(0)) || 12, // mock some entity count based on file size if missing
+      evidenceCount: doc.evidenceCount || 24,
+      blobUrl: doc.blobUrl
     }));
   };
 
@@ -1915,6 +1916,9 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                             <td className="px-4 py-3 text-gray-300 font-mono text-right">{ds.entities}</td>
                             <td className="px-4 py-3 text-gray-300 font-mono text-right">{ds.evidenceCount || (ds.entities > 0 ? ds.entities * 2 : 0)}</td>
                             <td className="px-4 py-3 text-right space-x-2">
+                               {ds.blobUrl && (
+                                   <a href={ds.blobUrl} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-400 transition-colors mr-2">查看原文件</a>
+                               )}
                                <button className="text-gray-500 hover:text-[#D4AF37] transition-colors" onClick={() => {
                                    setExpandedPanel({ 
                                       title: `文件预览：${ds.name}`, 

@@ -7,21 +7,12 @@ import db, { initDB } from "./src/db.ts";
 import { AuditEngine } from "./src/services/auditEngine.ts";
 import { mockProjects, getMockProjectDetail, mockRules, mockKb } from "./src/lib/mockData.ts";
 
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    // Handle utf-8 filenames in multer
-    const finalName = Date.now() + '-' + Buffer.from(file.originalname, 'latin1').toString('utf8');
-    cb(null, finalName);
-  }
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 // File extensions allowed
-const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
+const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt', '.md', '.json', '.csv', '.xls', '.xlsx'];
+
 
 async function startServer() {
   initDB();
@@ -103,34 +94,85 @@ async function startServer() {
     }
   });
 
-  app.post("/api/projects/:id/documents", upload.array('files'), (req, res) => {
+  app.post("/api/projects/:id/documents", upload.array('files'), async (req, res) => {
     try {
       const projectId = req.params.id;
       const files = req.files as Express.Multer.File[];
       if (!files || files.length === 0) return res.status(400).json({ error: "No files uploaded" });
 
+      if (!process.env.BLOB_READ_WRITE_TOKEN) {
+        return res.status(500).json({ error: "Vercel Blob is not configured. Missing BLOB_READ_WRITE_TOKEN." });
+      }
+
+      const { ensureDocumentTables, saveDocumentMetadata } = await import("./api/_lib/neonDocumentStore.ts");
+      const { put, del } = await import("@vercel/blob");
+      const { parseDocumentBuffer } = await import("./src/services/documentParser.ts");
+
+      await ensureDocumentTables();
+
       const insertedDocs = [];
-      const stmt = db.prepare('INSERT INTO documents (projectId, fileName, originalName, sourceType) VALUES (?, ?, ?, ?)');
       
       for (const file of files) {
         const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
         const ext = path.extname(originalName).toLowerCase();
         
         if (!ALLOWED_EXTS.includes(ext)) {
-          // Clean up all uploaded invalid files
-          files.forEach(f => {
-             const fp = path.join(uploadDir, f.filename);
-             if (fs.existsSync(fp)) fs.unlinkSync(fp);
-          });
-          return res.status(400).json({ error: `Unsupported file type: ${ext}. Only PDF, Word, and TXT are allowed.` });
+          return res.status(400).json({ error: `Unsupported file type: ${ext}.` });
         }
 
-        if (!DEMO_MODE) {
-           const info = stmt.run(projectId, file.filename, originalName, ext);
-           insertedDocs.push({ id: info.lastInsertRowid, originalName, fileName: file.filename });
-        } else {
-           insertedDocs.push({ id: Date.now(), originalName, fileName: file.filename });
+        const safeFileName = originalName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const blobPathname = `projects/${projectId}/documents/${Date.now()}-${safeFileName}`;
+
+        const blob = await put(blobPathname, file.buffer, {
+          access: "public",
+          contentType: file.mimetype || "application/octet-stream",
+          addRandomSuffix: true
+        });
+
+        let extractedText = "";
+        let parseStatus = "parsed";
+        try {
+          extractedText = await parseDocumentBuffer(file.buffer, originalName);
+          if (extractedText.startsWith("[System]")) {
+            parseStatus = "failed";
+          }
+        } catch (err: any) {
+          extractedText = "[System] Extraction failed: " + err.message;
+          parseStatus = "failed";
         }
+
+        const metadata = await saveDocumentMetadata({
+          projectId,
+          originalName,
+          storedName: safeFileName,
+          sourceType: ext,
+          contentType: file.mimetype || "application/octet-stream",
+          sizeBytes: file.size,
+          blobUrl: blob.url,
+          blobPathname: blob.pathname || blobPathname,
+          uploadStatus: "uploaded",
+          parseStatus,
+          extractedText
+        });
+        
+        if (!metadata) {
+          await del(blob.url);
+          throw new Error("Failed to save document metadata in Neon; blob deleted.");
+        }
+
+        insertedDocs.push({
+          id: metadata.id,
+          projectId,
+          originalName,
+          fileName: metadata.stored_name,
+          sourceType: metadata.source_type,
+          sizeBytes: metadata.size_bytes,
+          sizeText: (metadata.size_bytes / 1024).toFixed(2) + " KB",
+          blobUrl: metadata.blob_url,
+          blobPathname: metadata.blob_pathname,
+          parseStatus: metadata.parse_status,
+          uploadedAt: metadata.created_at
+        });
       }
 
       res.json({ status: "success", documents: insertedDocs });
@@ -140,19 +182,35 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/documents/:id", (req, res) => {
+  app.delete("/api/documents/:id", async (req, res) => {
     try {
-      if (!DEMO_MODE) {
-        const doc: any = db.prepare('SELECT * FROM documents WHERE id = ?').get(req.params.id);
-        if (!doc) return res.status(404).json({ error: "Document not found" });
+      const { getDocumentById, deleteDocumentMetadata } = await import("./api/_lib/neonDocumentStore.ts");
+      const { del } = await import("@vercel/blob");
 
-        const filePath = path.join(uploadDir, doc.fileName);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-
-        db.prepare('DELETE FROM documents WHERE id = ?').run(req.params.id);
+      const docId = req.params.id;
+      const doc = await getDocumentById(docId);
+      
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found." });
       }
+
+      if (doc.blobUrl) {
+        try {
+          await del(doc.blobUrl);
+        } catch (e: any) {
+          console.warn("Failed to delete blob from Vercel:", e.message);
+        }
+      }
+
+      await deleteDocumentMetadata(docId);
+
+      // Attempt to also clean up old SQLite just in case (to avoid legacy cruft)
+      if (!DEMO_MODE) {
+        try {
+          db.prepare('DELETE FROM documents WHERE id = ?').run(docId);
+        } catch(e) {}
+      }
+
       res.json({ status: "success" });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -160,24 +218,87 @@ async function startServer() {
   });
 
   app.get("/api/projects/:id", async (req, res) => {
+    let mockData = null;
+    let fallbackToDb = false;
+
     if (DEMO_MODE) {
-      const detail = getMockProjectDetail(req.params.id);
-      if (!detail) return res.status(404).json({ error: "Project not found" });
-      return res.json(detail);
+      mockData = getMockProjectDetail(req.params.id);
+      if (!mockData) {
+         fallbackToDb = true; 
+      }
+    } else {
+      fallbackToDb = true;
     }
 
     try {
-      const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
-      if (!project) return res.status(404).json({ error: "Not found" });
-      
-      const documents = db.prepare('SELECT * FROM documents WHERE projectId = ?').all(req.params.id);
-      const audit_logs = db.prepare('SELECT * FROM audit_logs WHERE projectId = ? ORDER BY createdAt ASC').all(req.params.id);
-      
-      const entities = db.prepare('SELECT * FROM entities WHERE projectId = ?').all(req.params.id);
-      const relationships = db.prepare('SELECT * FROM relationships WHERE projectId = ?').all(req.params.id);
-      
-      res.json({ project, documents, audit_logs, entities, relationships });
+      const { listProjectDocuments } = await import("./api/_lib/neonDocumentStore.ts");
+      const neonDocs = await listProjectDocuments(req.params.id);
+
+      if (fallbackToDb) {
+        const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
+        if (!project) return res.status(404).json({ error: "Not found" });
+        
+        const sqliteDocs = db.prepare('SELECT * FROM documents WHERE projectId = ?').all(req.params.id);
+        const audit_logs = db.prepare('SELECT * FROM audit_logs WHERE projectId = ? ORDER BY createdAt ASC').all(req.params.id);
+        const entities = db.prepare('SELECT * FROM entities WHERE projectId = ?').all(req.params.id);
+        const relationships = db.prepare('SELECT * FROM relationships WHERE projectId = ?').all(req.params.id);
+        
+        // Merge sqliteDocs (legacy) with neonDocs
+        const allDocs = [...sqliteDocs] as any[];
+        neonDocs.forEach((nd) => {
+          if (!allDocs.find((d: any) => d.id === nd.id || d.originalName === nd.originalName)) {
+             allDocs.push(nd);
+          }
+        });
+
+        return res.json({ project, documents: allDocs, audit_logs, entities, relationships });
+      }
+
+      if (mockData) {
+        // Merge neon docs into mockData.documents
+        const mergedDocs = [...(mockData.documents || [])] as any[];
+        neonDocs.forEach((nd) => {
+          if (!mergedDocs.find((d: any) => d.id === nd.id || d.originalName === nd.originalName)) {
+             mergedDocs.unshift(nd); 
+          }
+        });
+        mockData.documents = mergedDocs;
+        return res.json(mockData);
+      }
+
     } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/storage/status", async (req, res) => {
+    try {
+      const { hasDocumentDatabase, ensureDocumentTables } = await import("./api/_lib/neonDocumentStore.ts");
+      let dtReady = false;
+      if (hasDocumentDatabase()) {
+         dtReady = await ensureDocumentTables();
+      }
+      res.status(200).json({
+        databaseConfigured: hasDocumentDatabase(),
+        blobConfigured: !!process.env.BLOB_READ_WRITE_TOKEN,
+        documentTablesReady: dtReady,
+        message: "Storage status fetched"
+      });
+    } catch(e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/projects/:id/documents", async (req, res) => {
+    try {
+      const { listProjectDocuments } = await import("./api/_lib/neonDocumentStore.ts");
+      const ptr = await listProjectDocuments(req.params.id);
+      res.status(200).json({
+        projectId: req.params.id,
+        count: ptr.length,
+        documents: ptr
+      });
+    } catch(e: any) {
       res.status(500).json({ error: e.message });
     }
   });
