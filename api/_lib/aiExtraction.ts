@@ -45,6 +45,14 @@ export const extractEvidence = async (projectType: string, documentText: string)
           evidence: "2012 年交易额突增至 770.13 万元"
         }
       ],
+      transactionSignals: [
+        {
+          type: "交易额突增",
+          amount: "770.13万元",
+          year: "2012",
+          evidence: "2012 年交易额突增至 770.13 万元"
+        }
+      ],
       evidenceSnippets: [
         {
           evidenceType: "交易异常",
@@ -60,7 +68,7 @@ export const extractEvidence = async (projectType: string, documentText: string)
     };
 
     try {
-        const prompt = `Extract entities, keywords, relationships, evidenceSnippets, and suggested raw risk features (x1a-x3b) from the following document.
+        const prompt = `Extract entities, keywords, relationships, transactionSignals, evidenceSnippets, and suggested raw risk features (x1a-x3b) from the following document.
         Project Type: ${projectType}
         Document: ${documentText.slice(0, 1000)}...
         
@@ -69,6 +77,7 @@ export const extractEvidence = async (projectType: string, documentText: string)
           "entities": [{"name": "...", "type": "..."}],
           "keywords": ["..."],
           "relationships": [{"source": "...", "target": "...", "type": "...", "evidence": "..."}],
+          "transactionSignals": [{"type": "...", "amount": "...", "year": "...", "evidence": "..."}],
           "evidenceSnippets": [{"evidenceType": "...", "text": "...", "relatedFeature": "x1a"}],
           "suggestedRawFeatures": { "x1a": 0.8, "x1b": 0.9, "x1c": 0, "x2a": 0, "x2b": 0, "x2c": 0, "x3a": 0, "x3b": 0 }
         }

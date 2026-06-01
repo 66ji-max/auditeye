@@ -54,7 +54,7 @@ const callOpenAICompatible = async (prompt: string, config: any, useFallback: bo
         body: JSON.stringify({
             model: modelToUse,
             messages: [
-                { role: "system", content: "你是审计证据抽取助手，只返回 JSON。" },
+                { role: "system", content: "你是审计文档信息抽取助手。你只能返回严格 JSON，不能返回 Markdown，不能返回解释。" },
                 { role: "user", content: prompt }
             ],
             temperature: 0.1

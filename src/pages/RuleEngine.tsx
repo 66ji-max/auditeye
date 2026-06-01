@@ -331,8 +331,9 @@ export default function RuleEngine() {
                       </div>
                    )}
                    
-                   <div className="mt-3 text-gray-500 text-[10px] leading-relaxed italic">
-                     系统支持两类权重学习方式：逻辑回归用于生成可解释的 W1/W2/W3；基础神经网络 MLP 用于学习底层特征重要性，并将结果投影为可解释权重。当前 Demo 默认使用逻辑回归稳定输出，神经网络作为可扩展训练模块。
+                   <div className="mt-3 text-gray-400 text-[10px] leading-relaxed italic space-y-2 border-t border-[#333333] pt-2">
+                     <p><strong className="text-gray-300">AI 抽取模块：</strong>负责从上传文档中抽取实体、关系、金额异常和证据片段。</p>
+                     <p><strong className="text-gray-300">权重学习模块：</strong>使用本地逻辑回归或基础 MLP，根据历史样本学习 W1/W2/W3/b。</p>
                    </div>
                 </div>
                 
@@ -500,6 +501,34 @@ export default function RuleEngine() {
                            ))}
                          </div>
                        </div>
+                       
+                       {aiExtractionResult.transactionSignals && aiExtractionResult.transactionSignals.length > 0 && (
+                         <div className="p-3 bg-[#1A1A1A] border border-[#333333] rounded">
+                           <span className="text-[#D4AF37] font-semibold block mb-2">交易异常 (Transaction Signals)</span>
+                           <div className="space-y-2">
+                             {aiExtractionResult.transactionSignals.map((ts:any, i:number) => (
+                                <div key={i} className="text-xs text-gray-300 bg-[#242424] p-2 rounded">
+                                   <span className="text-red-400 font-semibold">{ts.type}</span>: {ts.amount} ({ts.year})
+                                   <div className="text-gray-500 mt-1">{ts.evidence}</div>
+                                </div>
+                             ))}
+                           </div>
+                         </div>
+                       )}
+
+                       {aiExtractionResult.relationships && aiExtractionResult.relationships.length > 0 && (
+                         <div className="p-3 bg-[#1A1A1A] border border-[#333333] rounded">
+                           <span className="text-[#D4AF37] font-semibold block mb-2">关系抽取 (Relationships)</span>
+                           <div className="space-y-2">
+                             {aiExtractionResult.relationships.map((rel:any, i:number) => (
+                                <div key={i} className="text-xs text-gray-300 bg-[#242424] p-2 rounded flex flex-col">
+                                   <div><span className="text-gray-400">{rel.source}</span> <span className="text-[#D4AF37]">→</span> <span className="text-gray-400">{rel.target}</span></div>
+                                   <div className="text-gray-500 mt-1">[{rel.type}] {rel.evidence}</div>
+                                </div>
+                             ))}
+                           </div>
+                         </div>
+                       )}
                        
                        <div className="p-3 bg-[#1A1A1A] border border-[#333333] rounded">
                          <span className="text-[#D4AF37] font-semibold block mb-2">底层特征建议 (Suggested Raw Features)</span>
