@@ -17,10 +17,10 @@ export const getWeightsByProjectType = async (type: string) => {
     return categoryWeights[type] || categoryWeights["IPO关联交易核查"];
 };
 
-export const saveOrCacheWeights = async (type: string, weights: any, meta?: any) => {
+export const saveOrCacheWeights = async (type: string, weights: any, meta?: any): Promise<boolean> => {
     categoryWeights[type] = weights; // Keep in memory cache
     
-    await saveModelWeights(type, {
+    return await saveModelWeights(type, {
         method: meta?.method || 'logistic',
         weights,
         sampleCount: meta?.sampleCount || 0,

@@ -11,10 +11,10 @@ const getSql = () => {
     return neon(process.env.DATABASE_URL);
 };
 
-export async function ensureTrainingTables(): Promise<void> {
+export async function ensureTrainingTables(): Promise<boolean> {
   if (!hasDatabase()) {
     console.warn("Neon DATABASE_URL not configured. Using memory fallback for ML training.");
-    return;
+    return false;
   }
   
   const sql = getSql();
@@ -33,9 +33,9 @@ export async function ensureTrainingTables(): Promise<void> {
           x2c DOUBLE PRECISION DEFAULT 0,
           x3a DOUBLE PRECISION DEFAULT 0,
           x3b DOUBLE PRECISION DEFAULT 0,
-          X1 DOUBLE PRECISION DEFAULT 0,
-          X2 DOUBLE PRECISION DEFAULT 0,
-          X3 DOUBLE PRECISION DEFAULT 0,
+          x1 DOUBLE PRECISION DEFAULT 0,
+          x2 DOUBLE PRECISION DEFAULT 0,
+          x3 DOUBLE PRECISION DEFAULT 0,
           label DOUBLE PRECISION NOT NULL,
           raw_sample JSONB,
           created_at TIMESTAMPTZ DEFAULT now()
@@ -57,13 +57,15 @@ export async function ensureTrainingTables(): Promise<void> {
           updated_at TIMESTAMPTZ DEFAULT now()
         );
       `;
+      return true;
   } catch (err: any) {
       console.warn("Failed to ensure training tables:", err.message);
+      return false;
   }
 }
 
-export async function saveTrainingSamples(projectType: string, method: string, samples: any[]): Promise<void> {
-  if (!hasDatabase() || !samples || samples.length === 0) return;
+export async function saveTrainingSamples(projectType: string, method: string, samples: any[]): Promise<boolean> {
+  if (!hasDatabase() || !samples || samples.length === 0) return false;
   const sql = getSql();
   
   try {
@@ -77,7 +79,7 @@ export async function saveTrainingSamples(projectType: string, method: string, s
           
           await sql`
             INSERT INTO training_samples
-            (project_type, method, x1a, x1b, x1c, x2a, x2b, x2c, x3a, x3b, "X1", "X2", "X3", label, raw_sample)
+            (project_type, method, x1a, x1b, x1c, x2a, x2b, x2c, x3a, x3b, x1, x2, x3, label, raw_sample)
             VALUES
             (
                 ${projectType}, ${method}, 
@@ -89,8 +91,10 @@ export async function saveTrainingSamples(projectType: string, method: string, s
             )
           `;
       }
+      return true;
   } catch (err: any) {
       console.warn("Failed to save training samples:", err.message);
+      return false;
   }
 }
 
@@ -111,8 +115,8 @@ export async function loadTrainingSamples(projectType: string): Promise<any[]> {
     }
 }
 
-export async function saveModelWeights(projectType: string, payload: any): Promise<void> {
-    if (!hasDatabase()) return;
+export async function saveModelWeights(projectType: string, payload: any): Promise<boolean> {
+    if (!hasDatabase()) return false;
     const sql = getSql();
     
     try {
@@ -144,8 +148,10 @@ export async function saveModelWeights(projectType: string, payload: any): Promi
               feature_importance = EXCLUDED.feature_importance,
               updated_at = EXCLUDED.updated_at
         `;
+        return true;
     } catch (err: any) {
         console.warn("Failed to save model weights:", err.message);
+        return false;
     }
 }
 

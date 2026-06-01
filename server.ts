@@ -303,10 +303,16 @@ async function startServer() {
   // ML API Routes
   app.get("/api/ml/db-status", async (req, res) => {
     try {
-      const { hasDatabase, getStoredModelWeights } = await import("./api/_lib/neonTrainingStore.js");
+      const { hasDatabase, ensureTrainingTables, getStoredModelWeights } = await import("./api/_lib/neonTrainingStore.js");
       if (!hasDatabase()) {
         return res.status(200).json({ databaseConfigured: false, tablesReady: false, message: "DATABASE_URL is not defined." });
       }
+      
+      const tablesReady = await ensureTrainingTables();
+      if (!tablesReady) {
+        return res.status(200).json({ databaseConfigured: true, tablesReady: false, message: "Neon DB connected but failed to create tables." });
+      }
+      
       try {
           await getStoredModelWeights("TEST");
           res.status(200).json({ databaseConfigured: true, tablesReady: true, message: "Neon DB connected and tables exist." });
@@ -409,10 +415,10 @@ async function startServer() {
       
       const { projectType = "IPO关联交易核查", samples = [], method = "logistic" } = req.body || {};
       
-      await ensureTrainingTables();
-      await saveTrainingSamples(projectType, method, samples);
+      const tablesReady = await ensureTrainingTables();
+      const samplesSaved = await saveTrainingSamples(projectType, method, samples);
       
-      const hasDb = hasDatabase();
+      const hasDb = hasDatabase() && tablesReady;
       const historicalSamples = await loadTrainingSamples(projectType);
       
       const allSamples = hasDb && historicalSamples.length > 0 ? historicalSamples : samples;
@@ -422,9 +428,10 @@ async function startServer() {
           const { basicNeuralWeightTraining } = await import("./api/_lib/basicNeuralWeightTraining.js");
           const trained = basicNeuralWeightTraining(allSamples, finalWeights);
           
+          let weightsSaved = false;
           if (!trained.fallback) {
               finalWeights = trained.derivedCategoryWeights;
-              await saveOrCacheWeights(projectType, finalWeights, {
+              weightsSaved = await saveOrCacheWeights(projectType, finalWeights, {
                   method: "basic-mlp",
                   sampleCount: trained.sampleCount,
                   fallback: false,
@@ -442,17 +449,18 @@ async function startServer() {
               trainingMethod: trained.trainingMethod,
               featureImportance: trained.featureImportance,
               explanation: trained.explanation,
-              persisted: hasDb,
+              persisted: weightsSaved || samplesSaved,
               usedHistoricalSamples: hasDb,
               totalTrainingSamples: allSamples.length
           });
       } else {
           const trained = trainCategoryWeights(allSamples, finalWeights);
           
+          let weightsSaved = false;
           let sampleCount = allSamples.length;
           if (!trained.fallback) {
               finalWeights = { W1: trained.W1, W2: trained.W2, W3: trained.W3, b: trained.b };
-              await saveOrCacheWeights(projectType, finalWeights, {
+              weightsSaved = await saveOrCacheWeights(projectType, finalWeights, {
                   method: "logistic",
                   sampleCount,
                   fallback: false,
@@ -469,7 +477,7 @@ async function startServer() {
               sampleCount: sampleCount,
               trainingMethod: "weak-supervised logistic regression",
               fallback: !!trained.fallback,
-              persisted: hasDb,
+              persisted: weightsSaved || samplesSaved,
               usedHistoricalSamples: hasDb,
               totalTrainingSamples: allSamples.length
           });
