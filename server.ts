@@ -301,6 +301,66 @@ async function startServer() {
   // Vite middleware for development
   
   // ML API Routes
+  app.get("/api/ml/db-status", async (req, res) => {
+    try {
+      const { hasDatabase, getStoredModelWeights } = await import("./api/_lib/neonTrainingStore.js");
+      if (!hasDatabase()) {
+        return res.status(200).json({ databaseConfigured: false, tablesReady: false, message: "DATABASE_URL is not defined." });
+      }
+      try {
+          await getStoredModelWeights("TEST");
+          res.status(200).json({ databaseConfigured: true, tablesReady: true, message: "Neon DB connected and tables exist." });
+      } catch(e: any) {
+          res.status(200).json({ databaseConfigured: true, tablesReady: false, message: e.message });
+      }
+    } catch(e:any) {
+        res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/ml/weights", async (req, res) => {
+    try {
+      const { getWeightsByProjectType } = await import("./api/_lib/modelWeights.js");
+      const { hasDatabase, getStoredModelWeights } = await import("./api/_lib/neonTrainingStore.js");
+      const pt = (req.query.projectType as string) || "IPO关联交易核查";
+      
+      let source = "memory-default";
+      if (hasDatabase()) {
+          const dbW = await getStoredModelWeights(pt);
+          if (dbW) source = "database";
+      }
+      const weights = await getWeightsByProjectType(pt);
+      res.status(200).json({
+          projectType: pt,
+          source,
+          weights
+      });
+    } catch(e:any) {
+        res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/ml/training-samples", async (req, res) => {
+      try {
+          const { loadTrainingSamples, hasDatabase } = await import("./api/_lib/neonTrainingStore.js");
+          const pt = (req.query.projectType as string) || "IPO关联交易核查";
+          
+          if (!hasDatabase()) {
+              return res.status(200).json({ message: "No database configured", count: 0, samples: [] });
+          }
+          
+          const items = await loadTrainingSamples(pt);
+          
+          res.status(200).json({
+              projectType: pt,
+              count: items.length,
+              samples: items.slice(-20) // last 20
+          });
+      } catch(e:any) {
+          res.status(500).json({ error: e.message });
+      }
+  });
+
   app.get("/api/ml/diagnostics", async (req, res) => {
     try {
         let baseUrlHost = null;
@@ -345,17 +405,32 @@ async function startServer() {
     try {
       const { trainCategoryWeights } = await import("./api/_lib/weightTraining.js");
       const { saveOrCacheWeights, getWeightsByProjectType } = await import("./api/_lib/modelWeights.js");
+      const { ensureTrainingTables, saveTrainingSamples, loadTrainingSamples, hasDatabase } = await import("./api/_lib/neonTrainingStore.js");
       
       const { projectType = "IPO关联交易核查", samples = [], method = "logistic" } = req.body || {};
-      let finalWeights = getWeightsByProjectType(projectType);
+      
+      await ensureTrainingTables();
+      await saveTrainingSamples(projectType, method, samples);
+      
+      const hasDb = hasDatabase();
+      const historicalSamples = await loadTrainingSamples(projectType);
+      
+      const allSamples = hasDb && historicalSamples.length > 0 ? historicalSamples : samples;
+      let finalWeights = await getWeightsByProjectType(projectType);
       
       if (method === "basic-mlp") {
           const { basicNeuralWeightTraining } = await import("./api/_lib/basicNeuralWeightTraining.js");
-          const trained = basicNeuralWeightTraining(samples, finalWeights);
+          const trained = basicNeuralWeightTraining(allSamples, finalWeights);
           
           if (!trained.fallback) {
               finalWeights = trained.derivedCategoryWeights;
-              saveOrCacheWeights(projectType, finalWeights);
+              await saveOrCacheWeights(projectType, finalWeights, {
+                  method: "basic-mlp",
+                  sampleCount: trained.sampleCount,
+                  fallback: false,
+                  trainingMethod: trained.trainingMethod,
+                  featureImportance: trained.featureImportance
+              });
           }
           
           res.status(200).json({
@@ -366,17 +441,25 @@ async function startServer() {
               fallback: trained.fallback,
               trainingMethod: trained.trainingMethod,
               featureImportance: trained.featureImportance,
-              explanation: trained.explanation
+              explanation: trained.explanation,
+              persisted: hasDb,
+              usedHistoricalSamples: hasDb,
+              totalTrainingSamples: allSamples.length
           });
       } else {
-          const trained = trainCategoryWeights(samples, finalWeights);
+          const trained = trainCategoryWeights(allSamples, finalWeights);
           
-          let sampleCount = samples.length;
+          let sampleCount = allSamples.length;
           if (!trained.fallback) {
               finalWeights = { W1: trained.W1, W2: trained.W2, W3: trained.W3, b: trained.b };
-              saveOrCacheWeights(projectType, finalWeights);
+              await saveOrCacheWeights(projectType, finalWeights, {
+                  method: "logistic",
+                  sampleCount,
+                  fallback: false,
+                  trainingMethod: "weak-supervised logistic regression"
+              });
           } else {
-              sampleCount = samples.length < 10 ? samples.length : 48; // demo
+              sampleCount = allSamples.length < 10 ? allSamples.length : 48; // demo
           }
 
           res.status(200).json({
@@ -385,7 +468,10 @@ async function startServer() {
               weights: finalWeights,
               sampleCount: sampleCount,
               trainingMethod: "weak-supervised logistic regression",
-              fallback: !!trained.fallback
+              fallback: !!trained.fallback,
+              persisted: hasDb,
+              usedHistoricalSamples: hasDb,
+              totalTrainingSamples: allSamples.length
           });
       }
     } catch (e: any) {
@@ -398,7 +484,7 @@ async function startServer() {
       const { getWeightsByProjectType } = await import("./api/_lib/modelWeights.js");
       
       const { projectType = "IPO关联交易核查", X1 = 0, X2 = 0, X3 = 0 } = req.body || {};
-      const w = getWeightsByProjectType(projectType);
+      const w = await getWeightsByProjectType(projectType);
       
       const z = w.W1 * X1 + w.W2 * X2 + w.W3 * X3 + w.b;
       const p = 1 / (1 + Math.exp(-z));
