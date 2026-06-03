@@ -488,7 +488,7 @@ Object.values(demoProjectDetailsMap).forEach(detail => {
   });
   
   if (detail.riskScoring) {
-    detail.project.riskScore = detail.riskScoring.probabilityPercent;
+    detail.project.riskScore = Math.round(Number(detail.riskScoring.probabilityPercent));
     
     const label = detail.riskScoring.riskLevel;
     let color = "text-green-500";
