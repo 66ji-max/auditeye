@@ -1,4 +1,37 @@
-import { calculateProjectRisk, RISK_DIMENSIONS } from '../config/riskScoring.ts';
+import { 
+  calculateProjectRisk, 
+  RISK_DIMENSIONS,
+  calculateSubIndices,
+  calculateZValue,
+  calculateRiskProbability,
+  getRiskLevelByProbability,
+  GLOBAL_RISK_WEIGHTS
+} from '../config/riskScoring.ts';
+
+function buildRiskScoring(rawFeatures: any, conclusion: string, warning?: string) {
+  const subIndices = calculateSubIndices(rawFeatures);
+  const zValue = calculateZValue(subIndices);
+  const probability = calculateRiskProbability(zValue);
+  const probabilityPercent = Number((probability * 100).toFixed(1));
+  const riskLevel = getRiskLevelByProbability(probability);
+
+  return {
+    rawFeatures,
+    subIndices: {
+      X1: Number(subIndices.X1.toFixed(2)),
+      X2: Number(subIndices.X2.toFixed(2)),
+      X3: Number(subIndices.X3.toFixed(2))
+    },
+    globalWeights: GLOBAL_RISK_WEIGHTS,
+    zValue: Number(zValue.toFixed(4)),
+    probability: Number(probability.toFixed(3)),
+    probabilityPercent,
+    threshold: 75,
+    riskLevel,
+    warning,
+    conclusion
+  };
+}
 
 export const demoProjectDetailsMap: Record<string, any> = {
   '1001': {
@@ -188,7 +221,71 @@ export const demoProjectDetailsMap: Record<string, any> = {
       { source: '绿能科技(拟发行)', target: '汇通电池材料(主要供应商)', relationType: 'SUPPLIER', evidenceSnippet: '框架采购协议，占年度采购比例达40%。' },
       { source: '远景投资有限合伙', target: '远景新能源(第一大客户)', relationType: 'CONTROL', evidenceSnippet: '企查查数据明确远景新能源由远景投资100%控股。' },
       { source: '赵宏图(实控人)', target: '远景投资有限合伙', relationType: 'HIDDEN_INTEREST', evidenceSnippet: '银行流水附言显示赵宏图个人账户向远景投资代持人转账1200万作为借款。' }
-    ]
+    ],
+    riskScoring: buildRiskScoring({
+      identityNetwork: [
+        {
+          id: "x1a", label: "实际控制人关联", value: 0.65, method: "知识图谱穿透",
+          evidence: "赵宏图银行流水附言向远景投资代持人转账1200万。",
+          explanation: "实控人存在与第一大客户相关的隐性资金往来，疑似存在代持或同源控制利益关系。",
+          subIndex: "X1",
+          evidenceSource: { documentName: "核心基本户建行全年流水.csv", page: "第1页", paragraph: "转账附言", originalText: "赵宏图个人账户向远景投资代持人转账1200万作为借款。" }
+        },
+        {
+          id: "x1b", label: "隐藏的控制链路", value: 0.70, method: "股权层级检测",
+          evidence: "远景新能源由远景投资100%控股，远景投资背后涉及发行人实控人赵宏图。",
+          explanation: "通过外部合伙企业的层级嵌套，隐蔽大客户与发行人实控人之间的控制实质。",
+          subIndex: "X1",
+          evidenceSource: { documentName: "企查查商业档案.pdf", page: "第3页", paragraph: "股权结构", originalText: "远景新能源由远景投资100%控股。" }
+        },
+        {
+          id: "x1c", label: "人员交叉任职", value: 0.80, method: "董事监事高管名册比对",
+          evidence: "发行人部分非核心高管具有在主要供应商处兼职经历。",
+          explanation: "上下游供应商与拟发行企业的高管交叉，增加业务协同与利益输送的操作便利性。",
+          subIndex: "X1",
+          evidenceSource: { documentName: "绿能科技首次公开发行股票招股说明书(申报稿).pdf", page: "第88页", paragraph: "董事与高管简历", originalText: "绿能科技部分非核心高管具有在主要供应商处兼职经历。" }
+        }
+      ],
+      transactionAbnormality: [
+        {
+          id: "x2a", label: "第一大客户交易回流", value: 0.95, method: "资金回环检测算法",
+          evidence: "前五大客户之一的远景新能源与其实控人在报告期内存在通过保荐机构指定账户间接进行资金回转（约1200万）。",
+          explanation: "大客户巨额销售同时伴随资金通过体外账户流回发行人或实控人，高度疑似“虚构销售、资金空转”粉饰利润。",
+          subIndex: "X2",
+          evidenceSource: { documentName: "核心基本户建行全年流水.csv", page: "第12页", paragraph: "异常流水清单", originalText: "前五大客户之一的【远景新能源】与其实控人在报告期内存在通过保荐机构指定账户间接进行资金回转（约1200万）的情况，存在提前确认收入粉饰利润的嫌疑。" }
+        },
+        {
+          id: "x2b", label: "交易额陡峭度", value: 0.85, method: "趋势面分析",
+          evidence: "该第一大客户贡献了2023年度32%的营业额。",
+          explanation: "单一年份针对单一客户的收入集中度异常偏高，违背正常商业增长规律。",
+          subIndex: "X2",
+          evidenceSource: { documentName: "绿能科技首次公开发行股票招股说明书(申报稿).pdf", page: "第115页", paragraph: "前五大客户分析", originalText: "招股书披露该客户贡献了2023年度32%的营业额。" }
+        },
+        {
+          id: "x2c", label: "供应商业务依赖", value: 0.70, method: "集中度分析",
+          evidence: "向汇通电池材料的年度采购比例达40%。",
+          explanation: "上游供应商极度集中，伴随之前发现的高管交叉任职，关联采购溢价或折价的风险大幅升高。",
+          subIndex: "X2",
+          evidenceSource: { documentName: "前五大客户年度框架合同汇总.pdf", page: "第8页", paragraph: "采购总结", originalText: "框架采购协议显示，向汇通电池材料占年度采购比例达40%。" }
+        }
+      ],
+      externalTrace: [
+        {
+          id: "x3a", label: "外部补贴极度依赖", value: 0.90, method: "财报异动分析",
+          evidence: "扣非净利润中有近65%来源于地方新能源补贴。",
+          explanation: "企业的盈利模型对外部政策性补贴的依赖度超过合规和可持续性健康红线。",
+          subIndex: "X3",
+          evidenceSource: { documentName: "1-6月地方政府新能源补贴明细_密.xlsx", page: "Sheet1", paragraph: "第1行", originalText: "扣非净利润中有近65%来源于地方新能源补贴。" }
+        },
+        {
+          id: "x3b", label: "利润断层风险", value: 0.85, method: "政策持续性评估",
+          evidence: "补贴政策将于明年一季度到期，面临极高持续盈利风险。",
+          explanation: "若补贴彻底退坡，企业核心盈利能力即刻丧失，构成IPO重大不确定性因素。",
+          subIndex: "X3",
+          evidenceSource: { documentName: "1-6月地方政府新能源补贴明细_密.xlsx", page: "Sheet1", paragraph: "第2行", originalText: "且该补贴政策将于明年一季度到期，面临极高持续盈利风险。" }
+        }
+      ]
+    }, "该IPO主体资金流水呈现严重的大客户资金回转异常，且盈利质量高度依赖即将到期的补贴，综合触发极高发行风险警示。", "发现存在严重资金空转与利润粉饰嫌疑")
   },
   '1003': {
     project: { id: '1003', name: "鼎信资本年度审计关联方排查", scenario: "年度审计异常追踪", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
@@ -223,7 +320,71 @@ export const demoProjectDetailsMap: Record<string, any> = {
       { source: '鼎信资本控股', target: '星光创投合伙企业', relationType: 'FUND_TRANSFER', evidenceSnippet: '底稿记录借款项3000万，附言“过桥资金”。' },
       { source: '王敏 (投资总监)', target: '智芯科技(被投企业)', relationType: 'DUAL_EMPLOYMENT', evidenceSnippet: '同时签署两份劳动/劳务合同。' },
       { source: '王敏 (投资总监)', target: '云联医疗(被投企业)', relationType: 'DUAL_EMPLOYMENT', evidenceSnippet: '在董事会兼任外部薪酬专员。' }
-    ]
+    ],
+    riskScoring: buildRiskScoring({
+      identityNetwork: [
+        {
+          id: "x1a", label: "核心高管隐性关联", value: 0.85, method: "关联交易穿透",
+          evidence: "星光创投合伙企业实质GP为鼎信资本CFO陈建国。",
+          explanation: "企业CFO私下控制体外资金平台，极易形成利益冲突与资金挪用通道。",
+          subIndex: "X1",
+          evidenceSource: { documentName: "工商穿透查询底稿", page: "第2页", paragraph: "GP结构", originalText: "工商底稿显示陈建国持有该GP实体99%份额。" }
+        },
+        {
+          id: "x1b", label: "高管违规跨层兼职", value: 0.65, method: "利益冲突检测",
+          evidence: "投资总监王某在旗下三家被投企业担任执行董事且领取薪酬。",
+          explanation: "违反内部利益冲突豁免条款，可能损害基金LP的整体利益。",
+          subIndex: "X1",
+          evidenceSource: { documentName: "A轮跟投协议_修正版.docx", page: "第12页", paragraph: "人事安排", originalText: "王敏兼任执行董事并领取月度报酬。" }
+        },
+        {
+          id: "x1c", label: "未披露关联方", value: 0.75, method: "关联清单核对",
+          evidence: "审计清单中存在星光创投合伙企业，但实质未在年度关联交易列表中排查和披露。",
+          explanation: "管理层主观遗漏或规避关联方披露义务，内控有效性存疑。",
+          subIndex: "X1",
+          evidenceSource: { documentName: "2023年鼎信资本关联方披露清单.xlsx", page: "Sheet1", paragraph: "整体排查", originalText: "并未发现星光创投在名录内。" }
+        }
+      ],
+      transactionAbnormality: [
+        {
+          id: "x2a", label: "未披露大额关联拆借", value: 0.80, method: "资金合规比对",
+          evidence: "存在一笔向星光创投支出的3000万短期过桥借款，未在决议中且实质为关联方。",
+          explanation: "涉及核心高管的违规大额资金流出，严重违反投资管理机构的资金管理红线。",
+          subIndex: "X2",
+          evidenceSource: { documentName: "普华永道审计往来款底稿.pdf", page: "第45页", paragraph: "大额异常流水", originalText: "存在一笔向【星光创投合伙企业】支出的3000万短期过桥借款。" }
+        },
+        {
+          id: "x2b", label: "资金审批流异常", value: 0.60, method: "签批流程回溯",
+          evidence: "决议中未见该笔3000万过桥资金的董事会专项审批签字。",
+          explanation: "大额资金脱离合规审批流程，坐实内控失效。",
+          subIndex: "X2",
+          evidenceSource: { documentName: "第一届董事会第三次决议(关联交易).pdf", page: "第3页", paragraph: "决议事项", originalText: "全篇未见针对星光创投3000万过桥资金的审批记录。" }
+        },
+        {
+          id: "x2c", label: "被投企业异常薪酬", value: 0.50, method: "税务代扣代缴分析",
+          evidence: "王某通过被投企业额外获取无正当理由的高额津贴。",
+          explanation: "利益输送的常见形式，虽金额相对资金盘较小，但性质违规。",
+          subIndex: "X2",
+          evidenceSource: { documentName: "普华永道审计往来款底稿.pdf", page: "第88页", paragraph: "薪酬核对", originalText: "发现王某在云联医疗等三家企业有异常薪酬发放记录。" }
+        }
+      ],
+      externalTrace: [
+        {
+          id: "x3a", label: "外部审计函证异常", value: 0.65, method: "函证校验比对",
+          evidence: "普华永道发出的部分关联方往来询证函未收到有效回函或回函不符。",
+          explanation: "外部审计程序受阻，侧面印证资产端存在掩盖事实的可能。",
+          subIndex: "X3",
+          evidenceSource: { documentName: "普华永道审计往来款底稿.pdf", page: "第112页", paragraph: "函证总结", originalText: "向星光创投等实体的账项询证函未被确认或退回。" }
+        },
+        {
+          id: "x3b", label: "监管问询隐患", value: 0.40, method: "舆情合规检测",
+          evidence: "前期部分同行业投资机构因此类隐性过桥遭当地证监局出具警示函。",
+          explanation: "行业合规趋严，本项目当前发现的问题极易触发进一步的监管现场检查。",
+          subIndex: "X3",
+          evidenceSource: { documentName: "外部舆情及监管处罚记录库", page: "N/A", paragraph: "案例总结", originalText: "存在类似违规担保及过桥受到警示函的先例。" }
+        }
+      ]
+    }, "审计发现多项高管隐性关联与大额未批过桥拆借行为，严重违反关联交易披露与授权制度，内控失效。", "发现高管隐性关联与关联方未披露的大额资金拆借")
   },
   '1004': {
     project: { id: '1004', name: "华泰置业烂尾楼资金抽逃协查", scenario: "内部反欺诈审查", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
@@ -261,7 +422,71 @@ export const demoProjectDetailsMap: Record<string, any> = {
       { source: '中建九局(总包)', target: '广州鼎盛沙石(分包)', relationType: 'SUBCONTRACTOR', evidenceSnippet: '工程承建合同第3标段。' },
       { source: '中建九局(总包)', target: '鑫源建材贸易(空壳)', relationType: 'FUND_TRANSFER', evidenceSnippet: '收取工程款后立即打散转入该空壳建材公司虚列成本。' },
       { source: '陈工 (独立监理)', target: '中建九局(总包)', relationType: 'FORGED_SIGNATURE', evidenceSnippet: 'AI比对查明关键节点工程进度确认单签名系总包方施工员代签。' }
-    ]
+    ],
+    riskScoring: buildRiskScoring({
+      identityNetwork: [
+        {
+          id: "x1a", label: "核心成员亲属关联", value: 0.95, method: "户籍与图谱比对",
+          evidence: "工程总监刘某与分包商鼎盛沙石实控人刘浩为父子关系。",
+          explanation: "工程发包方核心人员与中标分包商存在直系亲属关系，涉及严重的舞弊与利益输送。",
+          subIndex: "X1",
+          evidenceSource: { documentName: "关系人比对报告", page: "第1页", paragraph: "排查结果", originalText: "户籍地址查询与关联人脸比对确认为父子关系。" }
+        },
+        {
+          id: "x1b", label: "利用空壳主体", value: 0.85, method: "图谱特征识别",
+          evidence: "收款方鑫源建材贸易被识别为无实质业务的材料贸易空壳公司。",
+          explanation: "通过多层级的空壳网络掩盖资金最终流向，是典型的资金抽逃特征手法。",
+          subIndex: "X1",
+          evidenceSource: { documentName: "商事主体特征库比对", page: "N/A", paragraph: "异常筛查", originalText: "该企业社保参保人数为0，注册地址为虚拟地址库挂靠。" }
+        },
+        {
+          id: "x1c", label: "供应商资质异常", value: 0.75, method: "入库评分比对",
+          evidence: "鼎盛沙石资质评级为D级，却能连续中标大规模土方工程。",
+          explanation: "低资质企业异常中标，进一步印证了关系网背后的围标串标与暗箱操作。",
+          subIndex: "X1",
+          evidenceSource: { documentName: "华南区域入库供应商清单及资质评级.csv", page: "行245", paragraph: "评级结果", originalText: "供应商广州鼎盛沙石资质评级D级。" }
+        }
+      ],
+      transactionAbnormality: [
+        {
+          id: "x2a", label: "预售资金秒级过境", value: 1.00, method: "资金流转时序网络",
+          evidence: "累计1.2亿预售款在进入监管账户后48小时内即被全额支取并划出体外。",
+          explanation: "预售资金违规挪用的极限操作手段，造成项目即刻处于高位资金断裂风险。",
+          subIndex: "X2",
+          evidenceSource: { documentName: "预售资金监管专户流水账单.xlsx", page: "明细表", paragraph: "流水序列", originalText: "1.2亿预售款在进入监管账户后48小时内，以“主体土建工程预付款”名义超额支付给总包。" }
+        },
+        {
+          id: "x2b", label: "虚列成本资金打散", value: 0.90, method: "账户聚类分析",
+          evidence: "总包收款后立即打散转入空壳建材公司。",
+          explanation: "虚列建筑材料采购成本以套现，这是建筑行业资金抽逃的经典路径。",
+          subIndex: "X2",
+          evidenceSource: { documentName: "资金穿透子表", page: "资金流向图", paragraph: "层级2", originalText: "总包随后即划转入体外的材料贸易空壳公司隐匿资金。" }
+        },
+        {
+          id: "x2c", label: "工程款超付比例", value: 0.85, method: "工程量与资金拟合",
+          evidence: "支付节点的实际工程进度约15%，但预付及进度款已支付达合同预算的65%。",
+          explanation: "资金支付与现场实际施工量产生巨额脱节，直接印证抽逃事实。",
+          subIndex: "X2",
+          evidenceSource: { documentName: "工程款支付节点OA审批流出件.pdf", page: "第4页", paragraph: "审批流汇总", originalText: "累计支付比例严重超过当前实际土方工程量。" }
+        }
+      ],
+      externalTrace: [
+        {
+          id: "x3a", label: "监理签审伪造", value: 0.95, method: "AI笔迹工程检验",
+          evidence: "第三期工程款请款单上的监理签审笔迹及时间与施工日志严重悖离，系施工员代签。",
+          explanation: "核心支付节点的法定签核存在造假，打破了预售款监管机制中最底层的信用基础。",
+          subIndex: "X3",
+          evidenceSource: { documentName: "笔迹检验比对说明.pdf", page: "第1页", paragraph: "鉴定结论", originalText: "AI比对查明关键节点工程进度确认单签名系总包方施工员代签。" }
+        },
+        {
+          id: "x3b", label: "客诉及停工隐患", value: 0.80, method: "外部舆情采集",
+          evidence: "近期多地曝出施工方欠薪及业主关于该楼盘施工进展迟缓的联名投诉。",
+          explanation: "资金挪用已导致实质性的工程停滞，烂尾风险极高，触发群体性稳定隐患。",
+          subIndex: "X3",
+          evidenceSource: { documentName: "舆情周报", page: "第2页", paragraph: "楼盘热度", originalText: "业主论坛出现大量交房担忧与实地反映停工的图文。" }
+        }
+      ]
+    }, "资金高度异常且伴随监理签字造假、近亲属裙带分包等恶性欺诈动作，确认巨额资金已被抽逃，项目存在极高烂尾风险。", "发现特别重大工程欺诈及资金抽逃")
   }
 };
 
@@ -273,11 +498,16 @@ Object.values(demoProjectDetailsMap).forEach(detail => {
   
   if (detail.riskScoring) {
     detail.project.riskScore = detail.riskScoring.probabilityPercent;
-    detail.project.riskLevel = {
-      label: detail.riskScoring.riskLevel,
-      color: "text-red-500",
-      bg: "bg-red-500"
-    };
+    
+    const label = detail.riskScoring.riskLevel;
+    let color = "text-green-500";
+    let bg = "bg-green-500";
+    if (label === '极高风险') { color = "text-red-500"; bg = "bg-red-500"; }
+    else if (label === '中高风险') { color = "text-orange-500"; bg = "bg-orange-500"; }
+    else if (label === '中等风险') { color = "text-yellow-500"; bg = "bg-yellow-500"; }
+    
+    detail.project.riskLevel = { label, color, bg };
+    
     detail.project.dimensionScores = {
       X1: detail.riskScoring.subIndices.X1,
       X2: detail.riskScoring.subIndices.X2,
