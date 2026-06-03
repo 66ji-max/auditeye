@@ -5,7 +5,7 @@ import multer from "multer";
 import fs from "fs";
 import db, { initDB } from "./src/db.ts";
 import { AuditEngine } from "./src/services/auditEngine.ts";
-import { mockProjects, getMockProjectDetail, mockRules, mockKb } from "./src/lib/mockData.ts";
+import { getMockProjects, getMockProjectDetail, mockRules, mockKb } from "./src/lib/mockData.ts";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
@@ -77,7 +77,7 @@ async function startServer() {
 
   app.get("/api/projects", async (req, res) => {
     if (DEMO_MODE) {
-      return res.json(mockProjects);
+      return res.json(getMockProjects());
     }
     
     try {

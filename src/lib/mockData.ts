@@ -476,6 +476,42 @@ export const demoProjectDetailsMap: Record<string, any> = {
   }
 };
 
+export const normalizeDemoProjectDetail = (detail: any) => {
+  if (!detail) return detail;
+
+  if (detail.riskScoring) {
+    const roundedScore = Math.round(Number(detail.riskScoring.probabilityPercent ?? 0));
+
+    detail.riskScoring.probabilityPercent = roundedScore;
+    detail.project.riskScore = roundedScore;
+
+    const label = detail.riskScoring.riskLevel;
+    let color = "text-green-500";
+    let bg = "bg-green-500";
+
+    if (label === "极高风险") {
+      color = "text-red-500";
+      bg = "bg-red-500";
+    } else if (label === "中高风险") {
+      color = "text-orange-500";
+      bg = "bg-orange-500";
+    } else if (label === "中等风险") {
+      color = "text-yellow-500";
+      bg = "bg-yellow-500";
+    }
+
+    detail.project.riskLevel = { label, color, bg };
+
+    detail.project.dimensionScores = {
+      X1: detail.riskScoring.subIndices.X1,
+      X2: detail.riskScoring.subIndices.X2,
+      X3: detail.riskScoring.subIndices.X3
+    };
+  }
+
+  return detail;
+};
+
 Object.values(demoProjectDetailsMap).forEach(detail => {
   const ruleHits = detail.audit_logs.filter(log => log.action === 'RED_FLAG').map(log => {
     let details;
@@ -487,38 +523,30 @@ Object.values(demoProjectDetailsMap).forEach(detail => {
     return { ruleId: details.ruleId || 'N/A', dimension: details.dimension || 'N/A', severity: details.severity || 'low' } as any;
   });
   
-  if (detail.riskScoring) {
-    detail.project.riskScore = Math.round(Number(detail.riskScoring.probabilityPercent));
-    
-    const label = detail.riskScoring.riskLevel;
-    let color = "text-green-500";
-    let bg = "bg-green-500";
-    if (label === '极高风险') { color = "text-red-500"; bg = "bg-red-500"; }
-    else if (label === '中高风险') { color = "text-orange-500"; bg = "bg-orange-500"; }
-    else if (label === '中等风险') { color = "text-yellow-500"; bg = "bg-yellow-500"; }
-    
-    detail.project.riskLevel = { label, color, bg };
-    
-    detail.project.dimensionScores = {
-      X1: detail.riskScoring.subIndices.X1,
-      X2: detail.riskScoring.subIndices.X2,
-      X3: detail.riskScoring.subIndices.X3
-    };
-  } else {
+  if (!detail.riskScoring) {
     const riskResult = calculateProjectRisk(ruleHits);
     
     detail.project.riskScore = riskResult.totalScore;
     detail.project.riskLevel = riskResult.level;
     detail.project.dimensionScores = riskResult.dimensionScores;
   }
+  
+  normalizeDemoProjectDetail(detail);
 });
 
-export const mockProjects = [
-  { id: 1001, name: "发行人关联交易智能核查项目", scenario: "IPO关联交易核查", riskScore: demoProjectDetailsMap['1001'].project.riskScore, riskLevel: demoProjectDetailsMap['1001'].project.riskLevel, docCount: 14, createdAt: demoProjectDetailsMap['1001'].project.createdAt },
-  { id: 1002, name: "绿能科技IPO主体资金流穿透", scenario: "IPO审查", riskScore: demoProjectDetailsMap['1002'].project.riskScore, riskLevel: demoProjectDetailsMap['1002'].project.riskLevel, docCount: 32, createdAt: demoProjectDetailsMap['1002'].project.createdAt },
-  { id: 1003, name: "鼎信资本年度审计关联方排查", scenario: "年度审计异常追踪", riskScore: demoProjectDetailsMap['1003'].project.riskScore, riskLevel: demoProjectDetailsMap['1003'].project.riskLevel, docCount: 8, createdAt: demoProjectDetailsMap['1003'].project.createdAt },
-  { id: 1004, name: "华泰置业烂尾楼资金抽逃协查", scenario: "内部反欺诈审查", riskScore: demoProjectDetailsMap['1004'].project.riskScore, riskLevel: demoProjectDetailsMap['1004'].project.riskLevel, docCount: 105, createdAt: demoProjectDetailsMap['1004'].project.createdAt },
-];
+export const getMockProjects = () => {
+  return Object.values(demoProjectDetailsMap).map((detail: any) => ({
+    id: detail.project.id,
+    name: detail.project.name,
+    scenario: detail.project.scenario,
+    riskScore: detail.project.riskScore,
+    riskLevel: detail.project.riskLevel,
+    docCount: detail.documents?.length ?? 0,
+    createdAt: detail.project.createdAt
+  }));
+};
+
+export const mockProjects = getMockProjects();
 
 // mock data constants end around line 191
 // Note: createNewMockProject has been removed. All new projects MUST be created via Neon DB.
@@ -527,6 +555,8 @@ export const getMockProjectDetail = (id: string | number) => {
   const projectId = String(id);
   const detail = demoProjectDetailsMap[projectId];
   if (!detail) return null;
+  
+  normalizeDemoProjectDetail(detail);
   return JSON.parse(JSON.stringify(detail));
 };
 
