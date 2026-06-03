@@ -476,15 +476,28 @@ export const demoProjectDetailsMap: Record<string, any> = {
   }
 };
 
-export const normalizeDemoProjectDetail = (detail: any) => {
+export function getUnifiedRiskScore(detail: any): number {
+  const raw =
+    detail?.riskScoring?.probabilityPercent ??
+    detail?.project?.riskScore ??
+    0;
+
+  return Math.round(Number(raw) || 0);
+}
+
+export function normalizeRiskScore(detail: any) {
   if (!detail) return detail;
 
+  const unifiedScore = getUnifiedRiskScore(detail);
+
+  if (!detail.project) detail.project = {};
+  detail.project.riskScore = unifiedScore;
+
   if (detail.riskScoring) {
-    const roundedScore = Math.round(Number(detail.riskScoring.probabilityPercent ?? 0));
+    detail.riskScoring.probabilityPercent = unifiedScore;
+  }
 
-    detail.riskScoring.probabilityPercent = roundedScore;
-    detail.project.riskScore = roundedScore;
-
+  if (detail.riskScoring) {
     const label = detail.riskScoring.riskLevel;
     let color = "text-green-500";
     let bg = "bg-green-500";
@@ -510,7 +523,7 @@ export const normalizeDemoProjectDetail = (detail: any) => {
   }
 
   return detail;
-};
+}
 
 Object.values(demoProjectDetailsMap).forEach(detail => {
   const ruleHits = detail.audit_logs.filter(log => log.action === 'RED_FLAG').map(log => {
@@ -531,19 +544,23 @@ Object.values(demoProjectDetailsMap).forEach(detail => {
     detail.project.dimensionScores = riskResult.dimensionScores;
   }
   
-  normalizeDemoProjectDetail(detail);
+  normalizeRiskScore(detail);
 });
 
 export const getMockProjects = () => {
-  return Object.values(demoProjectDetailsMap).map((detail: any) => ({
-    id: detail.project.id,
-    name: detail.project.name,
-    scenario: detail.project.scenario,
-    riskScore: detail.project.riskScore,
-    riskLevel: detail.project.riskLevel,
-    docCount: detail.documents?.length ?? 0,
-    createdAt: detail.project.createdAt
-  }));
+  return Object.values(demoProjectDetailsMap).map((detail: any) => {
+    normalizeRiskScore(detail);
+
+    return {
+      id: detail.project.id,
+      name: detail.project.name,
+      scenario: detail.project.scenario,
+      riskScore: getUnifiedRiskScore(detail),
+      riskLevel: detail.project.riskLevel,
+      docCount: detail.documents?.length ?? 0,
+      createdAt: detail.project.createdAt
+    };
+  });
 };
 
 export const mockProjects = getMockProjects();
@@ -556,8 +573,16 @@ export const getMockProjectDetail = (id: string | number) => {
   const detail = demoProjectDetailsMap[projectId];
   if (!detail) return null;
   
-  normalizeDemoProjectDetail(detail);
-  return JSON.parse(JSON.stringify(detail));
+  normalizeRiskScore(detail);
+  const cloned = JSON.parse(JSON.stringify(detail));
+
+  if (cloned.riskScoring) {
+    const finalScore = getUnifiedRiskScore(cloned);
+    cloned.project.riskScore = finalScore;
+    cloned.riskScoring.probabilityPercent = finalScore;
+  }
+
+  return cloned;
 };
 
 export const mockRules = [

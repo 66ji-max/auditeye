@@ -35,6 +35,29 @@ async function startServer() {
   });
 
   // Projects API
+  app.get("/api/debug/risk-scores", (req, res) => {
+    const projs = getMockProjects();
+    const results = [1001, 1002, 1003, 1004].map(id => {
+      const listProj = projs.find(p => p.id.toString() === id.toString());
+      const listScore = listProj ? listProj.riskScore : null;
+      
+      const detail = getMockProjectDetail(id);
+      const detailProjectScore = detail ? detail.project.riskScore : null;
+      const detailRiskScoringScore = detail?.riskScoring ? detail.riskScoring.probabilityPercent : null;
+      
+      const consistent = listScore === detailProjectScore && (detailRiskScoringScore === null || detailProjectScore === detailRiskScoringScore);
+      
+      return {
+        id,
+        listScore,
+        detailProjectScore,
+        detailRiskScoringScore,
+        consistent
+      };
+    });
+    res.json(results);
+  });
+
   app.post("/api/projects", async (req, res) => {
     try {
       const { name, scenario } = req.body;
@@ -255,6 +278,18 @@ async function startServer() {
       }
 
       if (mockData) {
+        const finalScore = Math.round(Number(
+          mockData?.riskScoring?.probabilityPercent ??
+          mockData?.project?.riskScore ??
+          0
+        ));
+
+        mockData.project.riskScore = finalScore;
+
+        if (mockData.riskScoring) {
+          mockData.riskScoring.probabilityPercent = finalScore;
+        }
+
         // Merge neon docs into mockData.documents
         const mergedDocs = [...(mockData.documents || [])] as any[];
         neonDocs.forEach((nd) => {
