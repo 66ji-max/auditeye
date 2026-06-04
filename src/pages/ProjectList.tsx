@@ -34,23 +34,35 @@ export default function ProjectList() {
          setSystemMessage('健康检查请求失败，进入系统降级模式。');
       });
 
-    fetch('/api/projects')
+    fetch('/api/projects', { cache: 'no-store' })
       .then(res => {
         if (!res.ok) throw new Error(`Failed with status ${res.status}`);
         return res.json();
       })
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          setProjects(data);
+          const normalized = data.map((p:any) => ({
+            ...p,
+            riskScore: Math.round(Number(p.riskScore ?? 0))
+          }));
+          setProjects(normalized);
         } else {
           console.warn("API returned empty/invalid array, fallback to local mock projects.");
-          setProjects(mockProjects);
+          const normalizedMock = mockProjects.map((p:any) => ({
+            ...p,
+            riskScore: Math.round(Number(p.riskScore ?? 0))
+          }));
+          setProjects(normalizedMock);
         }
         setLoading(false);
       })
       .catch((err) => {
         console.warn("API unavailable, fallback to local mock projects. Error:", err);
-        setProjects(mockProjects);
+        const normalizedMock = mockProjects.map((p:any) => ({
+          ...p,
+          riskScore: Math.round(Number(p.riskScore ?? 0))
+        }));
+        setProjects(normalizedMock);
         setLoading(false);
       });
   }, []);

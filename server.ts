@@ -39,16 +39,18 @@ async function startServer() {
     const projs = getMockProjects();
     const results = [1001, 1002, 1003, 1004].map(id => {
       const listProj = projs.find(p => p.id.toString() === id.toString());
+      const name = listProj ? listProj.name : '';
       const listScore = listProj ? listProj.riskScore : null;
       
       const detail = getMockProjectDetail(id);
       const detailProjectScore = detail ? detail.project.riskScore : null;
       const detailRiskScoringScore = detail?.riskScoring ? detail.riskScoring.probabilityPercent : null;
       
-      const consistent = listScore === detailProjectScore && (detailRiskScoringScore === null || detailProjectScore === detailRiskScoringScore);
+      const consistent = listScore === detailProjectScore && detailProjectScore === detailRiskScoringScore;
       
       return {
         id,
+        name,
         listScore,
         detailProjectScore,
         detailRiskScoringScore,
@@ -100,7 +102,13 @@ async function startServer() {
 
   app.get("/api/projects", async (req, res) => {
     if (DEMO_MODE) {
-      return res.json(getMockProjects());
+      const projects = getMockProjects().map((p:any) => ({
+        ...p,
+        riskScore: Math.round(Number(p.riskScore ?? 0))
+      }));
+
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      return res.json(projects);
     }
     
     try {
@@ -289,6 +297,8 @@ async function startServer() {
         if (mockData.riskScoring) {
           mockData.riskScoring.probabilityPercent = finalScore;
         }
+
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
 
         // Merge neon docs into mockData.documents
         const mergedDocs = [...(mockData.documents || [])] as any[];

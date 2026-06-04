@@ -632,11 +632,23 @@ function WorkspaceInner() {
 
   const fetchProject = async () => {
     try {
-      const res = await fetch(`/api/projects/${id}`);
+      const res = await fetch(`/api/projects/${id}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`请求失败状态码: ${res.status}`);
       const apiData = await res.json();
       
       if (apiData && apiData.project) {
+        const finalScore = Math.round(Number(
+          apiData?.riskScoring?.probabilityPercent ??
+          apiData?.project?.riskScore ??
+          0
+        ));
+
+        apiData.project.riskScore = finalScore;
+
+        if (apiData.riskScoring) {
+          apiData.riskScoring.probabilityPercent = finalScore;
+        }
+
         setData(apiData);
         setDataSources(normalizeDocumentsToDataSources(apiData.documents || []));
       } else {
