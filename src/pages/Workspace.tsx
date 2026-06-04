@@ -631,6 +631,35 @@ function WorkspaceInner() {
   };
 
   const fetchProject = async () => {
+    const isDemoProject = ['1001', '1002', '1003', '1004'].includes(String(id));
+
+    if (isDemoProject) {
+      const localDetail = getMockProjectDetail(id || '1001');
+      if (localDetail && localDetail.project) {
+        const finalScore = Math.round(Number(
+          localDetail?.riskScoring?.probabilityPercent ??
+          localDetail?.project?.riskScore ??
+          0
+        ) || 0);
+
+        localDetail.project.riskScore = finalScore;
+
+        if (localDetail.riskScoring) {
+          localDetail.riskScoring.probabilityPercent = finalScore;
+        }
+
+        setData(localDetail);
+        setDataSources(normalizeDocumentsToDataSources(localDetail.documents || []));
+        setLoadingProject(false);
+        console.log('[AuditEye] Workspace loaded demo detail from local mockData', {
+          id,
+          projectScore: localDetail.project.riskScore,
+          riskScoringScore: localDetail.riskScoring?.probabilityPercent
+        });
+        return;
+      }
+    }
+
     try {
       const res = await fetch(`/api/projects/${id}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`请求失败状态码: ${res.status}`);

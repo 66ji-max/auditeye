@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { Plus, Folder, Clock, Activity, Search, X, Upload, MoreHorizontal, FileText, Database, User, Shield } from 'lucide-react';
 import { toast } from '../components/Toast.tsx';
-import { mockProjects } from '../lib/mockData.ts';
+import { mockProjects, getMockProjects } from '../lib/mockData.ts';
 import { useAuth } from '../context/AuthContext';
 
 const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
@@ -34,37 +34,13 @@ export default function ProjectList() {
          setSystemMessage('健康检查请求失败，进入系统降级模式。');
       });
 
-    fetch('/api/projects', { cache: 'no-store' })
-      .then(res => {
-        if (!res.ok) throw new Error(`Failed with status ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          const normalized = data.map((p:any) => ({
-            ...p,
-            riskScore: Math.round(Number(p.riskScore ?? 0))
-          }));
-          setProjects(normalized);
-        } else {
-          console.warn("API returned empty/invalid array, fallback to local mock projects.");
-          const normalizedMock = mockProjects.map((p:any) => ({
-            ...p,
-            riskScore: Math.round(Number(p.riskScore ?? 0))
-          }));
-          setProjects(normalizedMock);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.warn("API unavailable, fallback to local mock projects. Error:", err);
-        const normalizedMock = mockProjects.map((p:any) => ({
-          ...p,
-          riskScore: Math.round(Number(p.riskScore ?? 0))
-        }));
-        setProjects(normalizedMock);
-        setLoading(false);
-      });
+    const localProjects = getMockProjects().map((p:any) => ({
+      ...p,
+      riskScore: Math.round(Number(p.riskScore ?? 0))
+    }));
+    setProjects(localProjects);
+    setLoading(false);
+    console.log('[AuditEye] ProjectList loaded demo projects from local mockData', localProjects.map((p:any) => ({ id: p.id, riskScore: p.riskScore })));
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
