@@ -35,7 +35,24 @@ async function startServer() {
   });
 
   // Projects API
+  app.get("/api/version", (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+    res.json({
+      buildTime: "2026-06-04 risk-score-v4",
+      source: "auditeye-server",
+      riskScorePatch: "unified-risk-score-v3",
+      mode: DEMO_MODE ? "demo" : "prod"
+    });
+  });
+
   app.get("/api/debug/risk-scores", (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
     const projs = getMockProjects();
     const results = [1001, 1002, 1003, 1004].map(id => {
       const listProj = projs.find(p => p.id.toString() === id.toString());
@@ -108,6 +125,9 @@ async function startServer() {
       }));
 
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      res.setHeader("Surrogate-Control", "no-store");
       return res.json(projects);
     }
     
@@ -299,6 +319,9 @@ async function startServer() {
         }
 
         res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+        res.setHeader("Surrogate-Control", "no-store");
 
         // Merge neon docs into mockData.documents
         const mergedDocs = [...(mockData.documents || [])] as any[];

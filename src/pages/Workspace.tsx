@@ -659,6 +659,18 @@ function WorkspaceInner() {
       console.warn("API 获取失败, 使用本地 Demo 数据", e);
       const fallbackData = getMockProjectDetail(id || 1) as any;
       if (fallbackData && fallbackData.project) {
+        const finalScore = Math.round(Number(
+          fallbackData?.riskScoring?.probabilityPercent ??
+          fallbackData?.project?.riskScore ??
+          0
+        ) || 0);
+
+        fallbackData.project.riskScore = finalScore;
+
+        if (fallbackData.riskScoring) {
+          fallbackData.riskScoring.probabilityPercent = finalScore;
+        }
+
         setData(fallbackData);
         setDataSources(normalizeDocumentsToDataSources(fallbackData.documents || []));
       } else {
@@ -742,7 +754,7 @@ function WorkspaceInner() {
     
     if (data.riskScoring) {
       riskEvaluationSection = `【全局风险评估】
-综合风险评分: ${Math.round(riskScoring?.probabilityPercent || 0)} /100 (${(riskScoring?.riskLevel || "未评估")}) 
+综合风险评分: ${score} /100 (${(riskScoring?.riskLevel || "未评估")}) 
 逻辑值 Z: ${Number(riskScoring?.zValue || 0).toFixed(4)}
 高危预警阈值: ${(riskScoring?.threshold || 0)}
 判断说明: ${(riskScoring?.conclusion || "暂无")}
@@ -836,7 +848,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
   <div class="section">
     <h2>02 风险发现详情</h2>
     ${data.riskScoring ? `
-    <p>综合风险评分（基于分层逻辑回归模型）：<span class="risk-score">${Math.round(riskScoring?.probabilityPercent || 0)} /100（${(riskScoring?.riskLevel || "未评估")}）</span></p>
+    <p>综合风险评分（基于分层逻辑回归模型）：<span class="risk-score">${score} /100（${(riskScoring?.riskLevel || "未评估")}）</span></p>
     <p>Z值：${Number(riskScoring?.zValue || 0).toFixed(4)} | 高危阈值：${(riskScoring?.threshold || 0)}</p>
     <p><strong>判断说明：</strong>${(riskScoring?.conclusion || "暂无")}</p>
     <p><strong>三维子指数：</strong>X1 身份关联指数 (${(riskScoring?.subIndices?.X1 || 0)}), X2 交易异常指数 (${(riskScoring?.subIndices?.X2 || 0)}), X3 外围牵连指数 (${(riskScoring?.subIndices?.X3 || 0)})</p>
@@ -1145,7 +1157,7 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                      <div className="space-y-6 max-w-4xl mx-auto py-8">
                        <div className="text-center p-8 bg-[#1A1A1A] border border-[#333333] rounded">
                          <div className="text-gray-400 text-lg mb-2">审计风险概率 P(Risk)</div>
-                         <div className="text-7xl font-bold tracking-tighter text-red-500 mb-4">{Math.round(riskScoring?.probabilityPercent || 0)} <span className="text-4xl text-gray-500 font-normal">/100</span></div>
+                         <div className="text-7xl font-bold tracking-tighter text-red-500 mb-4">{score} <span className="text-4xl text-gray-500 font-normal">/100</span></div>
                          <div className="text-lg"><span className="text-red-400 font-medium">风险等级：{(riskScoring?.riskLevel || "未评估")}</span> <span className="text-gray-500 mx-4">|</span> <span className="text-gray-400">高危阈值：{(riskScoring?.threshold || 0)}%</span></div>
                        </div>
                        
@@ -1187,13 +1199,13 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
                           <div className="bg-[#121212] border border-[#333333] rounded p-4 font-mono text-sm text-gray-300 space-y-2">
                              <div className="text-[#D4AF37]">P(Risk) = 1 / (1 + e^(-Z))</div>
                              <div>P(Risk) = 1 / (1 + e^(-{((riskScoring?.zValue || 0)).toFixed(4)}))</div>
-                             <div>P(Risk) ≈ {((riskScoring?.probabilityPercent || 0)/100).toFixed(3)}</div>
-                             <div className="text-xl text-white mt-4 pt-4 border-t border-[#333333]">P(Risk) = {Math.round(riskScoring?.probabilityPercent || 0)} /100</div>
+                             <div>P(Risk) ≈ {(score/100).toFixed(3)}</div>
+                             <div className="text-xl text-white mt-4 pt-4 border-t border-[#333333]">P(Risk) = {score} /100</div>
                           </div>
                           
                           <h4 className="text-gray-300 font-semibold mb-4 mt-6">判断结论</h4>
                           <div className="text-sm text-gray-300 bg-red-500/10 border border-red-500/20 p-4 rounded leading-relaxed">
-                            由于 <span className="text-red-400 font-bold">{Math.round(riskScoring?.probabilityPercent || 0)}</span> &gt; <span className="text-red-400 font-bold">{(riskScoring?.threshold || 0)}</span>，系统判定该项目为“<span className="text-red-400 font-bold">{(riskScoring?.riskLevel || "未评估")}</span>”，触发高危预警，并建议进入审计底稿回溯和人工重点复核流程。
+                            由于 <span className="text-red-400 font-bold">{score}</span> &gt; <span className="text-red-400 font-bold">{(riskScoring?.threshold || 0)}</span>，系统判定该项目为“<span className="text-red-400 font-bold">{(riskScoring?.riskLevel || "未评估")}</span>”，触发高危预警，并建议进入审计底稿回溯和人工重点复核流程。
                           </div>
                        </div>
                      </div>
