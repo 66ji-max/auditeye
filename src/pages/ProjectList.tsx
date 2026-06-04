@@ -7,6 +7,15 @@ import { useAuth } from '../context/AuthContext';
 
 const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
 
+
+const indNameMap: Record<string, string> = {
+  general: '通用审计模型',
+  ipo: 'IPO / 上市审查',
+  financial_investment: '金融投资 / 基金审计',
+  real_estate_construction: '地产工程 / 建设反舞弊',
+  manufacturing_supply_chain: '制造业 / 供应链采购',
+  energy_subsidy: '能源 / 补贴 / 政府项目'
+};
 export default function ProjectList() {
   const [projects, setProjects] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -414,6 +423,7 @@ export default function ProjectList() {
                     </div>
                     <div className="flex flex-wrap gap-2 mb-3">
                        <span className="px-2 py-0.5 bg-[#242424] border border-[#333333] rounded text-[10px] text-gray-300">{p.scenario}</span>
+                         {p.industryType && <span className="px-2 py-0.5 bg-[#333333] border border-[#444444] rounded text-[10px] text-[#D4AF37]">{indNameMap[p.industryType] || p.industryType}</span>}
                        <span className="flex items-center gap-1.5 text-[10px] text-blue-400 px-2 py-0.5 bg-[#242424] border border-[#333333] rounded"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div> 分析中</span>
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-gray-400 pt-3 border-t border-[#333333]">

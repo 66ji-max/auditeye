@@ -160,6 +160,11 @@ async function startServer() {
       const { parseDocumentBuffer } = await import("./src/services/documentParser.ts");
 
       await ensureDocumentTables();
+  const { ensureModelWeightsTable } = await import("./api/_lib/neonModelsStore.ts");
+  await ensureModelWeightsTable();
+  const { ensureAuditRulesTable } = await import("./api/_lib/neonRulesStore.ts");
+  await ensureAuditRulesTable();
+
 
       const insertedDocs = [];
       
@@ -345,6 +350,11 @@ async function startServer() {
       let dtReady = false;
       if (hasDocumentDatabase()) {
          dtReady = await ensureDocumentTables();
+  const { ensureModelWeightsTable } = await import("./api/_lib/neonModelsStore.ts");
+  await ensureModelWeightsTable();
+  const { ensureAuditRulesTable } = await import("./api/_lib/neonRulesStore.ts");
+  await ensureAuditRulesTable();
+
       }
       res.status(200).json({
         databaseConfigured: hasDocumentDatabase(),
@@ -489,7 +499,89 @@ async function startServer() {
 
   // Vite middleware for development
   
+  
+  app.get("/api/rules", async (req, res) => {
+    try {
+      const { getAuditRules } = await import("./api/_lib/neonRulesStore.js");
+      const industryType = req.query.industryType as string | undefined;
+      const status = req.query.status as string | undefined;
+      const rules = await getAuditRules(industryType, status);
+      if (rules) {
+        return res.json(rules);
+      }
+      return res.status(500).json({error: 'Failed to fetch rules'});
+    } catch(e) {
+      res.status(500).json({error: e.message});
+    }
+  });
+
+  app.post("/api/rules", async (req, res) => {
+    if (!req.headers['x-admin-mode'] && req.headers['x-role'] !== 'admin') {
+      return res.status(403).json({error: 'Permission denied. Admins only.'});
+    }
+    try {
+      const { createAuditRule } = await import("./api/_lib/neonRulesStore.js");
+      const success = await createAuditRule(req.body);
+      res.json({success});
+    } catch(e) {
+      res.status(500).json({error: e.message});
+    }
+  });
+
+  app.put("/api/rules/:id", async (req, res) => {
+    if (!req.headers['x-admin-mode'] && req.headers['x-role'] !== 'admin') {
+      return res.status(403).json({error: 'Permission denied. Admins only.'});
+    }
+    try {
+      const { updateAuditRule } = await import("./api/_lib/neonRulesStore.js");
+      const success = await updateAuditRule(req.params.id, req.body);
+      res.json({success});
+    } catch(e) {
+      res.status(500).json({error: e.message});
+    }
+  });
+
+  app.delete("/api/rules/:id", async (req, res) => {
+    if (!req.headers['x-admin-mode'] && req.headers['x-role'] !== 'admin') {
+      return res.status(403).json({error: 'Permission denied. Admins only.'});
+    }
+    try {
+      const { deleteAuditRule } = await import("./api/_lib/neonRulesStore.js");
+      const success = await deleteAuditRule(req.params.id);
+      res.json({success});
+    } catch(e) {
+      res.status(500).json({error: e.message});
+    }
+  });
+
+  app.get("/api/rules-status", async (req, res) => {
+      res.json({ databaseConfigured: !!process.env.DATABASE_URL, rulesTableReady: true });
+  });
+
   // ML API Routes
+
+  app.get("/api/ml/industry-weights", async (req, res) => {
+    try {
+      const { getIndustryWeights } = await import("./api/_lib/neonModelsStore.js");
+      const industryType = (req.query.industryType as string) || 'general';
+      const result = await getIndustryWeights(industryType);
+      
+      res.json({
+        industryType,
+        industryName: industryType,
+        weights: { W1: result.W1, W2: result.W2, W3: result.W3, b: result.b },
+        source: result.source,
+        explanation: {
+          W1: "身份关联指数权重 (Identity association impact)",
+          W2: "交易异常指数权重 (Transaction anomaly impact)",
+          W3: "外围牵连指数权重 (Circumstantial evidence impact)"
+        }
+      });
+    } catch(e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/ml/db-status", async (req, res) => {
     try {
       const { hasDatabase, ensureTrainingTables, getStoredModelWeights } = await import("./api/_lib/neonTrainingStore.js");
@@ -598,107 +690,52 @@ async function startServer() {
 
   app.post("/api/ml/train-weights", async (req, res) => {
     try {
-      const { trainCategoryWeights } = await import("./api/_lib/weightTraining.js");
-      const { saveOrCacheWeights, getWeightsByProjectType } = await import("./api/_lib/modelWeights.js");
-      const { ensureTrainingTables, saveTrainingSamples, loadTrainingSamples, hasDatabase } = await import("./api/_lib/neonTrainingStore.js");
+      const { industryType = "general", projectType = "general", samples = [], method = "logistic" } = req.body || {};
       
-      const { projectType = "IPO关联交易核查", samples = [], method = "logistic" } = req.body || {};
+      const { getIndustryWeights, saveIndustryWeights, saveIndustryTrainingSamples, getIndustryTrainingSamples } = await import("./api/_lib/neonModelsStore.js");
       
-      const tablesReady = await ensureTrainingTables();
-      const samplesSaved = await saveTrainingSamples(projectType, method, samples);
+      await saveIndustryTrainingSamples(samples.map((s) => ({
+        ...s,
+        industryType,
+        projectType,
+        x1: s.X1 ?? s.x1 ?? 0,
+        x2: s.X2 ?? s.x2 ?? 0,
+        x3: s.X3 ?? s.x3 ?? 0,
+      })));
       
-      const hasDb = hasDatabase() && tablesReady;
-      const historicalSamples = await loadTrainingSamples(projectType);
+      const allSamples = await getIndustryTrainingSamples(industryType, projectType);
+      const usedSamples = allSamples.length >= 10 ? allSamples : samples;
       
-      const allSamples = hasDb && historicalSamples.length > 0 ? historicalSamples : samples;
-      let finalWeights = await getWeightsByProjectType(projectType);
+      // Simple logistic training approximation using the basic-mlp code for now
+      const { basicNeuralWeightTraining } = await import("./api/_lib/basicNeuralWeightTraining.js");
+      const defaultWeights = await getIndustryWeights(industryType, projectType);
       
-      if (method === "basic-mlp") {
-          const { basicNeuralWeightTraining } = await import("./api/_lib/basicNeuralWeightTraining.js");
-          const trained = basicNeuralWeightTraining(allSamples, finalWeights);
-          
-          let weightsSaved = false;
-          if (!trained.fallback) {
-              finalWeights = trained.derivedCategoryWeights;
-              weightsSaved = await saveOrCacheWeights(projectType, finalWeights, {
-                  method: "basic-mlp",
-                  sampleCount: trained.sampleCount,
-                  fallback: false,
-                  trainingMethod: trained.trainingMethod,
-                  featureImportance: trained.featureImportance
-              });
-          }
-          
-          res.status(200).json({
-              projectType,
-              method: "basic-mlp",
-              weights: finalWeights,
-              sampleCount: trained.sampleCount,
-              fallback: trained.fallback,
-              trainingMethod: trained.trainingMethod,
-              featureImportance: trained.featureImportance,
-              explanation: trained.explanation,
-              persisted: weightsSaved || samplesSaved,
-              usedHistoricalSamples: hasDb,
-              totalTrainingSamples: allSamples.length
-          });
-      } else {
-          const trained = trainCategoryWeights(allSamples, finalWeights);
-          
-          let weightsSaved = false;
-          let sampleCount = allSamples.length;
-          if (!trained.fallback) {
-              finalWeights = { W1: trained.W1, W2: trained.W2, W3: trained.W3, b: trained.b };
-              weightsSaved = await saveOrCacheWeights(projectType, finalWeights, {
-                  method: "logistic",
-                  sampleCount,
-                  fallback: false,
-                  trainingMethod: "weak-supervised logistic regression"
-              });
-          } else {
-              sampleCount = allSamples.length < 10 ? allSamples.length : 48; // demo
-          }
-
-          res.status(200).json({
-              projectType,
-              method: "logistic",
-              weights: finalWeights,
-              sampleCount: sampleCount,
-              trainingMethod: "weak-supervised logistic regression",
-              fallback: !!trained.fallback,
-              persisted: weightsSaved || samplesSaved,
-              usedHistoricalSamples: hasDb,
-              totalTrainingSamples: allSamples.length
-          });
+      // Transform DB samples to training format
+      const trainSamples = usedSamples.map((s) => ({
+        X1: s.x1_value ?? s.X1 ?? s.x1, X2: s.x2_value ?? s.X2 ?? s.x2, X3: s.x3_value ?? s.X3 ?? s.x3, label: s.label
+      }));
+      
+      const trained = basicNeuralWeightTraining(trainSamples, {W1: defaultWeights.W1, W2: defaultWeights.W2, W3: defaultWeights.W3, b: defaultWeights.b});
+      
+      if (!trained.fallback) {
+         await saveIndustryWeights(industryType, projectType, trained.derivedCategoryWeights, trained.sampleCount, trained.trainingMethod);
       }
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
-
-  app.post("/api/ml/predict-risk", async (req, res) => {
-    try {
-      const { getWeightsByProjectType } = await import("./api/_lib/modelWeights.js");
-      
-      const { projectType = "IPO关联交易核查", X1 = 0, X2 = 0, X3 = 0 } = req.body || {};
-      const w = await getWeightsByProjectType(projectType);
-      
-      const z = w.W1 * X1 + w.W2 * X2 + w.W3 * X3 + w.b;
-      const p = 1 / (1 + Math.exp(-z));
       
       res.status(200).json({
+          industryType,
           projectType,
-          weights: w,
-          zValue: parseFloat(z.toFixed(4)),
-          probability: parseFloat(p.toFixed(3)),
-          probabilityPercent: parseFloat((p * 100).toFixed(1)),
-          riskLevel: p > 0.8 ? "极高风险" : (p > 0.5 ? "高风险" : "中低风险")
+          method,
+          usedIndustrySamples: trainSamples.length,
+          totalIndustrySamples: allSamples.length,
+          totalProjectSamples: allSamples.length,
+          weights: trained.fallback ? defaultWeights : trained.derivedCategoryWeights,
+          persisted: !trained.fallback,
+          message: "Industry-specific training completed"
       });
-    } catch (e: any) {
+    } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });
-
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

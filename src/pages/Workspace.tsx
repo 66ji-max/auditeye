@@ -2082,6 +2082,15 @@ ${data.documents?.map((d: any, i: number) => `${i + 1}. ${d.originalName}`).join
 }
 
 
+
+const indNameMap: Record<string, string> = {
+  general: '通用审计模型',
+  ipo: 'IPO / 上市审查',
+  financial_investment: '金融投资 / 基金审计',
+  real_estate_construction: '地产工程 / 建设反舞弊',
+  manufacturing_supply_chain: '制造业 / 供应链采购',
+  energy_subsidy: '能源 / 补贴 / 政府项目'
+};
 export default function Workspace() {
   return (
     <ErrorBoundary>

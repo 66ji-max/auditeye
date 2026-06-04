@@ -1,28 +1,49 @@
+import { useAuth } from '../context/AuthContext';
 import React, { useState, useEffect } from 'react';
 import { Settings, Plus, Activity, Edit3, Trash2, Shield, Calendar, User, Search, Play, FileText, CheckCircle, AlertTriangle, AlertOctagon, RefreshCw, X, File } from 'lucide-react';
 import { toast } from '../components/Toast.tsx';
 
-const MOCK_RULE_SETS = {
-  standard: [
-    { id: 'R-X1A', name: '实控网重合度检测', category: '身份网络', trigger: 'Jaccard > 0.8', weight: 85, status: 'enabled', lastHit: '2026/05/30', owner: 'System' },
-    { id: 'R-X2C', name: '大额进出异常波动', category: '交易异常', trigger: 'Z-score > 3', weight: 90, status: 'enabled', lastHit: '2026/05/29', owner: 'System' },
-    { id: 'R-X3B', name: '利益绑定涉诉率', category: '外围痕迹', trigger: '包含"破产"等判定', weight: 60, status: 'enabled', lastHit: '2026/05/25', owner: 'System' }
-  ],
-  extreme: [
-    { id: 'R-E1', name: '深度穿透：5级法定代表人环绕', category: '极度穿透', trigger: 'Hop Count >= 5 && Cycle = True', weight: 95, status: 'enabled', lastHit: '2026/05/28', owner: 'System' },
-    { id: 'R-E2', name: '暗网资金流向模式', category: '极度穿透', trigger: '匹配离岸账户特征', weight: 100, status: 'enabled', lastHit: '-', owner: 'System' }
-  ],
-  fmcg: [
-    { id: 'R-C1', name: '渠道商压货反向退货', category: '快消专用', trigger: '月底销量激增+次月退货', weight: 75, status: 'enabled', lastHit: '2026/05/31', owner: 'User' },
-    { id: 'R-C2', name: '区域串货模糊匹配', category: '快消专用', trigger: '物流轨迹跨区', weight: 65, status: 'disabled', lastHit: '2026/05/10', owner: 'User' }
-  ]
-};
+
+const INDUSTRY_TYPES = [
+  { id: 'all', name: '全部门类' },
+  { id: 'general', name: '通用审计模型' },
+  { id: 'ipo', name: 'IPO / 上市审查' },
+  { id: 'financial_investment', name: '金融投资 / 基金审计' },
+  { id: 'real_estate_construction', name: '地产工程 / 建设反舞弊' },
+  { id: 'manufacturing_supply_chain', name: '制造业 / 供应链采购' },
+  { id: 'energy_subsidy', name: '能源 / 补贴 / 政府项目' }
+];
 
 export default function RuleEngine() {
-  const [currentSet, setCurrentSet] = useState<'standard'|'extreme'|'fmcg'>('standard');
-  const [rules, setRules] = useState<any[]>(MOCK_RULE_SETS.standard);
+  
+  const { isAdmin } = useAuth();
+  const [currentSet, setCurrentSet] = useState<string>('all');
+  const [rules, setRules] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   
+  const fetchRules = async (industry: string) => {
+    setLoading(true);
+    try {
+      let url = '/api/rules';
+      if (industry !== 'all') {
+         url += '?industryType=' + industry;
+      }
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setRules(data);
+      }
+    } catch(e) {
+      console.warn('Failed to fetch rules', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRules(currentSet);
+  }, [currentSet]);
+
   // Modals / Drawers
   const [showDrawer, setShowDrawer] = useState(false);
   const [selectedRule, setSelectedRule] = useState<any>(null);
@@ -55,7 +76,7 @@ export default function RuleEngine() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          projectType: currentSet === 'standard' ? 'IPO关联交易核查' : '其它项目门类',
+          industryType: currentSet === 'all' ? 'general' : currentSet,
           method: trainMethod
         })
       });
@@ -103,15 +124,7 @@ export default function RuleEngine() {
   };
 
 
-  const handleSetChange = (key: 'standard'|'extreme'|'fmcg', name: string) => {
-    setLoading(true);
-    setCurrentSet(key);
-    setTimeout(() => {
-      setRules(MOCK_RULE_SETS[key]);
-      setLoading(false);
-      toast(`已切换至 ${name}`, 'success');
-    }, 400);
-  };
+  
 
   const handleRunTest = () => {
     if (!sandboxInput) return;
@@ -130,23 +143,80 @@ export default function RuleEngine() {
     }, 1500);
   };
 
-  const handleSaveRule = () => {
-    setShowNewRule(false);
-    toast('规则已保存并进入待审核状态', 'success');
-    // Mock local addition
-    setRules([{ id: 'R-NEW', name: '新规则测试', category: '自定义', trigger: '条件 > X', weight: 50, status: 'disabled', lastHit: '-', owner: 'Current User' }, ...rules]);
+  
+  const handleSaveRule = async () => {
+    if (!isAdmin) { toast('仅管理员可操作', 'error'); return; }
+    try {
+      const res = await fetch('/api/rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-mode': 'true', 'x-role': 'admin' },
+        body: JSON.stringify({
+          id: 'R-CUSTOM-' + Math.floor(Math.random()*10000),
+          name: '新规则测试',
+          category: '自定义',
+          industryType: currentSet === 'all' ? 'general' : currentSet,
+          weight: 50,
+          severity: 'medium',
+          status: 'disabled',
+          description: '',
+          createdBy: 'admin'
+        })
+      });
+      if (res.ok) {
+        toast('规则已保存并进入待审核状态', 'success');
+        setShowNewRule(false);
+        fetchRules(currentSet);
+      } else {
+        toast('保存失败', 'error');
+      }
+    } catch(e) {
+      toast('保存异常', 'error');
+    }
   };
 
-  const handleConfirmDisable = () => {
-    setRules(rules.map(r => r.id === selectedRule?.id ? { ...r, status: 'disabled' } : r));
-    setShowDisable(false);
-    toast('该规则已被停用', 'success');
+
+  
+  const handleConfirmDisable = async () => {
+    if (!isAdmin) { toast('仅管理员可操作', 'error'); return; }
+    try {
+      const res = await fetch('/api/rules/' + selectedRule?.id, {
+        method: 'DELETE',
+        headers: { 'x-admin-mode': 'true', 'x-role': 'admin' }
+      });
+      if (res.ok) {
+        toast('该规则已被停用', 'success');
+        setShowDisable(false);
+        fetchRules(currentSet);
+      } else {
+        toast('停用失败', 'error');
+      }
+    } catch(e) {
+      toast('停用异常', 'error');
+    }
   };
 
-  const handleSaveEdit = () => {
-    setShowEdit(false);
-    toast('规则修改已生效', 'success');
+
+  
+  const handleSaveEdit = async () => {
+    if (!isAdmin) { toast('仅管理员可操作', 'error'); return; }
+    try {
+      const res = await fetch('/api/rules/' + selectedRule?.id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-mode': 'true', 'x-role': 'admin' },
+        body: JSON.stringify({ ...selectedRule, name: selectedRule.name + ' (已编辑)' }) // Demo edit
+      });
+      if (res.ok) {
+        toast('规则修改已生效', 'success');
+        setShowEdit(false);
+        fetchRules(currentSet);
+      } else {
+        toast('修改失败', 'error');
+      }
+    } catch(e) {
+      toast('修改异常', 'error');
+    }
   };
+
 
   return (
     <div className="h-full w-full bg-[#1A1A1A] p-6 text-gray-200 overflow-y-auto custom-scrollbar relative">
@@ -161,16 +231,15 @@ export default function RuleEngine() {
             </h1>
             <p className="text-xs text-gray-500 mt-1">管理并调试用于实体交叉验证与风险评分的规则集版本。</p>
           </div>
-          <button onClick={() => setShowNewRule(true)} className="px-4 py-2 bg-[#D4AF37] hover:bg-[#E5C048] text-[#1A1A1A] font-medium text-sm rounded shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center gap-2 transition-all">
-            <Plus className="w-4 h-4" /> 新建规则
-          </button>
+          {isAdmin && <button onClick={() => setShowNewRule(true)} className="px-4 py-2 bg-[#D4AF37] hover:bg-[#E5C048] text-[#1A1A1A] font-medium text-sm rounded shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center gap-2 transition-all">
+            <Plus className="w-4 h-4" /> 新建规则</button>}
         </div>
 
         {/* Overview Card */}
         <div className="bg-[#242424] border border-[#333333] p-6 rounded-lg grid grid-cols-5 gap-4">
            <div>
              <div className="text-gray-400 text-xs mb-1">当前规则集</div>
-             <div className="text-gray-100 font-semibold truncate">{currentSet === 'standard' ? '标准审计预警 v1.4.2' : currentSet === 'extreme' ? '极度穿透关联模型' : '快消行业专用模板'}</div>
+             <div className="text-gray-100 font-semibold truncate">{INDUSTRY_TYPES.find(t=>t.id===currentSet)?.name || ''}</div>
            </div>
            <div>
              <div className="text-gray-400 text-xs mb-1">生效规则数</div>
@@ -191,11 +260,18 @@ export default function RuleEngine() {
         </div>
 
         {/* Rule Sets Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#333333]">
-           <button onClick={() => handleSetChange('standard', '标准审计预警 v1.4.2')} className={`px-4 py-2 whitespace-nowrap text-sm rounded-t ${currentSet === 'standard' ? 'bg-[#333333] text-[#D4AF37] font-medium border-b-2 border-[#D4AF37]' : 'text-gray-400 hover:text-gray-200 hover:bg-[#242424]'}`}>标准审计预警 v1.4.2</button>
-           <button onClick={() => handleSetChange('extreme', '极度穿透关联模型')} className={`px-4 py-2 whitespace-nowrap text-sm rounded-t ${currentSet === 'extreme' ? 'bg-[#333333] text-[#D4AF37] font-medium border-b-2 border-[#D4AF37]' : 'text-gray-400 hover:text-gray-200 hover:bg-[#242424]'}`}>极度穿透关联模型</button>
-           <button onClick={() => handleSetChange('fmcg', '快消行业专用模板')} className={`px-4 py-2 whitespace-nowrap text-sm rounded-t ${currentSet === 'fmcg' ? 'bg-[#333333] text-[#D4AF37] font-medium border-b-2 border-[#D4AF37]' : 'text-gray-400 hover:text-gray-200 hover:bg-[#242424]'}`}>快消行业专用模板</button>
-        </div>
+        
+<div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#333333] custom-scrollbar">
+  {INDUSTRY_TYPES.map(type => (
+    <button 
+      key={type.id} 
+      onClick={() => { setCurrentSet(type.id); toast('已切换至 ' + type.name, 'success'); }} 
+      className={`px-4 py-2 whitespace-nowrap text-sm rounded-t ${currentSet === type.id ? 'bg-[#333333] text-[#D4AF37] font-medium border-b-2 border-[#D4AF37]' : 'text-gray-400 hover:text-gray-200 hover:bg-[#242424]'}`}>
+      {type.name}
+    </button>
+  ))}
+</div>
+
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Main Table */}
@@ -238,8 +314,8 @@ export default function RuleEngine() {
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-gray-400">{r.lastHit}</td>
                       <td className="px-4 py-3 text-right space-x-1" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => { setSelectedRule(r); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-[#D4AF37] rounded transition-colors"><Edit3 className="w-4 h-4" /></button>
-                        <button onClick={() => { setSelectedRule(r); setShowDisable(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-red-500 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        {isAdmin && <button onClick={() => { setSelectedRule(r); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-[#D4AF37] rounded transition-colors"><Edit3 className="w-4 h-4" /></button>}
+                        {isAdmin && <button onClick={() => { setSelectedRule(r); setShowDisable(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-red-500 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>}
                       </td>
                     </tr>
                   ))}

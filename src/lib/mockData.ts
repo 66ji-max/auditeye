@@ -35,7 +35,7 @@ function buildRiskScoring(rawFeatures: any, conclusion: string, warning?: string
 
 export const demoProjectDetailsMap: Record<string, any> = {
   '1001': {
-    project: { id: '1001', name: "发行人关联交易智能核查项目", scenario: "IPO关联交易核查", createdAt: new Date().toISOString() },
+    project: { id: '1001', name: "发行人关联交易智能核查项目", industryType: "ipo", scenario: "IPO关联交易核查", createdAt: new Date().toISOString() },
     documents: [
       { id: 1, fileName: 'bank_statement.pdf', originalName: '1-登XX集团对公流水.pdf', sourceType: '.pdf' },
       { id: 2, fileName: 'contract.pdf', originalName: '与旺XX公司历史采购框架.pdf', sourceType: '.pdf' },
@@ -555,6 +555,7 @@ export const getMockProjects = () => {
       id: detail.project.id,
       name: detail.project.name,
       scenario: detail.project.scenario,
+      industryType: detail.project.industryType,
       riskScore: getUnifiedRiskScore(detail),
       riskLevel: detail.project.riskLevel,
       docCount: detail.documents?.length ?? 0,
