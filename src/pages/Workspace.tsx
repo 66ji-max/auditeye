@@ -212,7 +212,7 @@ const ExpandedPanelModal = ({ expandedPanel, setExpandedPanel }: any) => {
 let WorkspaceFeatureModal;
 const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, setExpandedPanel, onReadOriginal, openFeatureImage }: { data: any, onFeatureClick?: (feature: any) => void, onExpand?: () => void, expanded?: boolean, setExpandedPanel?: any, onReadOriginal?: (feature:any) => void, openFeatureImage?: (feature:any) => void }) => {
   if (!data) return null;
-  const { probabilityPercent, riskLevel, threshold, zValue, warning, subIndices, rawFeatures, conclusion, globalWeights, localWeights } = data;
+  const { probabilityPercent, riskLevel, threshold, zValue, warning, subIndices, rawFeatures, conclusion, globalWeights, localWeights, industryType, industryName } = data;
   const displayProbabilityPercent = Math.round(Number(probabilityPercent ?? 0) || 0);
   
   const handleSubIndexExpand = (type: 'X1'|'X2'|'X3', title: string, color: string, features: any[], w: number) => {
@@ -309,8 +309,13 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
           </div>
           <div className="text-right">
             <div className={`${expanded ? 'text-xs' : 'text-[10px]'} text-gray-500 font-mono`}>算法模型：分层逻辑回归</div>
-            <div className={`${expanded ? 'text-sm' : 'text-[10px]'} text-gray-400 font-mono mt-1`}>Z = {zValue.toFixed(4)}</div>
+            <div className={`${expanded ? 'text-sm' : 'text-[10px]'} text-gray-400 font-mono mt-1`}>Z = {zValue?.toFixed(4) || 0}</div>
             <div className={`${expanded ? 'text-xs' : 'text-[10px]'} text-gray-500 font-mono mt-1`}>高危阈值 P &gt; {threshold}%</div>
+            {industryName && (
+               <div className={`${expanded ? 'text-xs' : 'text-[10px]'} text-[#D4AF37] font-mono mt-2`}>
+                 模型门类: {industryName}
+               </div>
+            )}
           </div>
         </div>
         <p className={`${expanded ? 'text-sm' : 'text-[11px]'} text-gray-300 leading-relaxed border-t border-[#333333] ${expanded ? 'pt-4' : 'pt-3'} relative z-10`}>

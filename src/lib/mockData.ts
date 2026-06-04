@@ -1,3 +1,4 @@
+import { DEFAULT_INDUSTRY_WEIGHTS, INDUSTRY_TYPES } from '../config/industryWeights.ts';
 import { 
   calculateProjectRisk, 
   RISK_DIMENSIONS,
@@ -8,28 +9,26 @@ import {
   GLOBAL_RISK_WEIGHTS
 } from '../config/riskScoring.ts';
 
-function buildRiskScoring(rawFeatures: any, conclusion: string, warning?: string) {
+function buildRiskScoring(rawFeatures: any, conclusion: string, warning?: string, industryType: string = "general") {
   const subIndices = calculateSubIndices(rawFeatures);
-  const zValue = calculateZValue(subIndices);
+  const indWeights = DEFAULT_INDUSTRY_WEIGHTS[industryType] || DEFAULT_INDUSTRY_WEIGHTS['general'];
+  const zValue = calculateZValue(subIndices, indWeights);
   const probability = calculateRiskProbability(zValue);
-  const probabilityPercent = Number((probability * 100).toFixed(1));
+  const probabilityPercent = Math.round(Number((probability * 100).toFixed(1)));
   const riskLevel = getRiskLevelByProbability(probability);
-
+  
   return {
     rawFeatures,
-    subIndices: {
-      X1: Number(subIndices.X1.toFixed(2)),
-      X2: Number(subIndices.X2.toFixed(2)),
-      X3: Number(subIndices.X3.toFixed(2))
-    },
-    globalWeights: GLOBAL_RISK_WEIGHTS,
-    zValue: Number(zValue.toFixed(4)),
-    probability: Number(probability.toFixed(3)),
+    subIndices,
+    zValue,
+    probability,
     probabilityPercent,
-    threshold: 75,
     riskLevel,
+    conclusion,
     warning,
-    conclusion
+    globalWeights: indWeights,
+    industryType,
+    industryName: INDUSTRY_TYPES[industryType as keyof typeof INDUSTRY_TYPES]?.label || "通用审计模型"
   };
 }
 
@@ -283,7 +282,7 @@ export const demoProjectDetailsMap: Record<string, any> = {
           evidenceSource: { documentName: "回款客户穿透核查表.xlsx", page: "关联方", paragraph: "注销名单", originalText: "赵宏图曾任职的3家壳公司接连注销。" }
         }
       ]
-    }, "存在严重大客户资金回转异常，隐形关联与突击交易并存。", "IPO发行风险极其严重")
+    }, "存在严重大客户资金回转异常，隐形关联与突击交易并存。", "IPO发行风险极其严重", "ipo")
   },
   '1003': {
     project: { id: '1003', name: "鼎信资本年度审计关联方排查", scenario: "年度审计异常追踪", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
@@ -377,7 +376,7 @@ export const demoProjectDetailsMap: Record<string, any> = {
           evidenceSource: { documentName: "关联方管理层访谈记录.docx", page: "附件", paragraph: "备查", originalText: "类似担保违规曾有警示函先例。" }
         }
       ]
-    }, "存在多起高等级高管隐形关联及未披露的资金拆借。", "审计发现显著内控漏洞")
+    }, "存在多起高等级高管隐形关联及未披露的资金拆借。", "审计发现显著内控漏洞", "financial_investment")
   },
   '1004': {
     project: { id: '1004', name: "华泰置业烂尾楼资金抽逃协查", scenario: "内部反欺诈审查", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
@@ -472,7 +471,7 @@ export const demoProjectDetailsMap: Record<string, any> = {
           evidenceSource: { documentName: "建材供应商付款明细.xlsx", page: "补充材料", paragraph: "社会风险", originalText: "发生多起要求即刻退房还本及地方问政留言的恶性反馈" }
         }
       ]
-    }, "存在严重裙带关系舞弊与不可挽回的伪造签字套壳资金抽逃，属于恶性欺诈。", "确认严重烂尾违规抽逃")
+    }, "存在严重裙带关系舞弊与不可挽回的伪造签字套壳资金抽逃，属于恶性欺诈。", "确认严重烂尾违规抽逃", "real_estate_construction")
   }
 };
 

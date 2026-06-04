@@ -71,11 +71,9 @@ export function calculateSubIndices(rawFeatures: any) {
   return { X1, X2, X3 };
 }
 
-export function calculateZValue(subIndices: { X1: number, X2: number, X3: number }) {
-  return GLOBAL_RISK_WEIGHTS.W1 * subIndices.X1 +
-         GLOBAL_RISK_WEIGHTS.W2 * subIndices.X2 +
-         GLOBAL_RISK_WEIGHTS.W3 * subIndices.X3 +
-         GLOBAL_RISK_WEIGHTS.b;
+export function calculateZValue(subIndices: { X1: number, X2: number, X3: number }, overrideWeights?: { W1: number, W2: number, W3: number, b: number }) {
+  const w = overrideWeights || GLOBAL_RISK_WEIGHTS; 
+  return w.W1 * subIndices.X1 + w.W2 * subIndices.X2 + w.W3 * subIndices.X3 + w.b;
 }
 
 export function calculateRiskProbability(z: number) {

@@ -562,20 +562,31 @@ async function startServer() {
 
   app.get("/api/ml/industry-weights", async (req, res) => {
     try {
+      const { INDUSTRY_TYPES, DEFAULT_INDUSTRY_WEIGHTS } = await import("./src/config/industryWeights.js");
+      res.json({
+        categories: INDUSTRY_TYPES,
+        defaults: DEFAULT_INDUSTRY_WEIGHTS
+      });
+    } catch(e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/ml/industry-weights/:industryType", async (req, res) => {
+    try {
       const { getIndustryWeights } = await import("./api/_lib/neonModelsStore.js");
-      const industryType = (req.query.industryType as string) || 'general';
+      const industryType = req.params.industryType || 'general';
       const result = await getIndustryWeights(industryType);
+      
+      const { INDUSTRY_TYPES } = await import("./src/config/industryWeights.js");
+      const name = INDUSTRY_TYPES[industryType]?.label || "通用审计模型";
       
       res.json({
         industryType,
-        industryName: industryType,
+        industryName: name,
         weights: { W1: result.W1, W2: result.W2, W3: result.W3, b: result.b },
         source: result.source,
-        explanation: {
-          W1: "身份关联指数权重 (Identity association impact)",
-          W2: "交易异常指数权重 (Transaction anomaly impact)",
-          W3: "外围牵连指数权重 (Circumstantial evidence impact)"
-        }
+        rationale: result.rationale
       });
     } catch(e) {
       res.status(500).json({ error: e.message });
@@ -693,6 +704,7 @@ async function startServer() {
       const { industryType = "general", projectType = "general", samples = [], method = "logistic" } = req.body || {};
       
       const { getIndustryWeights, saveIndustryWeights, saveIndustryTrainingSamples, getIndustryTrainingSamples } = await import("./api/_lib/neonModelsStore.js");
+      const { DEFAULT_INDUSTRY_WEIGHTS } = await import("./src/config/industryWeights.js");
       
       await saveIndustryTrainingSamples(samples.map((s) => ({
         ...s,
@@ -705,20 +717,32 @@ async function startServer() {
       
       const allSamples = await getIndustryTrainingSamples(industryType, projectType);
       const usedSamples = allSamples.length >= 10 ? allSamples : samples;
+      const sampleCount = usedSamples.length;
       
-      // Simple logistic training approximation using the basic-mlp code for now
       const { basicNeuralWeightTraining } = await import("./api/_lib/basicNeuralWeightTraining.js");
-      const defaultWeights = await getIndustryWeights(industryType, projectType);
       
-      // Transform DB samples to training format
+      const defaultWeights = DEFAULT_INDUSTRY_WEIGHTS[industryType] || DEFAULT_INDUSTRY_WEIGHTS['general'];
+      
       const trainSamples = usedSamples.map((s) => ({
         X1: s.x1_value ?? s.X1 ?? s.x1, X2: s.x2_value ?? s.X2 ?? s.x2, X3: s.x3_value ?? s.X3 ?? s.x3, label: s.label
       }));
       
       const trained = basicNeuralWeightTraining(trainSamples, {W1: defaultWeights.W1, W2: defaultWeights.W2, W3: defaultWeights.W3, b: defaultWeights.b});
       
+      let finalWeights = { ...defaultWeights };
+      let alpha = 0;
+      let learnedWeights = trained.derivedCategoryWeights;
+      
       if (!trained.fallback) {
-         await saveIndustryWeights(industryType, projectType, trained.derivedCategoryWeights, trained.sampleCount, trained.trainingMethod);
+         alpha = Math.min(0.9, sampleCount / (sampleCount + 30));
+         finalWeights = {
+           W1: alpha * learnedWeights.W1 + (1 - alpha) * defaultWeights.W1,
+           W2: alpha * learnedWeights.W2 + (1 - alpha) * defaultWeights.W2,
+           W3: alpha * learnedWeights.W3 + (1 - alpha) * defaultWeights.W3,
+           b: alpha * learnedWeights.b + (1 - alpha) * defaultWeights.b,
+           rationale: defaultWeights.rationale
+         };
+         await saveIndustryWeights(industryType, projectType, finalWeights, sampleCount, trained.trainingMethod, alpha, defaultWeights, learnedWeights);
       }
       
       res.status(200).json({
@@ -728,7 +752,13 @@ async function startServer() {
           usedIndustrySamples: trainSamples.length,
           totalIndustrySamples: allSamples.length,
           totalProjectSamples: allSamples.length,
-          weights: trained.fallback ? defaultWeights : trained.derivedCategoryWeights,
+          sampleCount,
+          alpha,
+          defaultWeights: { W1: defaultWeights.W1, W2: defaultWeights.W2, W3: defaultWeights.W3, b: defaultWeights.b },
+          learnedWeights,
+          finalWeights,
+          weights: finalWeights,
+          source: "blended_learning",
           persisted: !trained.fallback,
           message: "Industry-specific training completed"
       });

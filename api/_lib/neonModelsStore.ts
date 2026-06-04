@@ -7,14 +7,7 @@ const getSql = () => {
   return neon(process.env.DATABASE_URL);
 };
 
-export const INDUSTRY_DEFAULTS: Record<string, {W1: number, W2: number, W3: number, b: number}> = {
-  general: { W1: 2.2, W2: 3.0, W3: 1.2, b: -3.0 },
-  ipo: { W1: 2.8, W2: 3.2, W3: 1.0, b: -3.2 },
-  financial_investment: { W1: 3.1, W2: 2.4, W3: 1.1, b: -3.0 },
-  real_estate_construction: { W1: 2.2, W2: 3.6, W3: 1.8, b: -3.3 },
-  manufacturing_supply_chain: { W1: 2.4, W2: 3.1, W3: 1.2, b: -3.1 },
-  energy_subsidy: { W1: 1.9, W2: 2.6, W3: 2.2, b: -3.0 },
-};
+import { DEFAULT_INDUSTRY_WEIGHTS } from '../../src/config/industryWeights.js';
 
 export async function ensureModelWeightsTable(): Promise<boolean> {
   if (!process.env.DATABASE_URL) return false;
@@ -32,6 +25,10 @@ export async function ensureModelWeightsTable(): Promise<boolean> {
         b DOUBLE PRECISION NOT NULL,
         sample_count INTEGER DEFAULT 0,
         fallback BOOLEAN DEFAULT false,
+        alpha DOUBLE PRECISION DEFAULT 0,
+        default_weights JSONB,
+        learned_weights JSONB,
+        final_weights JSONB,
         training_method TEXT,
         feature_importance JSONB,
         updated_at TIMESTAMPTZ DEFAULT now(),
@@ -60,38 +57,52 @@ export async function ensureModelWeightsTable(): Promise<boolean> {
   }
 }
 
+
 export async function getIndustryWeights(industryType: string = 'general', projectType?: string) {
+  const getRationale = (ind: string) => DEFAULT_INDUSTRY_WEIGHTS[ind]?.rationale || DEFAULT_INDUSTRY_WEIGHTS['general'].rationale;
   if (!process.env.DATABASE_URL) {
-    return { ... (INDUSTRY_DEFAULTS[industryType] || INDUSTRY_DEFAULTS['general']), source: 'default' };
+    return { ... (DEFAULT_INDUSTRY_WEIGHTS[industryType] || DEFAULT_INDUSTRY_WEIGHTS['general']), source: 'default_industry', rationale: getRationale(industryType) };
   }
   
   const sql = getSql();
   try {
     if (projectType) {
       const projSpecific = await sql`SELECT * FROM industry_model_weights WHERE industry_type = ${industryType} AND project_type = ${projectType} LIMIT 1`;
-      if (projSpecific.length > 0) return { W1: projSpecific[0].w1, W2: projSpecific[0].w2, W3: projSpecific[0].w3, b: projSpecific[0].b, source: 'database' };
+      if (projSpecific.length > 0) return { W1: projSpecific[0].w1, W2: projSpecific[0].w2, W3: projSpecific[0].w3, b: projSpecific[0].b, source: projSpecific[0].learned_weights ? 'blended_learning' : 'learned_project', rationale: getRationale(industryType) };
     }
     
     const indSpecific = await sql`SELECT * FROM industry_model_weights WHERE industry_type = ${industryType} AND project_type = 'general' LIMIT 1`;
-    if (indSpecific.length > 0) return { W1: indSpecific[0].w1, W2: indSpecific[0].w2, W3: indSpecific[0].w3, b: indSpecific[0].b, source: 'database' };
+    if (indSpecific.length > 0) return { W1: indSpecific[0].w1, W2: indSpecific[0].w2, W3: indSpecific[0].w3, b: indSpecific[0].b, source: indSpecific[0].learned_weights ? 'blended_learning' : 'learned_industry', rationale: getRationale(industryType) };
 
     const general = await sql`SELECT * FROM industry_model_weights WHERE industry_type = 'general' AND project_type = 'general' LIMIT 1`;
-    if (general.length > 0) return { W1: general[0].w1, W2: general[0].w2, W3: general[0].w3, b: general[0].b, source: 'database' };
+    if (general.length > 0) return { W1: general[0].w1, W2: general[0].w2, W3: general[0].w3, b: general[0].b, source: 'blended_learning', rationale: getRationale('general') };
 
   } catch(e) {}
   
-  return { ... (INDUSTRY_DEFAULTS[industryType] || INDUSTRY_DEFAULTS['general']), source: 'default' };
+  return { ... (DEFAULT_INDUSTRY_WEIGHTS[industryType] || DEFAULT_INDUSTRY_WEIGHTS['general']), source: industryType === 'general' ? 'default_general' : 'default_industry', rationale: getRationale(industryType) };
 }
 
-export async function saveIndustryWeights(industryType: string, projectType: string, weights: {W1: number, W2: number, W3: number, b: number}, sampleCount: number, trainingMethod: string = 'SGD_LogisticRegression') {
+
+export async function saveIndustryWeights(
+  industryType: string, 
+  projectType: string, 
+  finalWeights: {W1: number, W2: number, W3: number, b: number}, 
+  sampleCount: number, 
+  trainingMethod: string = 'SGD_LogisticRegression',
+  alpha: number = 0,
+  defaultWeights: any = {},
+  learnedWeights: any = {}
+) {
   if (!process.env.DATABASE_URL) return;
   const sql = getSql();
   try {
     await sql`
       INSERT INTO industry_model_weights (
-        industry_type, project_type, W1, W2, W3, b, sample_count, training_method, updated_at
+        industry_type, project_type, W1, W2, W3, b, sample_count, training_method, updated_at,
+        alpha, default_weights, learned_weights, final_weights
       ) VALUES (
-        ${industryType}, ${projectType}, ${weights.W1}, ${weights.W2}, ${weights.W3}, ${weights.b}, ${sampleCount}, ${trainingMethod}, now()
+        ${industryType}, ${projectType}, ${finalWeights.W1}, ${finalWeights.W2}, ${finalWeights.W3}, ${finalWeights.b}, ${sampleCount}, ${trainingMethod}, now(),
+        ${alpha}, ${JSON.stringify(defaultWeights)}, ${JSON.stringify(learnedWeights)}, ${JSON.stringify(finalWeights)}
       ) ON CONFLICT (industry_type, project_type) DO UPDATE SET
         W1 = EXCLUDED.W1,
         W2 = EXCLUDED.W2,
@@ -99,6 +110,10 @@ export async function saveIndustryWeights(industryType: string, projectType: str
         b = EXCLUDED.b,
         sample_count = EXCLUDED.sample_count,
         training_method = EXCLUDED.training_method,
+        alpha = EXCLUDED.alpha,
+        default_weights = EXCLUDED.default_weights,
+        learned_weights = EXCLUDED.learned_weights,
+        final_weights = EXCLUDED.final_weights,
         updated_at = EXCLUDED.updated_at
     `;
   } catch(e) {
