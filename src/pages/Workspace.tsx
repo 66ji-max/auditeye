@@ -312,8 +312,10 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
             <div className={`${expanded ? 'text-sm' : 'text-[10px]'} text-gray-400 font-mono mt-1`}>Z = {zValue?.toFixed(4) || 0}</div>
             <div className={`${expanded ? 'text-xs' : 'text-[10px]'} text-gray-500 font-mono mt-1`}>高危阈值 P &gt; {threshold}%</div>
             {industryName && (
-               <div className={`${expanded ? 'text-xs' : 'text-[10px]'} text-[#D4AF37] font-mono mt-2`}>
-                 模型门类: {industryName}
+               <div className={`${expanded ? 'text-xs' : 'text-[11px]'} text-[#D4AF37] font-mono mt-3`}>
+                 <div className="mb-0.5">模型门类: {industryName}</div>
+                 <div className="mb-0.5">权重来源: {data.weightSource === 'expert_prior' ? '专家先验' : '样本融合学习'}</div>
+                 <div><span className="text-gray-400">参数:</span> W1={globalWeights?.W1}, W2={globalWeights?.W2}, W3={globalWeights?.W3}, b={globalWeights?.b}</div>
                </div>
             )}
           </div>
@@ -639,7 +641,7 @@ function WorkspaceInner() {
     const isDemoProject = ['1001', '1002', '1003', '1004'].includes(String(id));
 
     if (isDemoProject) {
-      const localDetail = getMockProjectDetail(id || '1001');
+      const localDetail = getMockProjectDetail(String(id || "1001"));
       if (localDetail && localDetail.project) {
         const finalScore = Math.round(Number(
           localDetail?.riskScoring?.probabilityPercent ??
@@ -691,7 +693,7 @@ function WorkspaceInner() {
       setLoadingProject(false);
     } catch (e: any) {
       console.warn("API 获取失败, 使用本地 Demo 数据", e);
-      const fallbackData = getMockProjectDetail(id || 1) as any;
+      const fallbackData = getMockProjectDetail(id || "1001") as any;
       if (fallbackData && fallbackData.project) {
         const finalScore = Math.round(Number(
           fallbackData?.riskScoring?.probabilityPercent ??

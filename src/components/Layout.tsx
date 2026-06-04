@@ -16,6 +16,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { label: '知识库', path: '/knowledge', icon: <BookOpen className="w-4 h-4" /> },
     { label: '规则引擎', path: '/rules', icon: <Settings className="w-4 h-4" /> },
     { label: '合规与伦理', path: '/compliance', icon: <Shield className="w-4 h-4" /> },
+    { label: '模型训练', path: '/model-training', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-webhook"><path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9n-.01.01A3.98 3.98 0 0 1 6 20h-.01c-2.2 0-4-1.8-4-4 0-1.17.5-2.22 1.3-3.02L5 11"/><path d="m15 6 3.4-5.8"/><path d="m2 16 5.8-3.4"/><path d="M11 6h6l-3-6"/><path d="M18 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/><path d="M8 11.2a3 3 0 1 0-3-5.2 3 3 0 0 0 3 5.2Z"/></svg> },
   ];
 
   return (

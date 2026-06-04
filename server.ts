@@ -59,7 +59,7 @@ async function startServer() {
       const name = listProj ? listProj.name : '';
       const listScore = listProj ? listProj.riskScore : null;
       
-      const detail = getMockProjectDetail(id);
+      const detail = getMockProjectDetail(String(id));
       const detailProjectScore = detail ? detail.project.riskScore : null;
       const detailRiskScoringScore = detail?.riskScoring ? detail.riskScoring.probabilityPercent : null;
       
@@ -699,8 +699,40 @@ async function startServer() {
     }
   });
 
-  app.post("/api/ml/train-weights", async (req, res) => {
+  
+  app.get("/api/ml/industry-weight-debug", async (req, res) => {
     try {
+       const { demoProjectDetailsMap } = await import("./src/lib/mockData.js");
+       const result = [];
+       for (const key of Object.keys(demoProjectDetailsMap)) {
+          const detail = demoProjectDetailsMap[key];
+          const rs = detail.riskScoring || {};
+          result.push({
+             id: detail.project?.id || key,
+             name: detail.project?.name || '',
+             industryType: rs.industryType || 'general',
+             industryName: rs.industryName || '默认',
+             W1: rs.globalWeights?.W1,
+             W2: rs.globalWeights?.W2,
+             W3: rs.globalWeights?.W3,
+             b: rs.globalWeights?.b,
+             probabilityPercent: rs.probabilityPercent || 0,
+             source: rs.weightSource
+          });
+       }
+       res.json(result);
+    } catch(e) {
+       res.status(500).json({ error: e.message });
+    }
+  });
+
+app.post("/api/ml/train-weights", async (req, res) => {
+    try {
+      const isAdmin = req.cookies?.admin_session === 'authenticated' || req.headers['x-admin-mode'] === 'true' || req.headers['x-role'] === 'admin';
+      if (!isAdmin) {
+        return res.status(403).json({ error: "暂无权限，请切换管理员模式。" });
+      }
+
       const { industryType = "general", projectType = "general", samples = [], method = "logistic" } = req.body || {};
       
       const { getIndustryWeights, saveIndustryWeights, saveIndustryTrainingSamples, getIndustryTrainingSamples } = await import("./api/_lib/neonModelsStore.js");
