@@ -3,13 +3,13 @@ import { ShieldCheck, Lock, Activity, Eye, FileText, AlertTriangle, Fingerprint,
 
 export default function ComplianceEthics() {
   return (
-    <div className="h-full w-full bg-[#1A1A1A] text-gray-200 overflow-y-auto custom-scrollbar p-6 md:p-12">
+    <div className="h-full w-full bg-[#03102A] text-gray-200 overflow-y-auto custom-scrollbar p-6 md:p-12">
       <div className="max-w-5xl mx-auto space-y-12 pb-12">
         
         {/* Header section */}
         <div className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-[#D4AF37]/10 flex items-center justify-center rounded-2xl border border-[#D4AF37]/20 mb-6">
-            <ShieldCheck className="w-8 h-8 text-[#D4AF37]" />
+          <div className="mx-auto w-16 h-16 bg-[#0091DA]/10 flex items-center justify-center rounded-2xl border border-[#0091DA]/20 mb-6">
+            <ShieldCheck className="w-8 h-8 text-[#0091DA]" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white">AI治理与数据可信体系</h1>
           <p className="text-lg text-gray-400">构建安全、可解释、合规的企业级AI审计平台</p>
@@ -17,8 +17,8 @@ export default function ComplianceEthics() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Card 1: 数据安全 */}
-          <div className="bg-[#242424] border border-[#333333] rounded-xl overflow-hidden hover:border-[#D4AF37]/50 transition-colors">
-            <div className="p-6 border-b border-[#333333] bg-[#1A1A1A]">
+          <div className="bg-[#0B2454] border border-[#1E4D92] rounded-xl overflow-hidden hover:border-[#0091DA]/50 transition-colors">
+            <div className="p-6 border-b border-[#1E4D92] bg-[#03102A]">
               <div className="w-10 h-10 bg-blue-500/10 rounded flex items-center justify-center mb-3 border border-blue-500/20">
                 <Lock className="w-5 h-5 text-blue-400" />
               </div>
@@ -57,10 +57,10 @@ export default function ComplianceEthics() {
           </div>
 
           {/* Card 2: AI治理 */}
-          <div className="bg-[#242424] border border-[#333333] rounded-xl overflow-hidden hover:border-[#D4AF37]/50 transition-colors">
-            <div className="p-6 border-b border-[#333333] bg-[#1A1A1A]">
-              <div className="w-10 h-10 bg-[#D4AF37]/10 rounded flex items-center justify-center mb-3 border border-[#D4AF37]/20">
-                <Activity className="w-5 h-5 text-[#D4AF37]" />
+          <div className="bg-[#0B2454] border border-[#1E4D92] rounded-xl overflow-hidden hover:border-[#0091DA]/50 transition-colors">
+            <div className="p-6 border-b border-[#1E4D92] bg-[#03102A]">
+              <div className="w-10 h-10 bg-[#0091DA]/10 rounded flex items-center justify-center mb-3 border border-[#0091DA]/20">
+                <Activity className="w-5 h-5 text-[#0091DA]" />
               </div>
               <h2 className="text-xl font-semibold text-white">02 AI治理</h2>
             </div>
@@ -90,8 +90,8 @@ export default function ComplianceEthics() {
           </div>
 
           {/* Card 3: 合规机制 */}
-          <div className="bg-[#242424] border border-[#333333] rounded-xl overflow-hidden hover:border-[#D4AF37]/50 transition-colors">
-            <div className="p-6 border-b border-[#333333] bg-[#1A1A1A]">
+          <div className="bg-[#0B2454] border border-[#1E4D92] rounded-xl overflow-hidden hover:border-[#0091DA]/50 transition-colors">
+            <div className="p-6 border-b border-[#1E4D92] bg-[#03102A]">
               <div className="w-10 h-10 bg-green-500/10 rounded flex items-center justify-center mb-3 border border-green-500/20">
                 <ShieldCheck className="w-5 h-5 text-green-400" />
               </div>
@@ -131,10 +131,10 @@ export default function ComplianceEthics() {
         </div>
 
         {/* Footer Summary */}
-        <div className="mt-12 p-8 bg-[#242424] border border-[#333333] rounded-xl text-center">
+        <div className="mt-12 p-8 bg-[#0B2454] border border-[#1E4D92] rounded-xl text-center">
           <p className="text-base text-gray-300 leading-relaxed max-w-3xl mx-auto font-medium">
             "AuditEye 致力于构建可解释、可追溯、可信任的企业级AI审计体系。<br className="hidden md:block" />
-            <span className="text-[#D4AF37]">安全是底线，治理是关键，合规是保障</span> —— 让 AI 面向业务深度赋能，而非带来未知黑盒风险。"
+            <span className="text-[#0091DA]">安全是底线，治理是关键，合规是保障</span> —— 让 AI 面向业务深度赋能，而非带来未知黑盒风险。"
           </p>
         </div>
       </div>

@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+:root {
+  --ae-bg: #061A40;
+  --ae-bg-deep: #03102A;
+  --ae-surface: #0B2454;
+  --ae-surface-2: #102E6E;
+  --ae-border: #1E4D92;
+  --ae-primary: #0091DA;
+  --ae-primary-hover: #00A3FF;
+  --ae-purple: #6D45E2;
+  --ae-cyan: #00C2FF;
+  --ae-text: #F4F7FB;
+  --ae-muted: #9DB2D6;
+}
+
+body {
+  background: var(--ae-bg-deep);
+  color: var(--ae-text);
+}
+

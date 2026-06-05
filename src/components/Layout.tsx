@@ -22,10 +22,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-screen w-screen bg-[#121212] flex flex-col font-sans overflow-hidden">
       {/* Global Top Navbar */}
-      <header className="h-12 bg-[#1A1A1A] border-b border-[#333333] flex items-center justify-between px-6 shrink-0 z-50">
+      <header className="h-12 bg-[#03102A] border-b border-[#1E4D92] flex items-center justify-between px-6 shrink-0 z-50">
         <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2 text-[#D4AF37] font-bold text-lg tracking-wide cursor-pointer" onClick={() => navigate('/')}>
-            <img src="/favicon.svg" alt="AuditEye Logo" className="w-5 h-5" />
+          <div className="flex items-center gap-2 text-[#00A3FF] font-bold text-lg tracking-wide cursor-pointer" onClick={() => navigate('/')}>
+            <img src="/favicon.svg" alt="AuditEye Logo" className="w-5 h-5 text-[#00C2FF]" />
             <span>AuditEye</span>
           </div>
 
@@ -36,8 +36,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 onClick={() => navigate(item.path)}
                 className={`px-3 py-1.5 rounded flex items-center gap-1.5 text-xs font-medium transition-colors ${
                   location.pathname === item.path || (item.path === '/' && location.pathname.startsWith('/project/'))
-                    ? 'bg-[#333333] text-gray-100'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-[#242424]'
+                    ? 'bg-[#102E6E] text-[#00C2FF] border border-[#1E4D92]'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-[#0B2454] border border-transparent'
                 }`}
               >
                 {item.icon}
@@ -48,7 +48,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-xs text-gray-500 border-r border-[#333333] pr-4">
+          <div className="flex items-center gap-2 text-xs text-gray-500 border-r border-[#1E4D92] pr-4">
             <ShieldAlert className="w-3.5 h-3.5 text-green-500" />
             系统脱敏保护
           </div>
@@ -61,7 +61,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </div>
                 <button
                   onClick={logout}
-                  className="flex items-center gap-1.5 text-gray-400 hover:text-gray-200 hover:bg-[#242424] px-2 py-1 rounded transition-colors"
+                  className="flex items-center gap-1.5 text-gray-400 hover:text-gray-200 hover:bg-[#0B2454] px-2 py-1 rounded transition-colors"
                   title="退出管理员模式"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -75,7 +75,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </div>
                 <button
                   onClick={() => setIsLoginModalOpen(true)}
-                  className="px-3 py-1 text-xs font-medium bg-[#333333] text-gray-300 hover:bg-[#444444] hover:text-white rounded transition-colors"
+                  className="px-3 py-1 text-xs font-medium bg-[#1E4D92] text-gray-300 hover:bg-[#1E4D92] hover:text-white rounded transition-colors"
                 >
                   高级登录
                 </button>
