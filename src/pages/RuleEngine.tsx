@@ -14,114 +14,66 @@ const INDUSTRY_TYPES = [
   { id: 'energy_subsidy', name: '能源 / 补贴 / 政府项目' }
 ];
 
-const CATEGORY_MODEL_WEIGHTS: Record<string, any> = {
-  all: {
-    W1: 2.2,
-    W2: 3.0,
-    W3: 1.2,
-    b: -3.0,
-    label: "全部门类 / 综合视图"
-  },
-  general: {
-    W1: 2.2,
-    W2: 3.0,
-    W3: 1.2,
-    b: -3.0,
-    label: "通用审计模型"
-  },
-  ipo: {
-    W1: 2.8,
-    W2: 3.2,
-    W3: 1.0,
-    b: -3.2,
-    label: "IPO / 上市审查"
-  },
-  financial_investment: {
-    W1: 3.1,
-    W2: 2.4,
-    W3: 1.1,
-    b: -3.0,
-    label: "金融投资 / 基金审计"
-  },
-  real_estate_construction: {
-    W1: 2.2,
-    W2: 3.6,
-    W3: 1.8,
-    b: -3.3,
-    label: "地产工程 / 建设反舞弊"
-  },
-  manufacturing_supply_chain: {
-    W1: 2.4,
-    W2: 3.1,
-    W3: 1.2,
-    b: -3.1,
-    label: "制造业 / 供应链采购"
-  },
-  energy_subsidy: {
-    W1: 1.9,
-    W2: 2.6,
-    W3: 2.2,
-    b: -3.0,
-    label: "能源 / 补贴 / 政府项目"
+import {
+  AUDIT_CATEGORIES,
+  getAuditCategory,
+  getCategoryModelWeights,
+  getCategoryRuleWeights
+} from "../config/auditCategoryConfig";
+import { getFallbackRulesByCategory } from "../config/auditRulePresets";
+
+function inferRuleDimension(rule: any): "identity" | "transaction" | "external" {
+  const text = `${rule.name || ""} ${rule.category || ""} ${rule.description || ""}`.toLowerCase();
+
+  if (
+    text.includes("身份") ||
+    text.includes("关联") ||
+    text.includes("实控") ||
+    text.includes("高管") ||
+    text.includes("股权") ||
+    text.includes("控制") ||
+    text.includes("任职") ||
+    text.includes("gp") ||
+    text.includes("lp")
+  ) {
+    return "identity";
   }
-};
 
-const CATEGORY_RULE_WEIGHT_PRESETS: Record<string, any> = {
-  general: { identity: 30, transaction: 40, external: 20 },
-  ipo: { identity: 45, transaction: 50, external: 18 },
-  financial_investment: { identity: 50, transaction: 35, external: 20 },
-  real_estate_construction: { identity: 35, transaction: 60, external: 35 },
-  manufacturing_supply_chain: { identity: 38, transaction: 50, external: 22 },
-  energy_subsidy: { identity: 28, transaction: 42, external: 45 }
-};
+  if (
+    text.includes("交易") ||
+    text.includes("资金") ||
+    text.includes("流水") ||
+    text.includes("付款") ||
+    text.includes("回流") ||
+    text.includes("采购") ||
+    text.includes("工程款") ||
+    text.includes("成本") ||
+    text.includes("补贴")
+  ) {
+    return "transaction";
+  }
 
-const CATEGORY_FALLBACK_RULES: Record<string, any[]> = {
-  general: [
-    { id: 'R-GEN-ID-01', name: '基础关联方识别', category: 'identity', type: '身份关联', trigger: 'Jaccard > 0.8', weight: 30, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-GEN-TX-01', name: '大额异常交易', category: 'transaction', type: '交易异常', trigger: 'amount > 500w', weight: 40, status: 'enabled', lastHit: '2026-05-29', updatedAt: '2026-05-30' },
-    { id: 'R-GEN-EXT-01', name: '外部处罚记录', category: 'external', type: '外围牵连', trigger: 'hasPenalty == true', weight: 20, status: 'enabled', lastHit: '2026-05-28', updatedAt: '2026-05-30' }
-  ],
-  ipo: [
-    { id: 'R-IPO-ID-01', name: '隐性关联方 / 实控人同源', category: 'identity', type: '身份关联', trigger: 'identityOverlap > 0.9', weight: 45, status: 'enabled', lastHit: '2026-06-01', updatedAt: '2026-05-30' },
-    { id: 'R-IPO-TX-01', name: '客户供应商资金回流', category: 'transaction', type: '交易异常', trigger: 'cashFlowback == true', weight: 50, status: 'enabled', lastHit: '2026-06-02', updatedAt: '2026-05-30' },
-    { id: 'R-IPO-TX-02', name: '申报期突击交易', category: 'transaction', type: '交易异常', trigger: 'growthRate > 2.0', weight: 48, status: 'enabled', lastHit: '2026-06-03', updatedAt: '2026-05-30' },
-    { id: 'R-IPO-EXT-01', name: '突击更名 / 注销主体', category: 'external', type: '外围牵连', trigger: 'nameChanged == true', weight: 25, status: 'enabled', lastHit: '2026-05-20', updatedAt: '2026-05-30' }
-  ],
-  financial_investment: [
-    { id: 'R-FIN-ID-01', name: 'GP / LP / 管理层交叉控制', category: 'identity', type: '身份关联', trigger: 'gpControl == true', weight: 50, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-FIN-ID-02', name: '被投企业高管兼职', category: 'identity', type: '身份关联', trigger: 'executiveOverlap > 0', weight: 45, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-FIN-TX-01', name: '关联方资金拆借', category: 'transaction', type: '交易异常', trigger: 'loaning == true', weight: 35, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-FIN-EXT-01', name: '监管警示 / 函证异常', category: 'external', type: '外围牵连', trigger: 'warning == true', weight: 25, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' }
-  ],
-  real_estate_construction: [
-    { id: 'R-REAL-TX-01', name: '工程款异常流转', category: 'transaction', type: '交易异常', trigger: 'fundRouting == true', weight: 60, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-REAL-TX-02', name: '虚列成本 / 空壳分包', category: 'transaction', type: '交易异常', trigger: 'shellSubcontractor == true', weight: 58, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-REAL-EXT-01', name: '伪造签字 / 诉讼投诉', category: 'external', type: '外围牵连', trigger: 'fakeSignature == true', weight: 40, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-REAL-ID-01', name: '工程人员亲属分包', category: 'identity', type: '身份关联', trigger: 'relativeSubcontracting == true', weight: 35, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' }
-  ],
-  manufacturing_supply_chain: [
-    { id: 'R-MFG-ID-01', name: '员工亲属供应商', category: 'identity', type: '身份关联', trigger: 'employeeRelative == true', weight: 38, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-MFG-TX-01', name: '采购价格异常', category: 'transaction', type: '交易异常', trigger: 'priceDeviation > 0.3', weight: 50, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-MFG-TX-02', name: '重复付款 / 空壳供应商', category: 'transaction', type: '交易异常', trigger: 'duplicatePayment == true', weight: 48, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-MFG-EXT-01', name: '工商异常 / 社保人数异常', category: 'external', type: '外围牵连', trigger: 'socialSecurityConflict == true', weight: 25, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' }
-  ],
-  energy_subsidy: [
-    { id: 'R-ENE-EXT-01', name: '环保处罚 / 行政监管', category: 'external', type: '外围牵连', trigger: 'envPenalty == true', weight: 45, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-ENE-TX-01', name: '补贴资金异常流转', category: 'transaction', type: '交易异常', trigger: 'subsidyFlowback == true', weight: 42, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-ENE-EXT-02', name: '补贴依赖度异常', category: 'external', type: '外围牵连', trigger: 'subsidyDependence > 0.8', weight: 45, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
-    { id: 'R-ENE-ID-01', name: '政府项目关联承包', category: 'identity', type: '身份关联', trigger: 'govContractorNetwork == true', weight: 28, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' }
-  ]
-};
+  return "external";
+}
 
-function getDefaultRuleWeight(set: string, category: string) {
-  let cat = 'general';
-  if (set === 'all') cat = 'general';
-  else if (CATEGORY_RULE_WEIGHT_PRESETS[set]) cat = set;
+function applyCategoryWeightsToRules(rawRules: any[], categoryId: string) {
+  const category = getAuditCategory(categoryId);
+  const ruleWeights = category.ruleWeights;
 
-  if (category === '身份关联' || category === 'identity') return CATEGORY_RULE_WEIGHT_PRESETS[cat].identity;
-  if (category === '交易异常' || category === 'transaction') return CATEGORY_RULE_WEIGHT_PRESETS[cat].transaction;
-  if (category === '外围牵连' || category === 'external') return CATEGORY_RULE_WEIGHT_PRESETS[cat].external;
-  return 50;
+  return rawRules.map(rule => {
+    const dimension = rule.dimension || inferRuleDimension(rule);
+    const displayWeight = ruleWeights[dimension as keyof typeof ruleWeights] ?? rule.weight ?? 30;
+
+    return {
+      ...rule,
+      dimension,
+      originalWeight: rule.weight,
+      weight: displayWeight,
+      displayWeight,
+      categoryWeightSource: category.id,
+      categoryLabel: category.label
+    };
+  });
 }
 
 export default function RuleEngine() {
@@ -139,52 +91,29 @@ export default function RuleEngine() {
          url += '?industryType=' + industry;
       }
       const res = await fetch(url, { cache: 'no-store' });
+      let data = [];
       if (res.ok) {
-        const data = await res.json();
-        setRules(data);
+        data = await res.json();
       }
+      if (!Array.isArray(data) || data.length === 0) {
+        data = getFallbackRulesByCategory(industry);
+      }
+      const weightedRules = applyCategoryWeightsToRules(data, industry);
+      setRules(weightedRules);
     } catch(e) {
       console.warn('Failed to fetch rules', e);
+      let data = getFallbackRulesByCategory(industry);
+      const weightedRules = applyCategoryWeightsToRules(data, industry);
+      setRules(weightedRules);
     } finally {
-      if (currentSet !== 'all') {
-         setRules(prev => prev.length === 0 ? CATEGORY_FALLBACK_RULES[currentSet] || CATEGORY_FALLBACK_RULES.general : prev);
-      } else {
-         setRules(prev => prev.length === 0 ? Object.values(CATEGORY_FALLBACK_RULES).flat() : prev);
-      }
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchRules(currentSet);
-    const loadWeights = async () => {
-      try {
-        const preset = CATEGORY_MODEL_WEIGHTS[currentSet] || CATEGORY_MODEL_WEIGHTS.general;
-        const res = await fetch(`/api/ml/industry-weights/${currentSet}`);
-        if (res.ok) {
-           const data = await res.json();
-           if (data.source === 'database' || data.source === 'blended_learning') {
-              setAiWeights(data.weights);
-              return;
-           }
-        }
-        setAiWeights({
-          W1: preset.W1,
-          W2: preset.W2,
-          W3: preset.W3,
-          b: preset.b
-        });
-      } catch (e) {
-        const preset = CATEGORY_MODEL_WEIGHTS[currentSet] || CATEGORY_MODEL_WEIGHTS.general;
-        setAiWeights({
-          W1: preset.W1,
-          W2: preset.W2,
-          W3: preset.W3,
-          b: preset.b
-        });
-      }
-    };
-    loadWeights();
+    const category = getAuditCategory(currentSet);
+    setAiWeights(category.modelWeights);
   }, [currentSet]);
 
   // Modals / Drawers
@@ -200,9 +129,7 @@ export default function RuleEngine() {
   const [sandboxInput, setSandboxInput] = useState('山东旺XX汽车零部件有限公司');
   const [runningTest, setRunningTest] = useState(false);
   const [trainMethod, setTrainMethod] = useState<'logistic'|'basic-mlp'>('logistic');
-  const [aiWeights, setAiWeights] = useState<any>({
-    W1: 2.2, W2: 3.5, W3: 0.5, b: -3.0
-  });
+  const [aiWeights, setAiWeights] = useState<any>(getCategoryModelWeights('all'));
   const [aiSampleCount, setAiSampleCount] = useState(48);
   const [aiLastTrained, setAiLastTrained] = useState('2026/05/31');
   const [aiExtractionResult, setAiExtractionResult] = useState<any>(null);
@@ -291,7 +218,10 @@ export default function RuleEngine() {
   const handleSaveRule = async () => {
     if (!isAdmin) { toast('仅管理员可操作', 'error'); return; }
     try {
-      const defaultWeight = getDefaultRuleWeight(currentSet, selectedCategory);
+      const categoryWeights = getCategoryRuleWeights(currentSet === "all" ? "general" : currentSet);
+      const dimension = inferRuleDimension({ name: '新规则测试', category: selectedCategory });
+      const defaultWeight = categoryWeights[dimension as keyof typeof categoryWeights] ?? 30;
+      
       const res = await fetch('/api/rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-mode': 'true', 'x-role': 'admin' },
@@ -300,6 +230,7 @@ export default function RuleEngine() {
           name: '新规则测试',
           category: selectedCategory,
           industryType: currentSet === 'all' ? 'general' : currentSet,
+          dimension: dimension,
           weight: defaultWeight,
           severity: 'medium',
           status: 'disabled',
@@ -383,24 +314,24 @@ export default function RuleEngine() {
         {/* Overview Card */}
         <div className="bg-[#242424] border border-[#333333] p-6 rounded-lg grid grid-cols-5 gap-4">
            <div>
-             <div className="text-gray-400 text-xs mb-1">当前规则集</div>
+             <div className="text-gray-400 text-xs mb-1">当前规则集 <span className="text-[10px] bg-[#333] px-1 rounded ml-1 text-[#D4AF37]">Weights</span></div>
              <div className="text-gray-100 font-semibold truncate">{INDUSTRY_TYPES.find(t=>t.id===currentSet)?.name || ''}</div>
            </div>
            <div>
-             <div className="text-gray-400 text-xs mb-1">生效规则数</div>
-             <div className="text-gray-100 font-mono font-semibold text-xl">{rules.filter(r => r.status==='enabled').length}</div>
+             <div className="text-gray-400 text-xs mb-1">当前门类权重 (W1)</div>
+             <div className="text-gray-100 font-mono font-semibold text-xl">{aiWeights.W1}</div>
            </div>
            <div>
-             <div className="text-gray-400 text-xs mb-1">高危规则数</div>
-             <div className="text-red-400 font-mono font-semibold text-xl">{rules.filter(r => r.weight > 80).length}</div>
+             <div className="text-gray-400 text-xs mb-1">当前门类权重 (W2)</div>
+             <div className="text-gray-100 font-mono font-semibold text-xl">{aiWeights.W2}</div>
            </div>
            <div>
-             <div className="text-gray-400 text-xs mb-1">最近一次调参</div>
-             <div className="text-gray-100 font-mono text-sm">2026/5/31</div>
+             <div className="text-gray-400 text-xs mb-1">当前门类权重 (W3)</div>
+             <div className="text-gray-100 font-mono font-semibold text-xl">{aiWeights.W3}</div>
            </div>
            <div>
-             <div className="text-gray-400 text-xs mb-1">模型版本</div>
-             <div className="text-[#D4AF37] font-semibold text-sm">Layered Risk Scoring v2.0</div>
+             <div className="text-gray-400 text-xs mb-1">截距 (b)</div>
+             <div className="text-[#D4AF37] font-semibold font-mono text-xl">{aiWeights.b}</div>
            </div>
         </div>
 
@@ -439,28 +370,32 @@ export default function RuleEngine() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#333333]">
-                  {rules.map((r, i) => (
-                    <tr key={i} className="hover:bg-[#1f1f1f] transition-colors cursor-pointer" onClick={() => { setSelectedRule(r); setShowDrawer(true); }}>
+                  {rules.map((rule, i) => (
+                    <tr key={i} className="hover:bg-[#1f1f1f] transition-colors cursor-pointer" onClick={() => { setSelectedRule(rule); setShowDrawer(true); }}>
                       <td className="px-4 py-3">
-                        <div className="font-mono text-[10px] text-gray-500 mb-0.5">{r.id}</div>
-                        <div className="font-medium text-gray-200 text-xs">{r.name}</div>
-                        <div className="text-[10px] text-gray-500">{r.category}</div>
+                        <div className="font-mono text-[10px] text-gray-500 mb-0.5">{rule.id}</div>
+                        <div className="font-medium text-gray-200 text-xs">{rule.name}</div>
+                        <div className="text-[10px] text-gray-500">{rule.category}</div>
                       </td>
-                      <td className="px-4 py-3 text-[11px] font-mono text-gray-400 max-w-[150px] truncate" title={r.trigger}>
-                         {r.trigger}
-                      </td>
-                      <td className="px-4 py-3">
-                         <div className={`font-mono text-xs ${r.weight > 80 ? 'text-red-400' : 'text-[#D4AF37]'}`}>{r.weight}</div>
+                      <td className="px-4 py-3 text-[11px] font-mono text-gray-400 max-w-[150px] truncate" title={rule.trigger}>
+                         {rule.trigger}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-[10px] ${r.status === 'enabled' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-500 border border-gray-700'}`}>
-                          {r.status === 'enabled' ? '生效中' : '已停用'}
+                         <div className={`font-mono text-xs ${rule.displayWeight > 80 ? 'text-red-400' : 'text-[#D4AF37]'}`}>
+                           {rule.displayWeight ?? rule.weight}
+                           <span className="text-[10px] text-gray-500 ml-1">门类权重</span>
+                         </div>
+                         <div className="text-[10px] text-gray-600 mt-0.5">原始权重: {rule.originalWeight ?? "-"}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded text-[10px] ${rule.status === 'enabled' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-500 border border-gray-700'}`}>
+                          {rule.status === 'enabled' ? '生效中' : '已停用'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-400">{r.lastHit}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-400">{rule.lastHit}</td>
                       <td className="px-4 py-3 text-right space-x-1" onClick={e => e.stopPropagation()}>
-                        {isAdmin && <button onClick={() => { setSelectedRule(r); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-[#D4AF37] rounded transition-colors"><Edit3 className="w-4 h-4" /></button>}
-                        {isAdmin && <button onClick={() => { setSelectedRule(r); setShowDisable(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-red-500 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>}
+                        {isAdmin && <button onClick={() => { setSelectedRule(rule); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-[#D4AF37] rounded transition-colors"><Edit3 className="w-4 h-4" /></button>}
+                        {isAdmin && <button onClick={() => { setSelectedRule(rule); setShowDisable(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-red-500 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>}
                       </td>
                     </tr>
                   ))}

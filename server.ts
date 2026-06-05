@@ -502,7 +502,9 @@ async function startServer() {
   });
 
   app.post("/api/rules", async (req, res) => {
-    if (!req.headers['x-admin-mode'] && req.headers['x-role'] !== 'admin') {
+    const cookies = cookie.parse(req.headers.cookie || '');
+    const isAdmin = cookies.admin_session === 'authenticated' || req.headers['x-admin-mode'] === 'true' || req.headers['x-role'] === 'admin';
+    if (!isAdmin) {
       return res.status(403).json({error: 'Permission denied. Admins only.'});
     }
     try {
@@ -515,7 +517,9 @@ async function startServer() {
   });
 
   app.put("/api/rules/:id", async (req, res) => {
-    if (!req.headers['x-admin-mode'] && req.headers['x-role'] !== 'admin') {
+    const cookies = cookie.parse(req.headers.cookie || '');
+    const isAdmin = cookies.admin_session === 'authenticated' || req.headers['x-admin-mode'] === 'true' || req.headers['x-role'] === 'admin';
+    if (!isAdmin) {
       return res.status(403).json({error: 'Permission denied. Admins only.'});
     }
     try {
@@ -528,7 +532,9 @@ async function startServer() {
   });
 
   app.delete("/api/rules/:id", async (req, res) => {
-    if (!req.headers['x-admin-mode'] && req.headers['x-role'] !== 'admin') {
+    const cookies = cookie.parse(req.headers.cookie || '');
+    const isAdmin = cookies.admin_session === 'authenticated' || req.headers['x-admin-mode'] === 'true' || req.headers['x-role'] === 'admin';
+    if (!isAdmin) {
       return res.status(403).json({error: 'Permission denied. Admins only.'});
     }
     try {

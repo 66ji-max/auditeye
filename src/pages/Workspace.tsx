@@ -12,6 +12,7 @@ import { toast } from '../components/Toast.tsx';
 import { RISK_DIMENSIONS } from '../config/riskScoring.ts';
 import { getMockProjectDetail } from '../lib/mockData.ts';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { getRiskVisual } from '../utils/riskVisual.ts';
 
 const WorkflowStep: React.FC<{ icon: React.ReactNode, title: string, desc?: string, status: 'done' | 'active' | 'alert' | 'pending', time: string, entities?: number, rules?: number, size?: 'sm' | 'base' }> = ({ icon, title, desc, status, time, entities, rules, size = 'sm' }) => {
   const [expanded, setExpanded] = useState(status !== 'pending');
@@ -215,16 +216,7 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
   const { probabilityPercent, riskLevel, threshold, zValue, warning, subIndices, rawFeatures, conclusion, globalWeights, localWeights, industryType, industryName } = data;
   const displayProbabilityPercent = Math.round(Number(probabilityPercent ?? 0) || 0);
 
-  const getRiskVisualLocal = (score: number, riskLvl?: any) => {
-    const label = typeof riskLvl === 'string' ? riskLvl : riskLvl?.label;
-    const s = Math.round(Number(score || 0));
-    if (label === '极高风险' || s >= 75) return { label: label || '极高风险', color: 'text-red-500', border: 'border-red-500/20', bg: 'bg-red-500/10' };
-    if (label === '中高风险' || s >= 50) return { label: label || '中高风险', color: 'text-orange-500', border: 'border-orange-500/20', bg: 'bg-orange-500/10' };
-    if (label === '中等风险' || s >= 30) return { label: label || '中等风险', color: 'text-yellow-500', border: 'border-yellow-500/20', bg: 'bg-yellow-500/10' };
-    return { label: label || '低风险', color: 'text-green-500', border: 'border-green-500/20', bg: 'bg-green-500/10' };
-  };
-
-  const visual = getRiskVisualLocal(displayProbabilityPercent, riskLevel);
+  const visual = getRiskVisual(displayProbabilityPercent, riskLevel);
   
   const handleSubIndexExpand = (type: 'X1'|'X2'|'X3', title: string, color: string, features: any[], w: number) => {
      if (!setExpandedPanel) return;
@@ -779,15 +771,6 @@ function WorkspaceInner() {
     ) || 0);
   };
 
-  const getRiskVisualLocal = (score: number, riskLvl?: any) => {
-    const label = typeof riskLvl === 'string' ? riskLvl : riskLvl?.label;
-    const s = Math.round(Number(score || 0));
-    if (label === '极高风险' || s >= 75) return { label: label || '极高风险', color: 'text-red-500', bg: 'bg-red-500' };
-    if (label === '中高风险' || s >= 50) return { label: label || '中高风险', color: 'text-orange-500', bg: 'bg-orange-500' };
-    if (label === '中等风险' || s >= 30) return { label: label || '中等风险', color: 'text-yellow-500', bg: 'bg-yellow-500' };
-    return { label: label || '低风险', color: 'text-green-500', bg: 'bg-green-500' };
-  };
-
   const displayScore = getDisplayRiskScore(data);
 
   const riskScoring = data.riskScoring
@@ -799,7 +782,7 @@ function WorkspaceInner() {
 
   const score = displayScore;
   const rawRiskLvl = riskScoring ? riskScoring.riskLevel : data.project.riskLevel;
-  const riskLevel = getRiskVisualLocal(score, rawRiskLvl);
+  const riskLevel = getRiskVisual(score, rawRiskLvl);
   const dimScores = data.project.dimensionScores || { relation: 0, behavior: 0, financial: 0 };
   
   const rulesHit = logs.filter((l: any) => l.action === 'RED_FLAG');

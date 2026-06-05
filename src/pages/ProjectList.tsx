@@ -5,8 +5,9 @@ import { toast } from '../components/Toast.tsx';
 import { mockProjects, getMockProjects } from '../lib/mockData.ts';
 import { useAuth } from '../context/AuthContext';
 
-const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
+import { getRiskVisual } from '../utils/riskVisual';
 
+const ALLOWED_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
 
 const indNameMap: Record<string, string> = {
   general: '通用审计模型',
@@ -16,26 +17,6 @@ const indNameMap: Record<string, string> = {
   manufacturing_supply_chain: '制造业 / 供应链采购',
   energy_subsidy: '能源 / 补贴 / 政府项目'
 };
-
-function getRiskVisual(score: number, riskLevel?: any) {
-  const label =
-    typeof riskLevel === 'string'
-      ? riskLevel
-      : riskLevel?.label;
-
-  const s = Math.round(Number(score || 0));
-
-  if (label === '极高风险' || s >= 75) {
-    return { label: label || '极高风险', color: 'text-red-500', bg: 'bg-red-500' };
-  }
-  if (label === '中高风险' || s >= 50) {
-    return { label: label || '中高风险', color: 'text-orange-500', bg: 'bg-orange-500' };
-  }
-  if (label === '中等风险' || s >= 30) {
-    return { label: label || '中等风险', color: 'text-yellow-500', bg: 'bg-yellow-500' };
-  }
-  return { label: label || '低风险', color: 'text-green-500', bg: 'bg-green-500' };
-}
 
 export default function ProjectList() {
   const [projects, setProjects] = useState<any[]>([]);

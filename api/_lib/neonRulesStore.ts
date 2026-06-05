@@ -17,6 +17,7 @@ export async function ensureAuditRulesTable(): Promise<boolean> {
         name TEXT NOT NULL,
         category TEXT NOT NULL,
         industry_type TEXT DEFAULT 'general',
+        dimension TEXT DEFAULT 'identity',
         weight INTEGER NOT NULL DEFAULT 10,
         severity TEXT DEFAULT 'medium',
         status TEXT DEFAULT 'enabled',
@@ -27,6 +28,14 @@ export async function ensureAuditRulesTable(): Promise<boolean> {
         updated_at TIMESTAMPTZ DEFAULT now()
       )
     `;
+
+    // Try to blindly add the column if the table already existed before we updated this code
+    try {
+      await sql`ALTER TABLE audit_rules ADD COLUMN dimension TEXT DEFAULT 'identity'`;
+    } catch(err: any) {
+      // Column probably already exists, which is fine
+    }
+
     return true;
   } catch (err: any) {
     console.error("Failed to ensure audit rules table:", err.message);
@@ -38,21 +47,6 @@ export async function getAuditRules(industryType?: string, status?: string) {
   if (!process.env.DATABASE_URL) return null;
   const sql = getSql();
   try {
-    let query = `SELECT * FROM audit_rules WHERE 1=1`;
-    let params: any[] = [];
-    
-    if (industryType) {
-      params.push(industryType);
-      query += ` AND industry_type = $${params.length}`;
-    }
-    
-    if (status) {
-      params.push(status);
-      query += ` AND status = $${params.length}`;
-    }
-    
-    // We can't safely interpolate dynamic string query easily with neon tagged template, so we construct standard pg parameterized query or just do it with tagged literal since parameters are few.
-    // Actually, dynamic querying in tagged templates:
     let rows;
     if (industryType && status) {
         rows = await sql`SELECT * FROM audit_rules WHERE industry_type = ${industryType} AND status = ${status} ORDER BY created_at DESC`;
@@ -69,6 +63,7 @@ export async function getAuditRules(industryType?: string, status?: string) {
       name: r.name,
       category: r.category,
       industryType: r.industry_type,
+      dimension: r.dimension,
       weight: r.weight,
       severity: r.severity,
       status: r.status,
@@ -90,9 +85,9 @@ export async function createAuditRule(rule: any) {
   try {
     await sql`
       INSERT INTO audit_rules (
-        id, name, category, industry_type, weight, severity, status, description, condition, created_by
+        id, name, category, industry_type, dimension, weight, severity, status, description, condition, created_by
       ) VALUES (
-        ${rule.id}, ${rule.name}, ${rule.category}, ${rule.industryType || 'general'}, ${rule.weight}, ${rule.severity || 'medium'}, ${rule.status || 'enabled'}, ${rule.description || ''}, ${JSON.stringify(rule.condition || {})}, ${rule.createdBy || 'admin'}
+        ${rule.id}, ${rule.name}, ${rule.category}, ${rule.industryType || 'general'}, ${rule.dimension || 'identity'}, ${rule.weight}, ${rule.severity || 'medium'}, ${rule.status || 'enabled'}, ${rule.description || ''}, ${JSON.stringify(rule.condition || {})}, ${rule.createdBy || 'admin'}
       )
     `;
     return true;
@@ -111,6 +106,7 @@ export async function updateAuditRule(id: string, rule: any) {
         name = ${rule.name},
         category = ${rule.category},
         industry_type = ${rule.industryType || 'general'},
+        dimension = ${rule.dimension || 'identity'},
         weight = ${rule.weight},
         severity = ${rule.severity || 'medium'},
         status = ${rule.status || 'enabled'},
