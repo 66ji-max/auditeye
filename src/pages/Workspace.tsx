@@ -555,7 +555,14 @@ function WorkspaceInner() {
   const [dataSources, setDataSources] = useState<any[]>([]);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [selectedEdge, setSelectedEdge] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'doc'|'fin'|'graph'>('doc');
+  const [activeTab, setActiveTab] = useState<'doc'|'fin'|'graph'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'doc' || tab === 'fin' || tab === 'graph') {
+      return tab as 'doc'|'fin'|'graph';
+    }
+    return 'graph';
+  });
   const [graphMode, setGraphMode] = useState<'all'|'minimal'>('all');
   const [showRuleSet, setShowRuleSet] = useState(false);
   const [activeRuleSet, setActiveRuleSet] = useState('标准审计预警 (v1.4.2)');

@@ -368,55 +368,55 @@ export default function RuleEngine() {
 </div>
 
 
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6 items-start">
           {/* Main Table */}
-          <div className="flex-1 bg-[#242424] border border-[#333333] rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-[#242424] border border-[#333333] rounded-lg shadow-lg overflow-hidden min-w-0">
             {loading ? (
               <div className="p-12 flex justify-center items-center text-gray-500 text-sm">
                 <div className="w-5 h-5 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin mr-3"></div>
                 加载规则集...
               </div>
             ) : (
-              <table className="w-full text-left text-sm">
+              <table className="w-full text-left text-sm table-fixed">
                 <thead className="bg-[#1A1A1A] border-b border-[#333333] text-gray-400 text-xs">
                   <tr>
-                    <th className="px-4 py-3 font-medium">规则名称</th>
-                    <th className="px-4 py-3 font-medium">触发条件</th>
-                    <th className="px-4 py-3 font-medium">权重</th>
-                    <th className="px-4 py-3 font-medium">状态</th>
-                    <th className="px-4 py-3 font-medium">最近命中</th>
-                    <th className="px-4 py-3 text-right font-medium">操作</th>
+                    <th className="px-4 py-3 font-medium w-[28%]">规则名称</th>
+                    <th className="px-2 py-3 font-medium w-[24%]">触发条件</th>
+                    <th className="px-2 py-3 font-medium w-[12%]">权重</th>
+                    <th className="px-2 py-3 font-medium w-[10%]">状态</th>
+                    <th className="px-2 py-3 font-medium w-[16%]">最近命中</th>
+                    <th className="px-2 py-3 text-right font-medium w-[10%]">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#333333]">
                   {rules.map((rule, i) => (
                     <tr key={i} className="hover:bg-[#1f1f1f] transition-colors cursor-pointer" onClick={() => { setSelectedRule(rule); setShowDrawer(true); }}>
-                      <td className="px-4 py-3">
-                        <div className="font-mono text-[10px] text-gray-500 mb-0.5">{rule.id}</div>
-                        <div className="font-medium text-gray-200 text-xs">{rule.name}</div>
-                        <div className="text-[10px] text-gray-500">{rule.category}</div>
+                      <td className="px-4 py-3 min-w-0" title={`${rule.id} - ${rule.name} (${rule.category})`}>
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <span className="font-mono text-[10px] text-gray-500 shrink-0">{rule.id}</span>
+                          <span className="font-medium text-gray-200 text-xs truncate">{rule.name}</span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-[11px] font-mono text-gray-400 max-w-[150px] truncate" title={rule.trigger}>
+                      <td className="px-2 py-3 text-[11px] font-mono text-gray-400 truncate" title={rule.trigger}>
                          {rule.trigger}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3" title={`门类权重: ${rule.displayWeight ?? rule.weight}\n原始权重: ${rule.originalWeight ?? "-"}`}>
                          <div className={`font-mono text-xs ${rule.displayWeight > 80 ? 'text-red-400' : 'text-[#D4AF37]'}`}>
                            {rule.displayWeight ?? rule.weight}
-                           <span className="text-[10px] text-gray-500 ml-1">门类权重</span>
+                           <span className="text-[10px] text-gray-500 ml-1">门类</span>
                          </div>
-                         <div className="text-[10px] text-gray-600 mt-0.5">原始权重: {rule.originalWeight ?? "-"}</div>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-[10px] ${rule.status === 'enabled' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-500 border border-gray-700'}`}>
+                      <td className="px-2 py-3">
+                        <span className={`px-2 py-1 rounded text-[10px] whitespace-nowrap ${rule.status === 'enabled' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-500 border border-gray-700'}`}>
                           {rule.status === 'enabled' ? '生效中' : '已停用'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-400">{rule.lastHit}</td>
-                      <td className="px-4 py-3 text-right space-x-1" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => { setSelectedRule(rule); setShowDrawer(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-white rounded transition-colors" title="查看"><Search className="w-4 h-4" /></button>
-                        {isAdmin && <button onClick={() => { setSelectedRule(rule); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-[#D4AF37] rounded transition-colors" title="编辑"><Edit3 className="w-4 h-4" /></button>}
-                        {isAdmin && <button onClick={() => { setSelectedRule(rule); setShowDisable(true); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-red-500 rounded transition-colors" title="禁用/启用"><Trash2 className="w-4 h-4" /></button>}
-                        <button onClick={() => { setSandboxInput(rule.id); handleRunTest(); }} className="p-1.5 text-gray-400 hover:bg-[#333333] hover:text-green-400 rounded transition-colors" title="测试此规则"><Play className="w-4 h-4" /></button>
+                      <td className="px-2 py-3 font-mono text-[10px] text-gray-400 truncate whitespace-nowrap" title={rule.lastHit}>{rule.lastHit}</td>
+                      <td className="px-2 py-3 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => { setSelectedRule(rule); setShowDrawer(true); }} className="p-1 text-gray-400 hover:bg-[#333333] hover:text-white rounded transition-colors" title="查看"><Search className="w-3.5 h-3.5" /></button>
+                        {isAdmin && <button onClick={() => { setSelectedRule(rule); setShowEdit(true); }} className="p-1 text-gray-400 hover:bg-[#333333] hover:text-[#D4AF37] rounded transition-colors" title="编辑"><Edit3 className="w-3.5 h-3.5" /></button>}
+                        {isAdmin && <button onClick={() => { setSelectedRule(rule); setShowDisable(true); }} className="p-1 text-gray-400 hover:bg-[#333333] hover:text-red-500 rounded transition-colors" title="禁用/启用"><Trash2 className="w-3.5 h-3.5" /></button>}
+                        <button onClick={() => { setSandboxInput(rule.id); handleRunTest(); }} className="p-1 text-gray-400 hover:bg-[#333333] hover:text-green-400 rounded transition-colors" title="测试此规则"><Play className="w-3.5 h-3.5" /></button>
                       </td>
                     </tr>
                   ))}
@@ -425,38 +425,39 @@ export default function RuleEngine() {
             )}
           </div>
 
-          {/* Sandbox Box */}
-          <div className="w-full lg:w-80 bg-[#1A1A1A] border border-[#333333] rounded-lg shadow-lg flex flex-col shrink-0 h-min">
-             <div className="p-4 border-b border-[#333333] flex items-center gap-2">
-                <Play className="w-4 h-4 text-[#D4AF37]" />
-                <span className="font-semibold text-sm">规则测试沙箱</span>
-             </div>
-             <div className="p-4 space-y-4">
-                <div>
-                   <label className="text-xs text-gray-400 mb-1 block">测试实体/项目名：</label>
-                   <input type="text" value={sandboxInput} onChange={e=>setSandboxInput(e.target.value)} className="w-full bg-[#242424] border border-[#333333] rounded px-3 py-2 text-xs focus:border-[#D4AF37] focus:outline-none transition-colors" />
-                </div>
-                <button onClick={handleRunTest} disabled={runningTest} className="w-full py-2 bg-[#2A2A2A] hover:bg-[#333333] border border-[#444] rounded text-sm transition-colors flex items-center justify-center gap-2">
-                   {runningTest ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                   执行推演
-                </button>
-                
-                {sandboxResult && (
-                   <div className="mt-4 border-t border-[#333333] pt-4 space-y-3">
-                      <div className="text-xs text-[#D4AF37] font-semibold mb-2">测试结果：</div>
-                      <div className="bg-[#242424] p-3 rounded border border-[#333333] text-xs space-y-2">
-                         <div className="text-gray-400">命中规则: <span className="text-red-400 block break-all">{sandboxResult.hitRules.join(', ')}</span></div>
-                         <div className="text-gray-400">特征映射: <span className="text-gray-200">{sandboxResult.features}</span></div>
-                         <div className="text-gray-400">风险贡献: <span className="text-red-400">{sandboxResult.risk}</span></div>
-                         <div className="text-gray-400">底稿落库: <span className="text-green-400">是</span></div>
-                      </div>
-                   </div>
-                )}
-             </div>
-          </div>
+          <div className="space-y-6 min-w-0">
+            {/* Sandbox Box */}
+            <div className="w-full bg-[#1A1A1A] border border-[#333333] rounded-lg shadow-lg flex flex-col h-min">
+               <div className="p-4 border-b border-[#333333] flex items-center gap-2">
+                  <Play className="w-4 h-4 text-[#D4AF37]" />
+                  <span className="font-semibold text-sm">规则测试沙箱</span>
+               </div>
+               <div className="p-4 space-y-4">
+                  <div>
+                     <label className="text-xs text-gray-400 mb-1 block">测试实体/项目名：</label>
+                     <input type="text" value={sandboxInput} onChange={e=>setSandboxInput(e.target.value)} className="w-full bg-[#242424] border border-[#333333] rounded px-3 py-2 text-xs focus:border-[#D4AF37] focus:outline-none transition-colors" />
+                  </div>
+                  <button onClick={handleRunTest} disabled={runningTest} className="w-full py-2 bg-[#2A2A2A] hover:bg-[#333333] border border-[#444] rounded text-sm transition-colors flex items-center justify-center gap-2">
+                     {runningTest ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                     执行推演
+                  </button>
+                  
+                  {sandboxResult && (
+                     <div className="mt-4 border-t border-[#333333] pt-4 space-y-3">
+                        <div className="text-xs text-[#D4AF37] font-semibold mb-2">测试结果：</div>
+                        <div className="bg-[#242424] p-3 rounded border border-[#333333] text-xs space-y-2">
+                           <div className="text-gray-400">命中规则: <span className="text-red-400 block break-all">{sandboxResult.hitRules.join(', ')}</span></div>
+                           <div className="text-gray-400">特征映射: <span className="text-gray-200">{sandboxResult.features}</span></div>
+                           <div className="text-gray-400">风险贡献: <span className="text-red-400">{sandboxResult.risk}</span></div>
+                           <div className="text-gray-400">底稿落库: <span className="text-green-400">是</span></div>
+                        </div>
+                     </div>
+                  )}
+               </div>
+            </div>
 
-          {/* AI Weight Module */}
-          <div className="w-full lg:w-80 bg-[#1A1A1A] border border-[#333333] rounded-lg shadow-lg flex flex-col shrink-0 mt-6 h-min">
+            {/* AI Weight Module */}
+            <div className="w-full bg-[#1A1A1A] border border-[#333333] rounded-lg shadow-lg flex flex-col h-min">
              <div className="p-4 border-b border-[#333333] flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-[#D4AF37]" />
@@ -523,6 +524,7 @@ export default function RuleEngine() {
                   </button>
                 </div>
              </div>
+          </div>
           </div>
 
         </div>
