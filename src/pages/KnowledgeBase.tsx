@@ -1,74 +1,101 @@
-import React, { useState, useEffect } from 'react';
-import { BookOpen, Search, FileText, Database, Calendar, Tag, ChevronDown, CheckSquare, X, Eye } from 'lucide-react';
-import { toast } from '../components/Toast.tsx';
+import React, { useState, useEffect } from "react";
+import {
+  BookOpen,
+  Search,
+  FileText,
+  Database,
+  Calendar,
+  Tag,
+  ChevronDown,
+  CheckSquare,
+  X,
+  Eye,
+} from "lucide-react";
+import { toast } from "../components/Toast.tsx";
 
 export default function KnowledgeBase() {
-  const [query, setQuery] = useState('');
-  const [filterType, setFilterType] = useState('全部');
+  const [query, setQuery] = useState("");
+  const [filterType, setFilterType] = useState("全部");
   const [showFilter, setShowFilter] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
 
   useEffect(() => {
-    fetch('/api/kb')
-      .then(res => {
-        if (!res.ok) throw new Error('网络请求失败');
+    fetch("/api/kb")
+      .then((res) => {
+        if (!res.ok) throw new Error("网络请求失败");
         return res.json();
       })
-      .then(data => {
+      .then((data) => {
         setDocuments(data);
         setLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
         setLoading(false);
-        toast('加载知识库失败，请稍后重试', 'error');
+        toast("加载知识库失败，请稍后重试", "error");
       });
   }, []);
 
-  const types = ['全部', 'PDF', 'DOCX', 'XLSX', 'CSV', '图片', '邮件'];
+  const types = ["全部", "PDF", "DOCX", "XLSX", "CSV", "图片", "邮件"];
 
-  const filteredDocs = documents.filter(doc => {
-    const matchQuery = (doc.name || '').toLowerCase().includes(query.toLowerCase());
-    const matchType = filterType === '全部' || (doc.type || '').toUpperCase().includes(filterType.toUpperCase());
+  const filteredDocs = documents.filter((doc) => {
+    const matchQuery = (doc.name || "")
+      .toLowerCase()
+      .includes(query.toLowerCase());
+    const matchType =
+      filterType === "全部" ||
+      (doc.type || "").toUpperCase().includes(filterType.toUpperCase());
     return matchQuery && matchType;
   });
 
   return (
     <div className="h-full w-full bg-transparent p-6 text-brand-primary overflow-y-auto custom-scrollbar relative">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
-        
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <BookOpen className="w-6 h-6 text-brand-blue-light" />
               企业知识库 (RAG Vector Store)
             </h1>
-            <p className="text-xs text-brand-muted mt-1">集中管理结构化/非结构化业务档案，支撑大模型智能召回与知识抽取。</p>
+            <p className="text-xs text-brand-muted mt-1">
+              集中管理结构化/非结构化业务档案，支撑大模型智能召回与知识抽取。
+            </p>
           </div>
         </div>
 
         <div className="flex gap-4 mb-4">
           <div className="flex-1 relative">
             <Search className="w-4 h-4 absolute left-3 top-3 text-brand-muted" />
-            <input 
-              type="text" 
-              placeholder="通过实体、文档名称或全文检索知识库..." 
+            <input
+              type="text"
+              placeholder="通过实体、文档名称或全文检索知识库..."
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={(e) => setQuery(e.target.value)}
               className="w-full bg-white border border-[rgba(15,23,42,0.08)] rounded px-9 py-2.5 text-sm focus:outline-none focus:border-[#3AB7FF] text-brand-primary"
             />
           </div>
           <div className="relative">
-            <button onClick={() => setShowFilter(!showFilter)} className="px-6 py-2.5 bg-white border border-[rgba(15,23,42,0.14)] hover:border-#005EB8 text-brand-primary rounded text-sm flex items-center gap-2 transition-colors">
-              {filterType === '全部' ? '筛选类型' : filterType} <ChevronDown className="w-4 h-4" />
+            <button
+              onClick={() => setShowFilter(!showFilter)}
+              className="px-6 py-2.5 bg-white border border-[rgba(15,23,42,0.14)] hover:border-#005EB8 text-brand-primary rounded text-sm flex items-center gap-2 transition-colors"
+            >
+              {filterType === "全部" ? "筛选类型" : filterType}{" "}
+              <ChevronDown className="w-4 h-4" />
             </button>
             {showFilter && (
               <div className="absolute top-full mt-2 w-full bg-white border border-[rgba(15,23,42,0.14)] rounded shadow-xl z-20 overflow-hidden">
-                {types.map(t => (
-                  <div key={t} onClick={() => { setFilterType(t); setShowFilter(false); }} className={`px-4 py-2 text-sm cursor-pointer hover:bg-[rgba(56,189,248,0.12)] ${filterType === t ? 'text-brand-blue' : 'text-brand-primary'}`}>
+                {types.map((t) => (
+                  <div
+                    key={t}
+                    onClick={() => {
+                      setFilterType(t);
+                      setShowFilter(false);
+                    }}
+                    className={`px-4 py-2 text-sm cursor-pointer hover:bg-[rgba(56,189,248,0.12)] ${filterType === t ? "text-brand-blue" : "text-brand-primary"}`}
+                  >
                     {t}
                   </div>
                 ))}
@@ -80,25 +107,36 @@ export default function KnowledgeBase() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <div className="bg-white border border-[rgba(15,23,42,0.14)] p-4 rounded-xl flex flex-col">
             <div className="text-[11px] text-gray-500 mb-2">总存储体量</div>
-            <div className="text-2xl font-bold text-brand-primary">1.2<span className="text-sm font-normal text-gray-500 ml-1">GB</span></div>
+            <div className="text-2xl font-bold text-brand-primary">
+              1.2
+              <span className="text-sm font-normal text-gray-500 ml-1">GB</span>
+            </div>
           </div>
           <div className="bg-white border border-[rgba(15,23,42,0.14)] p-4 rounded-lg flex flex-col">
-            <div className="text-[11px] text-gray-500 mb-2">向量化分片 (Chunks)</div>
-            <div className="text-2xl font-bold text-gray-200">24,592</div>
+            <div className="text-[11px] text-gray-500 mb-2">
+              向量化分片 (Chunks)
+            </div>
+            <div className="text-2xl font-bold text-brand-primary">24,592</div>
           </div>
           <div className="bg-white border border-[rgba(15,23,42,0.14)] p-4 rounded-lg flex flex-col">
-            <div className="text-[11px] text-gray-500 mb-2">已沉淀实体 (Entities)</div>
+            <div className="text-[11px] text-gray-500 mb-2">
+              已沉淀实体 (Entities)
+            </div>
             <div className="text-2xl font-bold text-brand-blue">3,105</div>
           </div>
           <div className="bg-white border border-[rgba(15,23,42,0.14)] p-4 rounded-lg flex flex-col">
             <div className="text-[11px] text-gray-500 mb-2">知识库版本</div>
-            <div className="text-2xl font-bold text-gray-200 font-mono">v4.2.0</div>
+            <div className="text-2xl font-bold text-brand-primary font-mono">
+              v4.2.0
+            </div>
           </div>
         </div>
 
         <div className="bg-white border border-[rgba(15,23,42,0.08)] rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.1)] overflow-hidden">
           <div className="px-4 py-3 border-b border-[rgba(15,23,42,0.08)] flex items-center justify-between bg-brand-deep">
-            <h3 className="text-sm font-medium text-brand-primary">源文件解析列表</h3>
+            <h3 className="text-sm font-medium text-brand-primary">
+              源文件解析列表
+            </h3>
           </div>
           {loading ? (
             <div className="p-8 flex justify-center items-center text-brand-muted text-sm">
@@ -119,35 +157,58 @@ export default function KnowledgeBase() {
               </thead>
               <tbody className="divide-y divide-brand-border-subtle">
                 {filteredDocs.map((doc, i) => (
-                  <tr key={i} onClick={() => setSelectedDoc(doc)} className="hover:bg-[rgba(255,255,255,0.03)] transition-colors cursor-pointer group">
+                  <tr
+                    key={i}
+                    onClick={() => setSelectedDoc(doc)}
+                    className="hover:bg-[rgba(255,255,255,0.03)] transition-colors cursor-pointer group"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-brand-blue-light" />
                         <div>
-                          <div className="font-medium text-brand-primary text-xs">{doc.name}</div>
-                          <div className="font-mono text-[10px] text-brand-muted">{doc.id}</div>
+                          <div className="font-medium text-brand-primary text-xs">
+                            {doc.name}
+                          </div>
+                          <div className="font-mono text-[10px] text-brand-muted">
+                            {doc.id}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="px-2 py-1 bg-[#F7FAFC] border border-[rgba(15,23,42,0.14)] rounded text-[10px] text-gray-300 flex items-center gap-1 w-max">
+                      <span className="px-2 py-1 bg-[#F7FAFC] border border-[rgba(15,23,42,0.14)] rounded text-[10px] text-brand-muted flex items-center gap-1 w-max">
                         <Tag className="w-3 h-3" /> {doc.type}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`flex items-center gap-1.5 text-[11px] ${doc.status.includes('中') ? 'text-[#005EB8]' : 'text-green-400'}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${doc.status.includes('中') ? 'bg-blue-400 animate-pulse' : 'bg-green-400'}`}></div>
+                      <span
+                        className={`flex items-center gap-1.5 text-[11px] ${doc.status.includes("中") ? "text-[#005EB8]" : "text-green-400"}`}
+                      >
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full ${doc.status.includes("中") ? "bg-blue-400 animate-pulse" : "bg-green-400"}`}
+                        ></div>
                         {doc.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-xs text-brand-secondary">{doc.chunks}</td>
-                    <td className="px-4 py-3 text-right font-mono text-xs text-brand-muted">{doc.entities}</td>
-                    <td className="px-4 py-3 text-right text-[11px] text-gray-500">{doc.date}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-brand-secondary">
+                      {doc.chunks}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-brand-muted">
+                      {doc.entities}
+                    </td>
+                    <td className="px-4 py-3 text-right text-[11px] text-gray-500">
+                      {doc.date}
+                    </td>
                   </tr>
                 ))}
                 {filteredDocs.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500 text-xs">暂无匹配的解析数据</td>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-8 text-center text-gray-500 text-xs"
+                    >
+                      暂无匹配的解析数据
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -158,62 +219,109 @@ export default function KnowledgeBase() {
 
       {/* 详情弹窗 */}
       {selectedDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setSelectedDoc(null)}>
-           <div className="bg-white border border-[rgba(15,23,42,0.14)] w-[800px] h-[80vh] rounded-lg shadow-2xl flex flex-col" onClick={e=>e.stopPropagation()}>
-              <div className="p-5 border-b border-[rgba(15,23,42,0.14)] flex justify-between items-center bg-white rounded-t-lg">
-                <div className="flex items-center gap-3">
-                  <BookOpen className="w-5 h-5 text-brand-blue" />
-                  <h2 className="text-lg font-bold text-white">知识库文档详情</h2>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setSelectedDoc(null)}
+        >
+          <div
+            className="bg-white border border-[rgba(15,23,42,0.14)] w-[800px] h-[80vh] rounded-lg shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-[rgba(15,23,42,0.14)] flex justify-between items-center bg-white rounded-t-lg">
+              <div className="flex items-center gap-3">
+                <BookOpen className="w-5 h-5 text-brand-blue" />
+                <h2 className="text-lg font-bold text-brand-primary">
+                  知识库文档详情
+                </h2>
+              </div>
+              <button
+                onClick={() => setSelectedDoc(null)}
+                className="text-gray-500 hover:text-brand-primary"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              <div className="bg-white border border-[rgba(15,23,42,0.14)] rounded p-4 grid grid-cols-3 gap-6">
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">文件名称</div>
+                  <div
+                    className="text-sm font-semibold truncate"
+                    title={selectedDoc.name}
+                  >
+                    {selectedDoc.name}
+                  </div>
                 </div>
-                <button onClick={() => setSelectedDoc(null)} className="text-gray-500 hover:text-white"><X className="w-5 h-5"/></button>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">状态 & 分片</div>
+                  <div className="text-sm">
+                    {selectedDoc.status} ({selectedDoc.chunks} Chunks)
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">入库时间</div>
+                  <div className="text-sm">{selectedDoc.date}</div>
+                </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                 <div className="bg-white border border-[rgba(15,23,42,0.14)] rounded p-4 grid grid-cols-3 gap-6">
-                    <div>
-                       <div className="text-xs text-gray-500 mb-1">文件名称</div>
-                       <div className="text-sm font-semibold truncate" title={selectedDoc.name}>{selectedDoc.name}</div>
+              <div className="space-y-4">
+                <h4 className="text-brand-primary font-semibold border-b border-[rgba(15,23,42,0.14)] pb-2">
+                  样例分片 (Top 3)
+                </h4>
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-white border border-[rgba(15,23,42,0.14)] p-4 rounded relative group"
+                  >
+                    <div className="absolute top-2 right-2 text-[10px] bg-[rgba(58,183,255,0.12)] text-gray-400 px-2 py-0.5 rounded">
+                      Chunk 00{i}
                     </div>
-                    <div>
-                       <div className="text-xs text-gray-500 mb-1">状态 & 分片</div>
-                       <div className="text-sm">{selectedDoc.status} ({selectedDoc.chunks} Chunks)</div>
-                    </div>
-                    <div>
-                       <div className="text-xs text-gray-500 mb-1">入库时间</div>
-                       <div className="text-sm">{selectedDoc.date}</div>
-                    </div>
-                 </div>
-
-                 <div className="space-y-4">
-                    <h4 className="text-gray-300 font-semibold border-b border-[rgba(15,23,42,0.14)] pb-2">样例分片 (Top 3)</h4>
-                    {[1,2,3].map(i => (
-                      <div key={i} className="bg-white border border-[rgba(15,23,42,0.14)] p-4 rounded relative group">
-                        <div className="absolute top-2 right-2 text-[10px] bg-[rgba(58,183,255,0.12)] text-gray-400 px-2 py-0.5 rounded">Chunk 00{i}</div>
-                        <p className="text-xs text-gray-400 leading-relaxed max-w-[90%]">
-                          这是从文档中自动分割并向量化的测试文本段落。审计文档经过 OCR 与 NLP 模型处理，识别并关联到目标实体与账户信息。此文本段落是进行相似度匹配的最小单元。
-                        </p>
-                      </div>
-                    ))}
-                 </div>
-
-                 <div className="space-y-4">
-                    <h4 className="text-gray-300 font-semibold border-b border-[rgba(15,23,42,0.14)] pb-2">已提取关系实体</h4>
-                    <div className="flex flex-wrap gap-2">
-                       <span className="px-3 py-1 bg-[rgba(58,183,255,0.12)] border border-[rgba(15,23,42,0.14)] rounded text-xs text-gray-300">目标公司 A</span>
-                       <span className="px-3 py-1 bg-[rgba(58,183,255,0.12)] border border-[rgba(15,23,42,0.14)] rounded text-xs text-gray-300">法定代表人 B</span>
-                       <span className="px-3 py-1 bg-[rgba(58,183,255,0.12)] border border-[rgba(15,23,42,0.14)] rounded text-xs text-gray-300">离岸账户 C</span>
-                       <span className="px-3 py-1 bg-[rgba(58,183,255,0.12)] border border-[rgba(15,23,42,0.14)] rounded text-xs text-gray-300">关联企业 D</span>
-                    </div>
-                 </div>
+                    <p className="text-xs text-gray-400 leading-relaxed max-w-[90%]">
+                      这是从文档中自动分割并向量化的测试文本段落。审计文档经过
+                      OCR 与 NLP
+                      模型处理，识别并关联到目标实体与账户信息。此文本段落是进行相似度匹配的最小单元。
+                    </p>
+                  </div>
+                ))}
               </div>
 
-              <div className="p-5 border-t border-[rgba(15,23,42,0.14)] bg-white rounded-b-lg flex justify-end gap-3">
-                 <button onClick={() => toast('原文件由于跨域访问限制仅供展示', 'info')} className="px-4 py-2 border border-[rgba(15,23,42,0.14)] rounded hover:border-#005EB8 hover:text-brand-blue transition-colors text-sm flex items-center gap-2">
-                   <Eye className="w-4 h-4"/> 查看原文
-                 </button>
-                 <button onClick={() => setSelectedDoc(null)} className="px-4 py-2 bg-brand-blue hover:bg-[#00A3FF] text-white rounded shadow-lg transition-colors text-sm font-medium">关闭</button>
+              <div className="space-y-4">
+                <h4 className="text-brand-primary font-semibold border-b border-[rgba(15,23,42,0.14)] pb-2">
+                  已提取关系实体
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 bg-[rgba(58,183,255,0.12)] border border-[rgba(15,23,42,0.14)] rounded text-xs text-brand-primary">
+                    目标公司 A
+                  </span>
+                  <span className="px-3 py-1 bg-[rgba(58,183,255,0.12)] border border-[rgba(15,23,42,0.14)] rounded text-xs text-brand-primary">
+                    法定代表人 B
+                  </span>
+                  <span className="px-3 py-1 bg-[rgba(58,183,255,0.12)] border border-[rgba(15,23,42,0.14)] rounded text-xs text-brand-primary">
+                    离岸账户 C
+                  </span>
+                  <span className="px-3 py-1 bg-[rgba(58,183,255,0.12)] border border-[rgba(15,23,42,0.14)] rounded text-xs text-brand-primary">
+                    关联企业 D
+                  </span>
+                </div>
               </div>
-           </div>
+            </div>
+
+            <div className="p-5 border-t border-[rgba(15,23,42,0.14)] bg-white rounded-b-lg flex justify-end gap-3">
+              <button
+                onClick={() => toast("原文件由于跨域访问限制仅供展示", "info")}
+                className="px-4 py-2 border border-[rgba(15,23,42,0.14)] rounded hover:border-#005EB8 hover:text-brand-blue transition-colors text-sm flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" /> 查看原文
+              </button>
+              <button
+                onClick={() => setSelectedDoc(null)}
+                className="px-4 py-2 bg-brand-blue hover:bg-[#00A3FF] text-white rounded shadow-lg transition-colors text-sm font-medium"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
