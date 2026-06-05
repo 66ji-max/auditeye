@@ -1,23 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --bg-page: #080D18;
-  --bg-deep: #0B1020;
-  --surface: #111827;
-  --surface-2: #172033;
-  --surface-3: #1E293B;
+  --bg-page: #EAF3FF;
+  --bg-page-2: #F4F8FC;
 
-  --border-subtle: rgba(148, 163, 184, 0.14);
-  --border-medium: rgba(148, 163, 184, 0.24);
+  --surface: #FFFFFF;
+  --surface-2: #F7FAFC;
+  --surface-3: #EEF4FB;
+
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-medium: rgba(15, 23, 42, 0.14);
+
+  --text-main: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
 
   --brand-blue: #005EB8;
   --brand-blue-hover: #0B72D9;
   --brand-blue-light: #38BDF8;
   --brand-purple: #6D5DF6;
-
-  --text-main: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-muted: #94A3B8;
 
   --risk-high: #F43F5E;
   --risk-mid-high: #FB923C;
@@ -26,13 +27,14 @@
 }
 
 body {
-  background: var(--bg-page);
+  background: linear-gradient(180deg, #EAF3FF 0%, #F4F8FC 100%);
   color: var(--text-main);
+  min-height: 100vh;
 }
 
 @theme {
   --color-brand-bg: var(--bg-page);
-  --color-brand-deep: var(--bg-deep);
+  --color-brand-deep: var(--bg-page-2);
   --color-brand-surface: var(--surface);
   --color-brand-surface2: var(--surface-2);
   --color-brand-surface3: var(--surface-3);

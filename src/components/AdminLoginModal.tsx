@@ -47,7 +47,7 @@ export default function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProp
           </h2>
           <button 
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-200 rounded"
+            className="text-brand-muted hover:text-gray-600 transition-colors p-1 hover:bg-gray-200 rounded"
           >
             <X className="w-5 h-5" />
           </button>
@@ -93,7 +93,7 @@ export default function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProp
             <button
               type="submit"
               disabled={loading}
-              className={`px-4 py-2 text-sm font-medium text-white bg-[#2563EB] rounded-lg hover:bg-[#1D4ED8] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2563EB] transition-colors flex items-center gap-2 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
+              className={`px-4 py-2 text-sm font-medium text-brand-primary bg-[#2563EB] rounded-lg hover:bg-[#1D4ED8] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2563EB] transition-colors flex items-center gap-2 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
             >
               {loading ? '验证中...' : '登录'}
             </button>

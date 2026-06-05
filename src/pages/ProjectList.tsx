@@ -209,15 +209,15 @@ export default function ProjectList() {
   const filteredProjects = projects.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="h-full w-full bg-brand-deep p-4 md:p-6 text-gray-200 overflow-y-auto custom-scrollbar">
+    <div className="h-full w-full bg-brand-deep p-4 md:p-6 text-brand-primary overflow-y-auto custom-scrollbar">
 
       {systemMode === 'demo-readonly' && (
-        <div className="bg-brand-surface border border-[#3AB7FF]/50 rounded-lg p-4 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between shadow-xl">
+        <div className="bg-white border border-[#3AB7FF]/50 rounded-lg p-4 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between shadow-xl">
            <div className="flex items-center gap-3">
               <Activity className="w-5 h-5 text-brand-blue-light shrink-0" />
               <div className="text-sm">
                 <span className="font-semibold text-gray-200">Demo 只读模式</span>
-                <p className="text-gray-400 mt-0.5">{systemMessage}</p>
+                <p className="text-brand-muted mt-0.5">{systemMessage}</p>
               </div>
            </div>
         </div>
@@ -226,31 +226,31 @@ export default function ProjectList() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex flex-col items-center justify-center p-4">
-          <div className="bg-brand-card border border-brand-border-subtle rounded-lg shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between p-4 border-b border-brand-border-medium shrink-0">
+          <div className="bg-white border border-[rgba(15,23,42,0.08)] rounded-lg shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-4 border-b border-[rgba(15,23,42,0.14)] shrink-0">
               <h3 className="font-semibold text-lg text-brand-blue">新建审计项目</h3>
-              <button disabled={isSubmitting} onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">
+              <button disabled={isSubmitting} onClick={() => setShowModal(false)} className="text-gray-400 hover:text-brand-primary">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto">
               <div>
-                <label className="text-xs text-[#94A3B8] mb-1.5 block">项目名称 <span className="text-[#F43F5E]">*</span></label>
+                <label className="text-xs text-brand-muted mb-1.5 block">项目名称 <span className="text-[#F43F5E]">*</span></label>
                 <input 
                   autoFocus
                   type="text" 
                   value={newProject.name}
                   onChange={e => setNewProject({...newProject, name: e.target.value})}
-                  className="w-full bg-[#0B1020] border border-[rgba(148,163,184,0.18)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#38BDF8] text-[#F8FAFC]"
+                  className="w-full bg-white border border-[rgba(15,23,42,0.14)] rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-blue text-brand-primary"
                   placeholder="例如：发行人关联交易智能核查项目"
                 />
               </div>
               <div>
-                <label className="text-xs text-[#94A3B8] mb-1.5 block">分析场景</label>
+                <label className="text-xs text-brand-muted mb-1.5 block">分析场景</label>
                 <select 
                   value={newProject.scenario}
                   onChange={e => setNewProject({...newProject, scenario: e.target.value})}
-                  className="w-full bg-[#0B1020] border border-[rgba(148,163,184,0.18)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#38BDF8] text-[#F8FAFC]"
+                  className="w-full bg-white border border-[rgba(15,23,42,0.14)] rounded px-3 py-2 text-sm focus:outline-none focus:border-brand-blue text-brand-primary"
                 >
                   <option value="IPO审查">IPO审查</option>
                   <option value="内部反欺诈审查">内部反欺诈审查</option>
@@ -262,11 +262,11 @@ export default function ProjectList() {
                 <label className="text-xs text-gray-400 mb-1.5 block">上传初始文档 <span className="text-red-500">*</span></label>
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full bg-brand-deep border border-dashed border-brand-border-medium rounded p-4 text-center cursor-pointer hover:border-#38BDF8/50 transition-colors"
+                  className="w-full bg-brand-deep border border-dashed border-[rgba(15,23,42,0.14)] rounded p-4 text-center cursor-pointer hover:border-#005EB8/50 transition-colors"
                 >
                   {isSubmitting ? (
                     <div className="animate-pulse">
-                      <Upload className="w-5 h-5 text-gray-500 mx-auto mb-2 opacity-50" />
+                      <Upload className="w-5 h-5 text-brand-muted mx-auto mb-2 opacity-50" />
                       <div className="text-xs text-brand-blue">文件上传处理中...</div>
                     </div>
                   ) : (
@@ -292,8 +292,8 @@ export default function ProjectList() {
                 {files.length > 0 && (
                   <div className="mt-3 space-y-1 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
                     {files.map((f, i) => (
-                      <div key={i} className="flex items-center justify-between bg-brand-surface2 border border-brand-border-medium p-2 rounded text-xs">
-                        <span className="truncate flex-1 text-gray-300">{f.name}</span>
+                      <div key={i} className="flex items-center justify-between bg-[#F7FAFC] border border-[rgba(15,23,42,0.14)] p-2 rounded text-xs">
+                        <span className="truncate flex-1 text-brand-primary">{f.name}</span>
                         <button disabled={isSubmitting} onClick={() => removeFile(i)} className="text-gray-500 hover:text-red-500 ml-2 disabled:opacity-50"><X className="w-3 h-3"/></button>
                       </div>
                     ))}
@@ -301,9 +301,9 @@ export default function ProjectList() {
                 )}
               </div>
             </div>
-            <div className="p-4 border-t border-brand-border-subtle flex justify-end gap-3 bg-[#0B1020] shrink-0">
-              <button disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-brand-muted hover:text-white" onClick={() => setShowModal(false)}>取消</button>
-              <button disabled={isSubmitting || !newProject.name.trim() || files.length === 0} onClick={createProject} className="px-5 py-2.5 bg-brand-blue hover:bg-brand-blue-hover text-white font-medium text-sm rounded-lg shadow-[0_6px_18px_rgba(0,94,184,0.22)] flex items-center gap-2 transition-all hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-50 disabled:hover:translate-y-0">
+            <div className="p-4 border-t border-[rgba(15,23,42,0.06)] flex justify-end gap-3 bg-[rgba(15,23,42,0.02)] shrink-0">
+              <button disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-brand-muted hover:text-brand-primary" onClick={() => setShowModal(false)}>取消</button>
+              <button disabled={isSubmitting || !newProject.name.trim() || files.length === 0} onClick={createProject} className="px-5 py-2.5 bg-brand-blue hover:bg-brand-blue-hover text-white font-medium text-sm rounded-lg shadow-[0_8px_20px_rgba(0,94,184,0.16)] flex items-center gap-2 transition-all hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-50 disabled:hover:translate-y-0">
                 {isSubmitting ? '上传执行中...' : '创建项目'}
               </button>
             </div>
@@ -336,15 +336,15 @@ export default function ProjectList() {
               placeholder="搜索项目名称..." 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-[#0B1020] border border-[rgba(148,163,184,0.18)] rounded-lg px-9 py-2 text-sm focus:outline-none focus:border-[#38BDF8] focus:ring-1 focus:ring-[#38BDF8]/30 text-[#F8FAFC] placeholder-[#64748B] transition-colors"
+              className="w-full bg-white border border-[rgba(15,23,42,0.10)] rounded-lg px-9 py-2 text-sm focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/30 text-brand-primary placeholder-brand-muted transition-colors"
             />
           </div>
         </div>
 
-        <div className="bg-brand-card border border-brand-border-subtle rounded-none md:rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.18)] flex-1 min-h-0 overflow-y-auto custom-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="bg-white border border-[rgba(15,23,42,0.08)] rounded-none md:rounded-2xl shadow-[0_12px_32px_rgba(15,23,42,0.06)] flex-1 min-h-0 overflow-y-auto custom-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
           {loading ? (
             <div className="p-12 flex justify-center items-center text-gray-500 text-sm h-full w-full">
-              <div className="w-5 h-5 border-2 border-#38BDF8 border-t-transparent rounded-full animate-spin mr-3"></div>
+              <div className="w-5 h-5 border-2 border-#005EB8 border-t-transparent rounded-full animate-spin mr-3"></div>
               正在加载项目列表...
             </div>
           ) : (
@@ -352,7 +352,7 @@ export default function ProjectList() {
               {/* Desktop Table View */}
               <div className="hidden md:block">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-brand-surface2 border-b border-brand-border-subtle text-[#D9E4F5] text-xs sticky top-0 z-10 font-medium">
+                  <thead className="bg-[#F3F7FB] border-b border-[rgba(15,23,42,0.06)] text-[#334155] text-xs sticky top-0 z-10 font-medium">
                     <tr>
                       <th className="px-5 py-3 font-medium">项目名称</th>
                       <th className="px-5 py-3 font-medium">场景类型</th>
@@ -363,15 +363,15 @@ export default function ProjectList() {
                       <th className="px-5 py-3"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-brand-border-subtle">
+                  <tbody className="divide-y divide-[rgba(15,23,42,0.06)]">
                     {filteredProjects.map((p, i) => (
-                      <tr key={p.id} onClick={() => navigate(`/project/${p.id}`)} className="hover:bg-[rgba(56,189,248,0.05)] transition-colors cursor-pointer group bg-transparent">
+                      <tr key={p.id} onClick={() => navigate(`/project/${p.id}`)} className="hover:bg-[rgba(0,94,184,0.03)] transition-colors cursor-pointer group bg-transparent">
                       <td className="px-5 py-4">
                         <div className="font-semibold text-brand-primary text-[13px]">{p.name}</div>
                         <div className="text-[10px] font-mono text-brand-muted mt-0.5">PRJ-{p.id.toString().padStart(4, '0')}</div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="px-2.5 py-1 bg-[rgba(56,189,248,0.08)] border border-[rgba(56,189,248,0.20)] rounded-full text-[10px] text-[#BAE6FD]">
+                        <span className="px-2.5 py-1 bg-[rgba(0,94,184,0.08)] border border-[rgba(0,94,184,0.14)] rounded-full text-[10px] text-brand-blue font-medium">
                           {p.scenario}
                         </span>
                       </td>
@@ -401,7 +401,7 @@ export default function ProjectList() {
                       </td>
                       <td className="px-5 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="relative inline-block text-left" onClick={e => e.stopPropagation()}>
-                          <button onClick={(e) => handleDeleteProject(e, p.id)} className="text-gray-500 hover:text-white p-1 rounded-full hover:bg-[#333] transition-colors"><MoreHorizontal className="w-5 h-5" /></button>
+                          <button onClick={(e) => handleDeleteProject(e, p.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50 transition-colors"><MoreHorizontal className="w-5 h-5" /></button>
                         </div>
                       </td>
                     </tr>
@@ -413,7 +413,7 @@ export default function ProjectList() {
               {/* Mobile Card View */}
               <div className="block md:hidden space-y-3 pb-6">
                 {filteredProjects.map((p, i) => (
-                  <div key={p.id} onClick={() => navigate(`/project/${p.id}`)} className="bg-brand-card p-4 rounded-xl border border-brand-border-subtle cursor-pointer hover:border-brand-cyan/50 transition-colors shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+                  <div key={p.id} onClick={() => navigate(`/project/${p.id}`)} className="bg-white p-4 rounded-xl border border-[rgba(15,23,42,0.08)] cursor-pointer hover:border-brand-cyan/50 transition-colors shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
                     <div className="flex justify-between items-start mb-2">
                        <div>
                          <div className="font-semibold text-brand-primary text-sm mb-1">{p.name}</div>
@@ -425,11 +425,11 @@ export default function ProjectList() {
                        </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mb-3">
-                       <span className="px-2.5 py-1 bg-[rgba(56,189,248,0.08)] border border-[rgba(56,189,248,0.20)] rounded-full text-[10px] text-[#BAE6FD]">{p.scenario}</span>
-                         {p.industryType && <span className="px-2.5 py-1 bg-brand-cyan/10 border border-brand-cyan/20 rounded-full text-[10px] text-brand-cyan">{indNameMap[p.industryType] || p.industryType}</span>}
-                       <span className="flex items-center gap-1.5 text-[10px] text-brand-cyan px-2.5 py-1 bg-[rgba(56,189,248,0.08)] border border-[rgba(56,189,248,0.20)] rounded-full"><div className="w-1.5 h-1.5 rounded-full bg-brand-cyan"></div> 分析中</span>
+                       <span className="px-2.5 py-1 bg-[rgba(0,94,184,0.08)] border border-[rgba(0,94,184,0.14)] rounded-full text-[10px] text-[#005EB8] font-medium">{p.scenario}</span>
+                         {p.industryType && <span className="px-2.5 py-1 bg-brand-blue/10 border border-brand-blue/20 rounded-full text-[10px] text-brand-blue font-medium">{indNameMap[p.industryType] || p.industryType}</span>}
+                       <span className="flex items-center gap-1.5 text-[10px] text-brand-blue px-2.5 py-1 bg-[rgba(0,94,184,0.08)] border border-[rgba(0,94,184,0.14)] rounded-full font-medium"><div className="w-1.5 h-1.5 rounded-full bg-brand-blue"></div> 分析中</span>
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-brand-muted pt-3 border-t border-brand-border-subtle">
+                    <div className="flex items-center justify-between text-[11px] text-brand-muted pt-3 border-t border-[rgba(15,23,42,0.06)]">
                       <div className="flex gap-3">
                          <div className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> {p.docCount || 0}</div>
                          <div className="flex items-center gap-1"><Database className="w-3.5 h-3.5 text-brand-cyan" /> -</div>
