@@ -1,52 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  --bg-page: #07162D;
-  --bg-page-2: #0A1933;
-  --bg-card: #0D2347;
-  --bg-card-2: #12305F;
-  --bg-hover: #163B73;
+  --bg-page: #080D18;
+  --bg-deep: #0B1020;
+  --surface: #111827;
+  --surface-2: #172033;
+  --surface-3: #1E293B;
 
-  --border-subtle: rgba(154, 181, 220, 0.16);
-  --border-medium: rgba(154, 181, 220, 0.28);
+  --border-subtle: rgba(148, 163, 184, 0.14);
+  --border-medium: rgba(148, 163, 184, 0.24);
 
-  --text-primary: #F5F8FC;
-  --text-secondary: #AFC0D8;
-  --text-muted: #7E95B3;
+  --brand-blue: #005EB8;
+  --brand-blue-hover: #0B72D9;
+  --brand-blue-light: #38BDF8;
+  --brand-purple: #6D5DF6;
 
-  --accent-blue: #005EB8;
-  --accent-blue-hover: #1A73D9;
-  --accent-cyan: #3AB7FF;
-  --accent-purple: #5B5FC7;
+  --text-main: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
 
-  --success: #22C55E;
-  --warning: #FACC15;
-  --orange: #FB923C;
-  --danger: #F43F5E;
+  --risk-high: #F43F5E;
+  --risk-mid-high: #FB923C;
+  --risk-mid: #FACC15;
+  --risk-low: #22C55E;
 }
 
 body {
   background: var(--bg-page);
-  color: var(--text-primary);
+  color: var(--text-main);
 }
 
 @theme {
   --color-brand-bg: var(--bg-page);
-  --color-brand-bg2: var(--bg-page-2);
-  --color-brand-card: var(--bg-card);
-  --color-brand-card2: var(--bg-card-2);
-  --color-brand-hover: var(--bg-hover);
+  --color-brand-deep: var(--bg-deep);
+  --color-brand-surface: var(--surface);
+  --color-brand-surface2: var(--surface-2);
+  --color-brand-surface3: var(--surface-3);
   
   --color-brand-border-subtle: var(--border-subtle);
   --color-brand-border-medium: var(--border-medium);
   
-  --color-brand-primary: var(--text-primary);
+  --color-brand-primary: var(--text-main);
   --color-brand-secondary: var(--text-secondary);
   --color-brand-muted: var(--text-muted);
   
-  --color-brand-accent: var(--accent-blue);
-  --color-brand-accent-hover: var(--accent-blue-hover);
-  --color-brand-cyan: var(--accent-cyan);
-  --color-brand-purple: var(--accent-purple);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-hover: var(--brand-blue-hover);
+  --color-brand-blue-light: var(--brand-blue-light);
+  --color-brand-purple: var(--brand-purple);
 }
 

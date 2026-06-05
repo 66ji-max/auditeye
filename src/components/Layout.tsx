@@ -22,10 +22,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-screen w-screen bg-brand-bg flex flex-col font-sans overflow-hidden">
       {/* Global Top Navbar */}
-      <header className="h-12 bg-[#08182F] border-b border-brand-border-subtle flex items-center justify-between px-6 shrink-0 z-50">
+      <header className="h-14 bg-[#0B1020] border-b border-[rgba(148,163,184,0.14)] flex items-center justify-between px-6 shrink-0 z-50">
         <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2 text-brand-cyan font-bold text-lg tracking-wide cursor-pointer" onClick={() => navigate('/')}>
-            <img src="/favicon.svg" alt="AuditEye Logo" className="w-5 h-5 text-brand-cyan" />
+          <div className="flex items-center gap-2 text-[#38BDF8] font-bold text-lg tracking-wide cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-5 h-5 flex items-center justify-center bg-brand-blue-light/10 rounded-sm">
+              <span className="text-xl leading-none -mt-0.5" role="img" aria-label="Eye">👁</span>
+            </div>
             <span>AuditEye</span>
           </div>
 
@@ -34,10 +36,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`px-3 py-1.5 rounded flex items-center gap-1.5 text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-colors ${
                   location.pathname === item.path || (item.path === '/' && location.pathname.startsWith('/project/'))
-                    ? 'bg-[rgba(58,183,255,0.10)] text-brand-primary border border-[rgba(58,183,255,0.30)]'
-                    : 'text-brand-secondary hover:brightness-110 hover:bg-transparent border border-transparent'
+                    ? 'bg-[rgba(56,189,248,0.08)] border border-[rgba(56,189,248,0.22)] text-[#F8FAFC]'
+                    : 'text-[#CBD5E1] border border-transparent hover:bg-[rgba(148,163,184,0.08)]'
                 }`}
               >
                 {item.icon}
@@ -61,7 +63,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </div>
                 <button
                   onClick={logout}
-                  className="flex items-center gap-1.5 text-brand-muted hover:text-brand-primary hover:bg-brand-card px-2 py-1 rounded transition-colors"
+                  className="flex items-center gap-1.5 text-brand-muted hover:text-brand-primary hover:bg-brand-surface px-2 py-1 rounded transition-colors"
                   title="退出管理员模式"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -75,7 +77,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </div>
                 <button
                   onClick={() => setIsLoginModalOpen(true)}
-                  className="px-3 py-1 text-xs font-medium bg-[rgba(58,183,255,0.12)] text-[#D9E4F5] hover:bg-[#1A73D9] hover:text-white rounded transition-colors"
+                  className="px-3 py-1 text-xs font-medium bg-[rgba(56,189,248,0.12)] text-[#D9E4F5] hover:bg-[#1A73D9] hover:text-white rounded transition-colors"
                 >
                   高级登录
                 </button>

@@ -29,9 +29,9 @@ export default function ToastContainer() {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
       {toasts.map(t => (
-        <div key={t.id} className="animate-in slide-in-from-right-8 fade-in flex items-center gap-2 px-4 py-3 bg-brand-card border border-brand-border-medium shadow-lg rounded pointer-events-auto text-xs font-medium text-gray-200 min-w-[240px]">
+        <div key={t.id} className="animate-in slide-in-from-right-8 fade-in flex items-center gap-2 px-4 py-3 bg-brand-surface border border-brand-border-medium shadow-lg rounded pointer-events-auto text-xs font-medium text-gray-200 min-w-[240px]">
           {t.type === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
-          {t.type === 'primary' && <Info className="w-4 h-4 text-brand-accent" />}
+          {t.type === 'primary' && <Info className="w-4 h-4 text-brand-blue-light" />}
           {t.type === 'info' && <Info className="w-4 h-4 text-blue-400" />}
           {t.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-500" />}
           {t.type === 'error' && <AlertTriangle className="w-4 h-4 text-red-500" />}

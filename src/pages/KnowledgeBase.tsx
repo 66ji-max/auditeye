@@ -37,13 +37,13 @@ export default function KnowledgeBase() {
   });
 
   return (
-    <div className="h-full w-full bg-brand-bg2 p-6 text-white overflow-y-auto custom-scrollbar relative">
+    <div className="h-full w-full bg-brand-deep p-6 text-white overflow-y-auto custom-scrollbar relative">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-brand-accent" />
+              <BookOpen className="w-6 h-6 text-brand-blue-light" />
               企业知识库 (RAG Vector Store)
             </h1>
             <p className="text-xs text-brand-muted mt-1">集中管理结构化/非结构化业务档案，支撑大模型智能召回与知识抽取。</p>
@@ -58,17 +58,17 @@ export default function KnowledgeBase() {
               placeholder="通过实体、文档名称或全文检索知识库..." 
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="w-full bg-brand-card border border-brand-border-subtle rounded px-9 py-2.5 text-sm focus:outline-none focus:border-[#3AB7FF] text-white"
+              className="w-full bg-brand-surface border border-brand-border-subtle rounded px-9 py-2.5 text-sm focus:outline-none focus:border-[#3AB7FF] text-white"
             />
           </div>
           <div className="relative">
-            <button onClick={() => setShowFilter(!showFilter)} className="px-6 py-2.5 bg-brand-card border border-brand-border-medium hover:border-[#0091DA] text-brand-primary rounded text-sm flex items-center gap-2 transition-colors">
+            <button onClick={() => setShowFilter(!showFilter)} className="px-6 py-2.5 bg-brand-card border border-brand-border-medium hover:border-#38BDF8 text-brand-primary rounded text-sm flex items-center gap-2 transition-colors">
               {filterType === '全部' ? '筛选类型' : filterType} <ChevronDown className="w-4 h-4" />
             </button>
             {showFilter && (
               <div className="absolute top-full mt-2 w-full bg-brand-card border border-brand-border-medium rounded shadow-xl z-20 overflow-hidden">
                 {types.map(t => (
-                  <div key={t} onClick={() => { setFilterType(t); setShowFilter(false); }} className={`px-4 py-2 text-sm cursor-pointer hover:bg-[rgba(58,183,255,0.12)] ${filterType === t ? 'text-brand-accent' : 'text-gray-300'}`}>
+                  <div key={t} onClick={() => { setFilterType(t); setShowFilter(false); }} className={`px-4 py-2 text-sm cursor-pointer hover:bg-[rgba(56,189,248,0.12)] ${filterType === t ? 'text-brand-blue' : 'text-gray-300'}`}>
                     {t}
                   </div>
                 ))}
@@ -88,7 +88,7 @@ export default function KnowledgeBase() {
           </div>
           <div className="bg-brand-card border border-brand-border-medium p-4 rounded-lg flex flex-col">
             <div className="text-[11px] text-gray-500 mb-2">已沉淀实体 (Entities)</div>
-            <div className="text-2xl font-bold text-brand-accent">3,105</div>
+            <div className="text-2xl font-bold text-brand-blue">3,105</div>
           </div>
           <div className="bg-brand-card border border-brand-border-medium p-4 rounded-lg flex flex-col">
             <div className="text-[11px] text-gray-500 mb-2">知识库版本</div>
@@ -97,7 +97,7 @@ export default function KnowledgeBase() {
         </div>
 
         <div className="bg-brand-card border border-brand-border-subtle rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.1)] overflow-hidden">
-          <div className="px-4 py-3 border-b border-brand-border-subtle flex items-center justify-between bg-brand-bg2">
+          <div className="px-4 py-3 border-b border-brand-border-subtle flex items-center justify-between bg-brand-deep">
             <h3 className="text-sm font-medium text-brand-primary">源文件解析列表</h3>
           </div>
           {loading ? (
@@ -107,7 +107,7 @@ export default function KnowledgeBase() {
             </div>
           ) : (
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#12305F] border-b border-brand-border-subtle text-[#D9E4F5] text-xs">
+              <thead className="bg-brand-surface2 border-b border-brand-border-subtle text-[#CBD5E1] text-xs">
                 <tr>
                   <th className="px-4 py-3 font-medium">文件名称</th>
                   <th className="px-4 py-3 font-medium">类型标签</th>
@@ -122,7 +122,7 @@ export default function KnowledgeBase() {
                   <tr key={i} onClick={() => setSelectedDoc(doc)} className="hover:bg-[rgba(255,255,255,0.03)] transition-colors cursor-pointer group">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-brand-cyan" />
+                        <FileText className="w-4 h-4 text-brand-blue-light" />
                         <div>
                           <div className="font-medium text-brand-primary text-xs">{doc.name}</div>
                           <div className="font-mono text-[10px] text-brand-muted">{doc.id}</div>
@@ -130,7 +130,7 @@ export default function KnowledgeBase() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="px-2 py-1 bg-brand-bg2 border border-brand-border-medium rounded text-[10px] text-gray-300 flex items-center gap-1 w-max">
+                      <span className="px-2 py-1 bg-brand-surface2 border border-brand-border-medium rounded text-[10px] text-gray-300 flex items-center gap-1 w-max">
                         <Tag className="w-3 h-3" /> {doc.type}
                       </span>
                     </td>
@@ -160,16 +160,16 @@ export default function KnowledgeBase() {
       {selectedDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setSelectedDoc(null)}>
            <div className="bg-brand-card border border-brand-border-medium w-[800px] h-[80vh] rounded-lg shadow-2xl flex flex-col" onClick={e=>e.stopPropagation()}>
-              <div className="p-5 border-b border-brand-border-medium flex justify-between items-center bg-brand-bg2 rounded-t-lg">
+              <div className="p-5 border-b border-brand-border-medium flex justify-between items-center bg-[#0B1020] rounded-t-lg">
                 <div className="flex items-center gap-3">
-                  <BookOpen className="w-5 h-5 text-brand-accent" />
+                  <BookOpen className="w-5 h-5 text-brand-blue" />
                   <h2 className="text-lg font-bold text-white">知识库文档详情</h2>
                 </div>
                 <button onClick={() => setSelectedDoc(null)} className="text-gray-500 hover:text-white"><X className="w-5 h-5"/></button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                 <div className="bg-brand-bg2 border border-brand-border-medium rounded p-4 grid grid-cols-3 gap-6">
+                 <div className="bg-[#0B1020] border border-[rgba(148,163,184,0.18)] rounded p-4 grid grid-cols-3 gap-6">
                     <div>
                        <div className="text-xs text-gray-500 mb-1">文件名称</div>
                        <div className="text-sm font-semibold truncate" title={selectedDoc.name}>{selectedDoc.name}</div>
@@ -208,10 +208,10 @@ export default function KnowledgeBase() {
               </div>
 
               <div className="p-5 border-t border-brand-border-medium bg-brand-bg2 rounded-b-lg flex justify-end gap-3">
-                 <button onClick={() => toast('原文件由于跨域访问限制仅供展示', 'info')} className="px-4 py-2 border border-brand-border-medium rounded hover:border-[#0091DA] hover:text-brand-accent transition-colors text-sm flex items-center gap-2">
+                 <button onClick={() => toast('原文件由于跨域访问限制仅供展示', 'info')} className="px-4 py-2 border border-brand-border-medium rounded hover:border-#38BDF8 hover:text-brand-blue transition-colors text-sm flex items-center gap-2">
                    <Eye className="w-4 h-4"/> 查看原文
                  </button>
-                 <button onClick={() => setSelectedDoc(null)} className="px-4 py-2 bg-brand-accent hover:bg-[#00A3FF] text-white rounded shadow-lg transition-colors text-sm font-medium">关闭</button>
+                 <button onClick={() => setSelectedDoc(null)} className="px-4 py-2 bg-brand-blue hover:bg-[#00A3FF] text-white rounded shadow-lg transition-colors text-sm font-medium">关闭</button>
               </div>
            </div>
         </div>

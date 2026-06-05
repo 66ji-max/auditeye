@@ -143,9 +143,9 @@ export default function ModelTraining() {
       <div className="p-8 max-w-5xl mx-auto space-y-6">
         <div>
           <h2 className="text-2xl font-bold font-sans text-white flex items-center gap-2">
-            <Play className="w-5 h-5 text-brand-accent" /> 模型训练 / 样本投喂
+            <Play className="w-5 h-5 text-brand-blue-light" /> 模型训练 / 样本投喂
           </h2>
-          <p className="text-sm text-gray-400 mt-2">只有管理员可以提交确诊的历史审计样本。模型采用 <span className="text-brand-accent">行业先验权重 + 样本训练权重融合</span> 的机制。</p>
+          <p className="text-sm text-gray-400 mt-2">只有管理员可以提交确诊的历史审计样本。模型采用 <span className="text-brand-blue">行业先验权重 + 样本训练权重融合</span> 的机制。</p>
         </div>
 
         {!isAdmin && (
@@ -167,7 +167,7 @@ export default function ModelTraining() {
              <div>
                <label className="block text-sm font-medium text-gray-400 mb-2">行业门类 (Industry Type)</label>
                <select 
-                 className="w-full bg-brand-bg2 border border-brand-border-medium rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-[#3AB7FF]"
+                 className="w-full bg-brand-deep border border-brand-border-medium rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-[#3AB7FF]"
                  value={industryType}
                  onChange={e => setIndustryType(e.target.value)}
                  disabled={!isAdmin}
@@ -181,7 +181,7 @@ export default function ModelTraining() {
              <div>
                <label className="block text-sm font-medium text-gray-400 mb-2">二级项目分类 (Project Type)</label>
                <input 
-                 className="w-full bg-brand-bg2 border border-brand-border-medium rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-[#0091DA]"
+                 className="w-full bg-brand-deep border border-brand-border-medium rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-[#38BDF8]"
                  value={projectType}
                  onChange={e => setProjectType(e.target.value)}
                  placeholder="例如: IPO关联交易核查"
@@ -199,9 +199,9 @@ export default function ModelTraining() {
             
             <div className="space-y-3 flex-1">
               {samples.map((s, i) => (
-                <div key={i} className="flex gap-2 items-center bg-brand-bg2 border border-brand-border-medium p-2 rounded">
+                <div key={i} className="flex gap-2 items-center bg-brand-surface2 border border-brand-border-medium p-2 rounded">
                   <span className="text-xs text-gray-500 w-4">{i+1}.</span>
-                  <input type="number" step="0.01" value={s.X1} onChange={e => handleSampleChange(i, 'X1', e.target.value)} className="w-16 bg-brand-card border border-brand-border-medium rounded text-xs px-1 py-1" placeholder="X1" disabled={!isAdmin} />
+                  <input type="number" step="0.01" value={s.X1} onChange={e => handleSampleChange(i, 'X1', e.target.value)} className="w-16 bg-brand-surface border border-brand-border-medium rounded text-xs px-1 py-1" placeholder="X1" disabled={!isAdmin} />
                   <input type="number" step="0.01" value={s.X2} onChange={e => handleSampleChange(i, 'X2', e.target.value)} className="w-16 bg-brand-card border border-brand-border-medium rounded text-xs px-1 py-1" placeholder="X2" disabled={!isAdmin} />
                   <input type="number" step="0.01" value={s.X3} onChange={e => handleSampleChange(i, 'X3', e.target.value)} className="w-16 bg-brand-card border border-brand-border-medium rounded text-xs px-1 py-1" placeholder="X3" disabled={!isAdmin} />
                   <select value={s.label} onChange={e => handleSampleChange(i, 'label', e.target.value)} className="w-20 bg-brand-card border border-brand-border-medium rounded text-xs px-1 py-1" disabled={!isAdmin}>
@@ -214,7 +214,7 @@ export default function ModelTraining() {
               {samples.length === 0 && <div className="text-sm text-gray-500 py-4 text-center">暂无录入样本</div>}
             </div>
             
-            <button onClick={handleAddSample} className="w-full mt-4 flex items-center justify-center gap-2 border border-dashed border-brand-border-medium bg-brand-bg2 py-2 rounded text-sm text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors" disabled={!isAdmin}>
+            <button onClick={handleAddSample} className="w-full mt-4 flex items-center justify-center gap-2 border border-dashed border-brand-border-medium bg-[#0B1020] py-2 rounded text-sm text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors" disabled={!isAdmin}>
               <Plus className="w-4 h-4" /> 增加样本行
             </button>
           </div>
@@ -240,7 +240,7 @@ export default function ModelTraining() {
                  disabled={!isAdmin}
               />
               {csvFile && (
-                <div className="mt-4 text-sm text-brand-accent font-medium border border-[#0091DA]/30 bg-brand-accent/10 px-3 py-1 rounded inline-block">
+                <div className="mt-4 text-sm text-brand-blue font-medium border border-#38BDF8/30 bg-brand-blue/10 px-3 py-1 rounded inline-block">
                   已选择: {csvFile.name}
                 </div>
               )}
@@ -250,7 +250,7 @@ export default function ModelTraining() {
               <button 
                 onClick={handleTrain} 
                 disabled={loading || !isAdmin}
-                className="bg-brand-accent text-black px-6 py-2.5 rounded font-medium flex items-center gap-2 hover:bg-[#F3CE5E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-brand-blue text-black px-6 py-2.5 rounded font-medium flex items-center gap-2 hover:bg-[#F3CE5E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> : <Play className="w-4 h-4" />}
                 {loading ? '学习训练中...' : '开始融合学习'}
@@ -293,8 +293,8 @@ export default function ModelTraining() {
                    <div>b : {trainingResult.learnedWeights?.b.toFixed(4)}</div>
                  </div>
                </div>
-               <div className="bg-[#332a1c] p-4 rounded border border-[#0091DA]/50">
-                 <div className="text-xs text-brand-accent mb-2 flex justify-between">
+               <div className="bg-[#332a1c] p-4 rounded border border-#38BDF8/50">
+                 <div className="text-xs text-brand-blue mb-2 flex justify-between">
                     <span>最终融合结果 (W_final)</span>
                     <button onClick={fetchCurrentWeights} className="underline hover:text-white">验证生效</button>
                  </div>
