@@ -1,21 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  --ae-bg: #061A40;
-  --ae-bg-deep: #03102A;
-  --ae-surface: #0B2454;
-  --ae-surface-2: #102E6E;
-  --ae-border: #1E4D92;
-  --ae-primary: #0091DA;
-  --ae-primary-hover: #00A3FF;
-  --ae-purple: #6D45E2;
-  --ae-cyan: #00C2FF;
-  --ae-text: #F4F7FB;
-  --ae-muted: #9DB2D6;
+  --bg-page: #07162D;
+  --bg-page-2: #0A1933;
+  --bg-card: #0D2347;
+  --bg-card-2: #12305F;
+  --bg-hover: #163B73;
+
+  --border-subtle: rgba(154, 181, 220, 0.16);
+  --border-medium: rgba(154, 181, 220, 0.28);
+
+  --text-primary: #F5F8FC;
+  --text-secondary: #AFC0D8;
+  --text-muted: #7E95B3;
+
+  --accent-blue: #005EB8;
+  --accent-blue-hover: #1A73D9;
+  --accent-cyan: #3AB7FF;
+  --accent-purple: #5B5FC7;
+
+  --success: #22C55E;
+  --warning: #FACC15;
+  --orange: #FB923C;
+  --danger: #F43F5E;
 }
 
 body {
-  background: var(--ae-bg-deep);
-  color: var(--ae-text);
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+@theme {
+  --color-brand-bg: var(--bg-page);
+  --color-brand-bg2: var(--bg-page-2);
+  --color-brand-card: var(--bg-card);
+  --color-brand-card2: var(--bg-card-2);
+  --color-brand-hover: var(--bg-hover);
+  
+  --color-brand-border-subtle: var(--border-subtle);
+  --color-brand-border-medium: var(--border-medium);
+  
+  --color-brand-primary: var(--text-primary);
+  --color-brand-secondary: var(--text-secondary);
+  --color-brand-muted: var(--text-muted);
+  
+  --color-brand-accent: var(--accent-blue);
+  --color-brand-accent-hover: var(--accent-blue-hover);
+  --color-brand-cyan: var(--accent-cyan);
+  --color-brand-purple: var(--accent-purple);
 }
 

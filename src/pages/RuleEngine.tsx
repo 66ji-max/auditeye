@@ -286,55 +286,67 @@ export default function RuleEngine() {
 
 
   return (
-    <div className="h-full w-full bg-[#03102A] p-6 text-gray-200 overflow-y-auto custom-scrollbar relative">
+    <div className="h-full w-full bg-brand-bg2 p-6 text-white overflow-y-auto custom-scrollbar relative">
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Top Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Settings className="w-6 h-6 text-[#0091DA]" />
+            <h1 className="text-2xl font-bold flex items-center gap-2 text-brand-primary">
+              <Settings className="w-6 h-6 text-brand-cyan" />
               审计规则引擎
             </h1>
-            <p className="text-xs text-gray-500 mt-1">管理并调试用于实体交叉验证与风险评分的规则集版本。</p>
+            <p className="text-xs text-brand-muted mt-2">管理并调试用于实体交叉验证与风险评分的规则集版本。</p>
           </div>
-          {isAdmin && <button onClick={() => setShowNewRule(true)} className="px-4 py-2 bg-[#0091DA] hover:bg-[#00A3FF] text-[#03102A] font-medium text-sm rounded shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center gap-2 transition-all">
+          {isAdmin && <button onClick={() => setShowNewRule(true)} className="px-5 py-2.5 bg-gradient-to-br from-brand-accent to-brand-accent-hover text-white font-medium text-sm rounded-lg shadow-[0_6px_18px_rgba(0,94,184,0.22)] flex items-center gap-2 transition-all hover:brightness-110 hover:-translate-y-0.5">
             <Plus className="w-4 h-4" /> 新建规则</button>}
         </div>
 
         {/* Overview Card */}
-        <div className="bg-[#0B2454] border border-[#1E4D92] p-6 rounded-lg grid grid-cols-5 gap-4">
+        <div className="bg-brand-card border border-brand-border-subtle p-6 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.18)] grid grid-cols-5 gap-6">
            <div className="col-span-2">
-             <div className="text-gray-400 text-xs mb-1">当前门类权重 ({INDUSTRY_TYPES.find(t=>t.id===currentSet)?.name || ''})</div>
-             <div className="text-gray-100 font-mono text-sm grid grid-cols-2 gap-2 mt-2 bg-[#03102A] p-2 rounded">
-                <div><span className="text-gray-500 text-xs mr-2">W1 身份</span>{aiWeights.W1}</div>
-                <div><span className="text-gray-500 text-xs mr-2">W2 交易</span>{aiWeights.W2}</div>
-                <div><span className="text-gray-500 text-xs mr-2">W3 外围</span>{aiWeights.W3}</div>
-                <div><span className="text-gray-500 text-xs mr-2">b 截距</span>{aiWeights.b}</div>
+             <div className="text-brand-muted text-xs mb-2">当前门类权重 ({INDUSTRY_TYPES.find(t=>t.id===currentSet)?.name || ''})</div>
+             <div className="flex gap-2">
+                <div className="bg-brand-bg2 border border-brand-border-subtle rounded-lg p-2.5 flex-1 shadow-sm flex flex-col justify-center items-center">
+                   <span className="text-brand-muted text-[10px] mb-1">W1 身份</span>
+                   <span className="text-brand-primary font-mono text-sm">{aiWeights.W1}</span>
+                </div>
+                <div className="bg-brand-bg2 border border-brand-border-subtle rounded-lg p-2.5 flex-1 shadow-sm flex flex-col justify-center items-center">
+                   <span className="text-brand-muted text-[10px] mb-1">W2 交易</span>
+                   <span className="text-brand-primary font-mono text-sm">{aiWeights.W2}</span>
+                </div>
+                <div className="bg-brand-bg2 border border-brand-border-subtle rounded-lg p-2.5 flex-1 shadow-sm flex flex-col justify-center items-center">
+                   <span className="text-brand-muted text-[10px] mb-1">W3 外围</span>
+                   <span className="text-brand-primary font-mono text-sm">{aiWeights.W3}</span>
+                </div>
+                <div className="bg-[rgba(58,183,255,0.05)] border border-[rgba(58,183,255,0.15)] rounded-lg p-2.5 flex-1 shadow-sm flex flex-col justify-center items-center">
+                   <span className="text-brand-cyan text-[10px] mb-1">b 截距</span>
+                   <span className="text-brand-cyan font-mono text-sm">{aiWeights.b}</span>
+                </div>
              </div>
            </div>
-           <div>
-             <div className="text-gray-400 text-xs mb-1">生效规则数</div>
-             <div className="text-gray-100 font-mono font-semibold text-xl">{rules.filter(r => r.status==='enabled').length}</div>
+           <div className="flex flex-col justify-center border-l border-brand-border-subtle pl-6">
+             <div className="text-brand-muted text-xs mb-1">生效规则数</div>
+             <div className="text-brand-primary font-mono font-semibold text-2xl">{rules.filter(r => r.status==='enabled').length}</div>
            </div>
-           <div>
-             <div className="text-gray-400 text-xs mb-1">高危规则数</div>
-             <div className="text-red-400 font-mono font-semibold text-xl">{rules.filter(r => (r.displayWeight ?? r.weight) > 80).length}</div>
+           <div className="flex flex-col justify-center border-l border-brand-border-subtle pl-6">
+             <div className="text-brand-muted text-xs mb-1">高危规则数</div>
+             <div className="text-red-400 font-mono font-semibold text-2xl">{rules.filter(r => (r.displayWeight ?? r.weight) > 80).length}</div>
            </div>
-           <div>
-             <div className="text-gray-400 text-xs mb-1">最近一次调参</div>
-             <div className="text-gray-100 font-mono text-sm">2026/5/31</div>
+           <div className="flex flex-col justify-center border-l border-brand-border-subtle pl-6">
+             <div className="text-brand-muted text-xs mb-1">最近一次调参</div>
+             <div className="text-brand-primary font-mono text-sm">2026/05/31</div>
            </div>
         </div>
 
         {/* Rule Sets Tabs */}
         
-<div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#1E4D92] custom-scrollbar">
+<div className="flex items-center gap-2 overflow-x-auto p-1.5 bg-[#0D2347] border border-brand-border-subtle rounded-xl custom-scrollbar shadow-sm">
   {INDUSTRY_TYPES.map(type => (
     <button 
       key={type.id} 
       onClick={() => { setCurrentSet(type.id); toast('已切换至 ' + type.name, 'success'); }} 
-      className={`px-4 py-2 whitespace-nowrap text-sm rounded-t ${currentSet === type.id ? 'bg-[#1E4D92] text-[#0091DA] font-medium border-b-2 border-[#0091DA]' : 'text-gray-400 hover:text-gray-200 hover:bg-[#0B2454]'}`}>
+      className={`px-5 py-2 whitespace-nowrap text-sm rounded-[10px] transition-all flex-1 text-center ${currentSet === type.id ? 'bg-[rgba(58,183,255,0.10)] border border-[rgba(58,183,255,0.30)] text-white shadow-[0_2px_8px_rgba(0,0,0,0.15)]' : 'bg-transparent text-brand-secondary border border-transparent hover:text-white hover:bg-[rgba(255,255,255,0.03)]'}`}>
       {type.name}
     </button>
   ))}
@@ -343,15 +355,15 @@ export default function RuleEngine() {
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Main Table */}
-          <div className="flex-1 bg-[#0B2454] border border-[#1E4D92] rounded-lg shadow-lg overflow-hidden">
+          <div className="flex-1 bg-brand-card border border-brand-border-subtle rounded-lg shadow-lg overflow-hidden">
             {loading ? (
-              <div className="p-12 flex justify-center items-center text-gray-500 text-sm">
-                <div className="w-5 h-5 border-2 border-[#0091DA] border-t-transparent rounded-full animate-spin mr-3"></div>
+              <div className="p-12 flex justify-center items-center text-brand-muted text-sm">
+                <div className="w-5 h-5 border-2 border-[#3AB7FF] border-t-transparent rounded-full animate-spin mr-3"></div>
                 加载规则集...
               </div>
             ) : (
               <table className="w-full text-left text-sm">
-                <thead className="bg-[#03102A] border-b border-[#1E4D92] text-gray-400 text-xs">
+                <thead className="bg-brand-bg2 border-b border-brand-border-medium text-brand-secondary text-xs">
                   <tr>
                     <th className="px-4 py-3 font-medium">规则名称</th>
                     <th className="px-4 py-3 font-medium">触发条件</th>
@@ -361,9 +373,9 @@ export default function RuleEngine() {
                     <th className="px-4 py-3 text-right font-medium">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1E4D92]">
+                <tbody className="divide-y divide-brand-border-subtle">
                   {rules.map((r, i) => (
-                    <tr key={i} className="hover:bg-[#1f1f1f] transition-colors cursor-pointer" onClick={() => { setSelectedRule(r); setShowDrawer(true); }}>
+                    <tr key={i} className="hover:bg-[rgba(255,255,255,0.03)] transition-colors cursor-pointer" onClick={() => { setSelectedRule(r); setShowDrawer(true); }}>
                       <td className="px-4 py-3">
                         <div className="font-mono text-[10px] text-gray-500 mb-0.5">{r.id}</div>
                         <div className="font-medium text-gray-200 text-xs">{r.name}</div>
@@ -373,7 +385,7 @@ export default function RuleEngine() {
                          {r.trigger}
                       </td>
                       <td className="px-4 py-3">
-                         <div className={`font-mono text-xs ${(r.displayWeight ?? r.weight) > 80 ? 'text-red-400' : 'text-[#0091DA]'}`}>{r.displayWeight ?? r.weight}</div>
+                         <div className={`font-mono text-xs ${(r.displayWeight ?? r.weight) > 80 ? 'text-red-400' : 'text-brand-accent'}`}>{r.displayWeight ?? r.weight}</div>
                          <div className="text-[10px] text-gray-500">原始: {r.originalWeight ?? '-'}</div>
                       </td>
                       <td className="px-4 py-3">
@@ -383,8 +395,8 @@ export default function RuleEngine() {
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-gray-400">{r.lastHit}</td>
                       <td className="px-4 py-3 text-right space-x-1" onClick={e => e.stopPropagation()}>
-                        {isAdmin && <button onClick={() => { setSelectedRule(r); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:bg-[#1E4D92] hover:text-[#0091DA] rounded transition-colors"><Edit3 className="w-4 h-4" /></button>}
-                        {isAdmin && <button onClick={() => { setSelectedRule(r); setShowDisable(true); }} className="p-1.5 text-gray-400 hover:bg-[#1E4D92] hover:text-red-500 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>}
+                        {isAdmin && <button onClick={() => { setSelectedRule(r); setShowEdit(true); }} className="p-1.5 text-gray-400 hover:bg-[rgba(58,183,255,0.12)] hover:text-brand-accent rounded transition-colors"><Edit3 className="w-4 h-4" /></button>}
+                        {isAdmin && <button onClick={() => { setSelectedRule(r); setShowDisable(true); }} className="p-1.5 text-gray-400 hover:bg-[rgba(58,183,255,0.12)] hover:text-red-500 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>}
                       </td>
                     </tr>
                   ))}
@@ -394,25 +406,25 @@ export default function RuleEngine() {
           </div>
 
           {/* Sandbox Box */}
-          <div className="w-full lg:w-80 bg-[#03102A] border border-[#1E4D92] rounded-lg shadow-lg flex flex-col shrink-0 h-min">
-             <div className="p-4 border-b border-[#1E4D92] flex items-center gap-2">
-                <Play className="w-4 h-4 text-[#0091DA]" />
+          <div className="w-full lg:w-80 bg-brand-bg2 border border-brand-border-medium rounded-lg shadow-lg flex flex-col shrink-0 h-min">
+             <div className="p-4 border-b border-brand-border-medium flex items-center gap-2">
+                <Play className="w-4 h-4 text-brand-accent" />
                 <span className="font-semibold text-sm">规则测试沙箱</span>
              </div>
              <div className="p-4 space-y-4">
                 <div>
                    <label className="text-xs text-gray-400 mb-1 block">测试实体/项目名：</label>
-                   <input type="text" value={sandboxInput} onChange={e=>setSandboxInput(e.target.value)} className="w-full bg-[#0B2454] border border-[#1E4D92] rounded px-3 py-2 text-xs focus:border-[#0091DA] focus:outline-none transition-colors" />
+                   <input type="text" value={sandboxInput} onChange={e=>setSandboxInput(e.target.value)} className="w-full bg-brand-card border border-brand-border-medium rounded px-3 py-2 text-xs focus:border-[#0091DA] focus:outline-none transition-colors" />
                 </div>
-                <button onClick={handleRunTest} disabled={runningTest} className="w-full py-2 bg-[#2A2A2A] hover:bg-[#1E4D92] border border-[#1E4D92] rounded text-sm transition-colors flex items-center justify-center gap-2">
+                <button onClick={handleRunTest} disabled={runningTest} className="w-full py-2 bg-brand-bg2 hover:bg-[rgba(58,183,255,0.12)] border border-brand-border-medium rounded text-sm transition-colors flex items-center justify-center gap-2">
                    {runningTest ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                    执行推演
                 </button>
                 
                 {sandboxResult && (
-                   <div className="mt-4 border-t border-[#1E4D92] pt-4 space-y-3">
-                      <div className="text-xs text-[#0091DA] font-semibold mb-2">测试结果：</div>
-                      <div className="bg-[#0B2454] p-3 rounded border border-[#1E4D92] text-xs space-y-2">
+                   <div className="mt-4 border-t border-brand-border-medium pt-4 space-y-3">
+                      <div className="text-xs text-brand-accent font-semibold mb-2">测试结果：</div>
+                      <div className="bg-brand-card p-3 rounded border border-brand-border-medium text-xs space-y-2">
                          <div className="text-gray-400">命中规则: <span className="text-red-400 block break-all">{sandboxResult.hitRules.join(', ')}</span></div>
                          <div className="text-gray-400">特征映射: <span className="text-gray-200">{sandboxResult.features}</span></div>
                          <div className="text-gray-400">风险贡献: <span className="text-red-400">{sandboxResult.risk}</span></div>
@@ -424,10 +436,10 @@ export default function RuleEngine() {
           </div>
 
           {/* AI Weight Module */}
-          <div className="w-full lg:w-80 bg-[#03102A] border border-[#1E4D92] rounded-lg shadow-lg flex flex-col shrink-0 mt-6 h-min">
-             <div className="p-4 border-b border-[#1E4D92] flex justify-between items-center">
+          <div className="w-full lg:w-80 bg-brand-bg2 border border-brand-border-medium rounded-lg shadow-lg flex flex-col shrink-0 mt-6 h-min">
+             <div className="p-4 border-b border-brand-border-medium flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-[#0091DA]" />
+                  <Activity className="w-4 h-4 text-brand-accent" />
                   <span className="font-semibold text-sm">模型权重来源 (AI Engine)</span>
                 </div>
              </div>
@@ -439,22 +451,22 @@ export default function RuleEngine() {
                    <select 
                       value={trainMethod} 
                       onChange={e => setTrainMethod(e.target.value as 'logistic' | 'basic-mlp')}
-                      className="w-full bg-[#0B2454] border border-[#1E4D92] rounded px-2 py-1.5 text-xs text-white focus:border-[#0091DA] focus:outline-none transition-colors"
+                      className="w-full bg-brand-card border border-brand-border-medium rounded px-2 py-1.5 text-xs text-white focus:border-[#0091DA] focus:outline-none transition-colors"
                    >
                      <option value="logistic">弱监督逻辑回归 (默认可解释)</option>
                      <option value="basic-mlp">基础神经网络 MLP (实验)</option>
                    </select>
 
-                   <div className="mt-3 text-gray-200 font-mono text-[10px] bg-[#0B2454] p-3 rounded border border-[#1E4D92] leading-relaxed">
+                   <div className="mt-3 text-gray-200 font-mono text-[10px] bg-brand-card p-3 rounded border border-brand-border-medium leading-relaxed">
                      <span className="text-gray-500 block mb-1">映射结果类别权重：</span>
-                     <span className="text-[#0091DA]">W1</span> = {aiWeights.W1}<br/>
-                     <span className="text-[#0091DA]">W2</span> = {aiWeights.W2}<br/>
-                     <span className="text-[#0091DA]">W3</span> = {aiWeights.W3}<br/>
-                     <span className="text-[#0091DA]">b</span>  = {aiWeights.b}
+                     <span className="text-brand-accent">W1</span> = {aiWeights.W1}<br/>
+                     <span className="text-brand-accent">W2</span> = {aiWeights.W2}<br/>
+                     <span className="text-brand-accent">W3</span> = {aiWeights.W3}<br/>
+                     <span className="text-brand-accent">b</span>  = {aiWeights.b}
                    </div>
                    
                    {aiModelType === 'basic-mlp' && aiFeatureImportance && (
-                     <div className="mt-3 text-gray-300 font-mono text-[10px] bg-[#03102A] p-2 rounded border border-[#1E4D92] leading-relaxed">
+                     <div className="mt-3 text-brand-primary font-mono text-[10px] bg-brand-bg2 p-2 rounded border border-brand-border-medium leading-relaxed">
                        <span className="text-gray-500 block mb-1">底层特征重要性 (Feature Importance)：</span>
                        <div className="grid grid-cols-2 gap-x-2">
                          {Object.entries(aiFeatureImportance).map(([key, val]) => (
@@ -466,7 +478,7 @@ export default function RuleEngine() {
                      </div>
                    )}
                    
-                   <div className="mt-3">当前运行模型：<span className={aiModelType === 'basic-mlp' ? "text-[#0091DA]" : "text-gray-200"}>{aiModelType === 'basic-mlp' ? '基础神经网络 MLP' : '弱监督逻辑回归'}</span></div>
+                   <div className="mt-3">当前运行模型：<span className={aiModelType === 'basic-mlp' ? "text-brand-accent" : "text-gray-200"}>{aiModelType === 'basic-mlp' ? '基础神经网络 MLP' : '弱监督逻辑回归'}</span></div>
                    <div>样本数量：{aiSampleCount}</div>
                    <div>最近训练：{aiLastTrained}</div>
 
@@ -476,17 +488,17 @@ export default function RuleEngine() {
                       </div>
                    )}
                    
-                   <div className="mt-3 text-gray-400 text-[10px] leading-relaxed italic space-y-2 border-t border-[#1E4D92] pt-2">
+                   <div className="mt-3 text-gray-400 text-[10px] leading-relaxed italic space-y-2 border-t border-brand-border-medium pt-2">
                      <p><strong className="text-gray-300">AI 抽取模块：</strong>负责从上传文档中抽取实体、关系、金额异常和证据片段。</p>
                      <p><strong className="text-gray-300">权重学习模块：</strong>使用本地逻辑回归或基础 MLP，根据历史样本学习 W1/W2/W3/b。</p>
                    </div>
                 </div>
                 
                 <div className="flex flex-col gap-2 pt-2">
-                  <button onClick={handleTrainWeights} disabled={isTraining} className="w-full py-2 bg-[#0091DA] hover:bg-[#00A3FF] text-[#03102A] font-medium rounded text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(212,175,55,0.2)]">
+                  <button onClick={handleTrainWeights} disabled={isTraining} className="w-full py-2 bg-brand-accent hover:bg-[#00A3FF] text-white font-medium rounded text-xs transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(0,94,184,0.2)]">
                      {isTraining ? '训练中...' : '启动权重学习'}
                   </button>
-                  <button onClick={handleTestExtraction} disabled={isExtracting} className="w-full py-2 bg-[#2A2A2A] hover:bg-[#1E4D92] border border-[#1E4D92] rounded text-xs transition-colors flex items-center justify-center gap-2">
+                  <button onClick={handleTestExtraction} disabled={isExtracting} className="w-full py-2 bg-brand-bg2 hover:bg-[rgba(58,183,255,0.12)] border border-brand-border-medium rounded text-xs transition-colors flex items-center justify-center gap-2">
                      测试 AI 抽取 (LLM)
                   </button>
                 </div>
@@ -501,50 +513,50 @@ export default function RuleEngine() {
       {/* 规则详情抽屉 */}
       {showDrawer && selectedRule && (
          <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm" onClick={() => setShowDrawer(false)}>
-            <div className="w-[450px] bg-[#03102A] border-l border-[#1E4D92] h-full shadow-2xl p-6 overflow-y-auto space-y-6" onClick={e=>e.stopPropagation()}>
-               <div className="flex justify-between items-center pb-4 border-b border-[#1E4D92]">
+            <div className="w-[450px] bg-brand-bg2 border-l border-brand-border-medium h-full shadow-2xl p-6 overflow-y-auto space-y-6" onClick={e=>e.stopPropagation()}>
+               <div className="flex justify-between items-center pb-4 border-b border-brand-border-medium">
                   <h3 className="text-lg font-bold text-gray-200">规则详情</h3>
                   <button onClick={() => setShowDrawer(false)} className="text-gray-500 hover:text-white"><X className="w-5 h-5"/></button>
                </div>
                
                <div>
                   <div className="text-[10px] text-gray-500 font-mono mb-1">{selectedRule.id}</div>
-                  <div className="text-xl font-bold text-[#0091DA] mb-2">{selectedRule.name}</div>
+                  <div className="text-xl font-bold text-brand-accent mb-2">{selectedRule.name}</div>
                   <span className={`px-2 py-1 rounded text-[10px] ${selectedRule.status === 'enabled' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-500 border border-gray-700'}`}>
                     {selectedRule.status === 'enabled' ? '生效中' : '已停用'}
                   </span>
                </div>
                
                <div className="space-y-4">
-                  <div className="bg-[#0B2454] p-4 rounded border border-[#1E4D92]">
+                  <div className="bg-brand-card p-4 rounded border border-brand-border-medium">
                      <div className="text-xs text-gray-500 mb-2">判断逻辑 & 触发条件</div>
                      <div className="font-mono text-sm text-red-400 break-all">{selectedRule.trigger}</div>
                   </div>
                   
-                  <div className="bg-[#0B2454] p-4 rounded border border-[#1E4D92] grid grid-cols-2 gap-4">
+                  <div className="bg-brand-card p-4 rounded border border-brand-border-medium grid grid-cols-2 gap-4">
                      <div>
                         <div className="text-xs text-gray-500 mb-1">风险维度</div>
                         <div className="text-gray-200 text-sm">{selectedRule.category}</div>
                      </div>
                      <div>
                         <div className="text-xs text-gray-500 mb-1">风险权重</div>
-                        <div className={`text-sm font-mono ${selectedRule.weight > 80 ? 'text-red-400' : 'text-[#0091DA]'}`}>{selectedRule.weight}</div>
+                        <div className={`text-sm font-mono ${selectedRule.weight > 80 ? 'text-red-400' : 'text-brand-accent'}`}>{selectedRule.weight}</div>
                      </div>
                   </div>
                   
-                  <div className="bg-[#0B2454] p-4 rounded border border-[#1E4D92]">
+                  <div className="bg-brand-card p-4 rounded border border-brand-border-medium">
                      <div className="text-xs text-gray-500 mb-2">示例命中证据</div>
                      <p className="text-gray-300 text-sm italic leading-relaxed">"在审计图谱中，当两个企业享有 80% 相同的关键管理人员，并发生虚假交易迹象时，此规则将介入增加预警分数。"</p>
                   </div>
                   
-                  <div className="bg-[#0B2454] p-4 rounded border border-[#1E4D92]">
+                  <div className="bg-brand-card p-4 rounded border border-brand-border-medium">
                      <div className="text-xs text-gray-500 mb-2">自动审计建议</div>
                      <p className="text-gray-300 text-sm leading-relaxed">建议将命中此规则的样本标红，并在凭证检查环节增加 50% 额外抽样。重点核对外围资金流水与工商系统历史变更记录。</p>
                   </div>
                </div>
                
-               <div className="pt-4 border-t border-[#1E4D92] flex justify-end gap-3">
-                 <button onClick={() => { setShowDrawer(false); setShowEdit(true); }} className="px-4 py-2 border border-[#1E4D92] rounded hover:border-[#0091DA] hover:text-[#0091DA] transition-colors text-sm">编辑参数</button>
+               <div className="pt-4 border-t border-brand-border-medium flex justify-end gap-3">
+                 <button onClick={() => { setShowDrawer(false); setShowEdit(true); }} className="px-4 py-2 border border-brand-border-medium rounded hover:border-[#0091DA] hover:text-brand-accent transition-colors text-sm">编辑参数</button>
                </div>
             </div>
          </div>
@@ -553,20 +565,20 @@ export default function RuleEngine() {
       {/* 新建/编辑规则弹窗 */}
       {(showNewRule || showEdit) && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => {setShowNewRule(false); setShowEdit(false)}}>
-            <div className="bg-[#0B2454] border border-[#1E4D92] w-[500px] rounded-lg shadow-2xl p-6 space-y-5" onClick={e=>e.stopPropagation()}>
-               <div className="flex justify-between items-center pb-3 border-b border-[#1E4D92]">
+            <div className="bg-brand-card border border-brand-border-medium w-[500px] rounded-lg shadow-2xl p-6 space-y-5" onClick={e=>e.stopPropagation()}>
+               <div className="flex justify-between items-center pb-3 border-b border-brand-border-medium">
                  <h3 className="text-lg font-bold text-gray-200">{showNewRule ? '新建风险规则' : '编辑规则参数'}</h3>
                  <button onClick={() => {setShowNewRule(false); setShowEdit(false)}} className="text-gray-500 hover:text-white"><X className="w-5 h-5"/></button>
                </div>
                <div className="space-y-4">
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">规则名称</label>
-                    <input type="text" className="w-full bg-[#03102A] border border-[#1E4D92] rounded px-3 py-2 text-sm text-white focus:border-[#0091DA] focus:outline-none" defaultValue={showEdit && selectedRule ? selectedRule.name : ''} />
+                    <input type="text" className="w-full bg-brand-bg2 border border-brand-border-medium rounded px-3 py-2 text-sm text-white focus:border-[#0091DA] focus:outline-none" defaultValue={showEdit && selectedRule ? selectedRule.name : ''} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-gray-400 block mb-1">风险维度</label>
-                      <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="w-full bg-[#03102A] border border-[#1E4D92] rounded px-3 py-2 text-sm text-white focus:border-[#0091DA] focus:outline-none">
+                      <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="w-full bg-brand-bg2 border border-brand-border-medium rounded px-3 py-2 text-sm text-white focus:border-[#0091DA] focus:outline-none">
                          <option value="identity">身份网络 (身份关联)</option>
                          <option value="transaction">交易异常</option>
                          <option value="external">外围痕迹 (外围牵连)</option>
@@ -574,21 +586,21 @@ export default function RuleEngine() {
                     </div>
                     <div>
                       <label className="text-xs text-gray-400 block mb-1">设置权重 (0-100)</label>
-                      <input type="number" className="w-full bg-[#03102A] border border-[#1E4D92] rounded px-3 py-2 text-sm text-white focus:border-[#0091DA] focus:outline-none" defaultValue={showEdit && selectedRule ? selectedRule.weight : 50} />
+                      <input type="number" className="w-full bg-brand-bg2 border border-brand-border-medium rounded px-3 py-2 text-sm text-white focus:border-[#0091DA] focus:outline-none" defaultValue={showEdit && selectedRule ? selectedRule.weight : 50} />
                     </div>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">触发条件表达式 (Expression)</label>
-                    <input type="text" className="w-full bg-[#03102A] border border-[#1E4D92] rounded px-3 py-2 text-sm text-white focus:border-[#0091DA] focus:outline-none font-mono text-xs" defaultValue={showEdit && selectedRule ? selectedRule.trigger : ''} placeholder="e.g. JaccardSimilarity > 0.8" />
+                    <input type="text" className="w-full bg-brand-bg2 border border-brand-border-medium rounded px-3 py-2 text-sm text-white focus:border-[#0091DA] focus:outline-none font-mono text-xs" defaultValue={showEdit && selectedRule ? selectedRule.trigger : ''} placeholder="e.g. JaccardSimilarity > 0.8" />
                   </div>
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">规则描述说明</label>
-                    <textarea rows={3} className="w-full bg-[#03102A] border border-[#1E4D92] rounded px-3 py-2 text-sm text-white focus:border-[#0091DA] focus:outline-none"></textarea>
+                    <textarea rows={3} className="w-full bg-brand-bg2 border border-brand-border-medium rounded px-3 py-2 text-sm text-white focus:border-[#0091DA] focus:outline-none"></textarea>
                   </div>
                </div>
                <div className="pt-4 flex justify-end gap-3">
-                 <button onClick={() => {setShowNewRule(false); setShowEdit(false)}} className="px-4 py-2 hover:bg-[#1E4D92] rounded text-gray-300 transition-colors text-sm">取消</button>
-                 <button onClick={showNewRule ? handleSaveRule : handleSaveEdit} className="px-4 py-2 bg-[#0091DA] hover:bg-[#00A3FF] text-[#03102A] rounded font-medium shadow-lg transition-colors text-sm">
+                 <button onClick={() => {setShowNewRule(false); setShowEdit(false)}} className="px-4 py-2 hover:bg-[rgba(58,183,255,0.12)] rounded text-gray-300 transition-colors text-sm">取消</button>
+                 <button onClick={showNewRule ? handleSaveRule : handleSaveEdit} className="px-4 py-2 bg-brand-accent hover:bg-[#00A3FF] text-white rounded font-medium shadow-lg transition-colors text-sm">
                    保存配置
                  </button>
                </div>
@@ -600,58 +612,58 @@ export default function RuleEngine() {
       {/* AI Extraction Test Modal */}
       {showAiTest && (
          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAiTest(false)}>
-            <div className="bg-[#0B2454] border border-[#1E4D92] w-full max-w-2xl rounded-lg shadow-2xl p-6 flex flex-col max-h-[80vh]" onClick={e=>e.stopPropagation()}>
-               <div className="flex justify-between items-center pb-3 border-b border-[#1E4D92]">
-                 <h3 className="text-lg font-bold text-[#0091DA]">AI 证据抽取测试</h3>
+            <div className="bg-brand-card border border-brand-border-medium w-full max-w-2xl rounded-lg shadow-2xl p-6 flex flex-col max-h-[80vh]" onClick={e=>e.stopPropagation()}>
+               <div className="flex justify-between items-center pb-3 border-b border-brand-border-medium">
+                 <h3 className="text-lg font-bold text-brand-accent">AI 证据抽取测试</h3>
                  <button onClick={() => setShowAiTest(false)} className="text-gray-500 hover:text-white"><X className="w-5 h-5"/></button>
                </div>
                
                <div className="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-4">
                  {isExtracting ? (
                     <div className="text-center text-gray-400 py-10 flex flex-col items-center">
-                       <RefreshCw className="w-8 h-8 animate-spin mb-4 text-[#0091DA]" />
+                       <RefreshCw className="w-8 h-8 animate-spin mb-4 text-brand-accent" />
                        <div>正在调用 Gemini API 进行抽取，请稍候...</div>
                     </div>
                  ) : aiExtractionResult ? (
                     <div className="space-y-4 text-sm">
-                       <div className="p-3 bg-[#03102A] border border-[#1E4D92] rounded">
+                       <div className="p-3 bg-brand-bg2 border border-brand-border-medium rounded">
                          <span className="text-gray-500 text-xs block mb-1">AI 抽取接口状态:</span>
                          <div className="text-gray-300 text-xs mt-1">
                             <div>当前源: <span className="text-green-400 font-mono">{aiExtractionResult.source}</span></div>
                             {aiExtractionResult.providerInfo && (
                               <>
-                                <div>当前模式: <span className="text-[#0091DA]">{aiExtractionResult.providerInfo.mode}</span></div>
-                                <div>当前模型: <span className="text-[#0091DA]">{aiExtractionResult.providerInfo.model}</span></div>
+                                <div>当前模式: <span className="text-brand-accent">{aiExtractionResult.providerInfo.mode}</span></div>
+                                <div>当前模型: <span className="text-brand-accent">{aiExtractionResult.providerInfo.model}</span></div>
                                 <div>API Key 状态: <span>{aiExtractionResult.providerInfo.apiKeyConfigured ? '已配置' : '未配置'}</span></div>
                               </>
                             )}
                          </div>
                        </div>
                        
-                       <div className="p-3 bg-[#03102A] border border-[#1E4D92] rounded">
-                         <span className="text-[#0091DA] font-semibold block mb-2">识别实体 (Entities)</span>
+                       <div className="p-3 bg-brand-bg2 border border-brand-border-medium rounded">
+                         <span className="text-brand-accent font-semibold block mb-2">识别实体 (Entities)</span>
                          <div className="flex flex-wrap gap-2">
                            {aiExtractionResult.entities?.map((e:any, i:number) => (
-                              <span key={i} className="px-2 py-1 bg-[#1E4D92] rounded text-xs text-gray-200">{e.name} ({e.type})</span>
+                              <span key={i} className="px-2 py-1 bg-[rgba(58,183,255,0.12)] rounded text-xs text-gray-200">{e.name} ({e.type})</span>
                            ))}
                          </div>
                        </div>
                        
-                       <div className="p-3 bg-[#03102A] border border-[#1E4D92] rounded">
-                         <span className="text-[#0091DA] font-semibold block mb-2">关键词 (Keywords)</span>
+                       <div className="p-3 bg-brand-bg2 border border-brand-border-medium rounded">
+                         <span className="text-brand-accent font-semibold block mb-2">关键词 (Keywords)</span>
                          <div className="flex flex-wrap gap-2">
                            {aiExtractionResult.keywords?.map((k:string, i:number) => (
-                              <span key={i} className="px-2 py-1 border border-[#1E4D92] rounded text-xs text-gray-300">{k}</span>
+                              <span key={i} className="px-2 py-1 border border-brand-border-medium rounded text-xs text-gray-300">{k}</span>
                            ))}
                          </div>
                        </div>
                        
                        {aiExtractionResult.transactionSignals && aiExtractionResult.transactionSignals.length > 0 && (
-                         <div className="p-3 bg-[#03102A] border border-[#1E4D92] rounded">
-                           <span className="text-[#0091DA] font-semibold block mb-2">交易异常 (Transaction Signals)</span>
+                         <div className="p-3 bg-brand-bg2 border border-brand-border-medium rounded">
+                           <span className="text-brand-accent font-semibold block mb-2">交易异常 (Transaction Signals)</span>
                            <div className="space-y-2">
                              {aiExtractionResult.transactionSignals.map((ts:any, i:number) => (
-                                <div key={i} className="text-xs text-gray-300 bg-[#0B2454] p-2 rounded">
+                                <div key={i} className="text-xs text-gray-300 bg-brand-card p-2 rounded">
                                    <span className="text-red-400 font-semibold">{ts.type}</span>: {ts.amount} ({ts.year})
                                    <div className="text-gray-500 mt-1">{ts.evidence}</div>
                                 </div>
@@ -661,12 +673,12 @@ export default function RuleEngine() {
                        )}
 
                        {aiExtractionResult.relationships && aiExtractionResult.relationships.length > 0 && (
-                         <div className="p-3 bg-[#03102A] border border-[#1E4D92] rounded">
-                           <span className="text-[#0091DA] font-semibold block mb-2">关系抽取 (Relationships)</span>
+                         <div className="p-3 bg-brand-bg2 border border-brand-border-medium rounded">
+                           <span className="text-brand-accent font-semibold block mb-2">关系抽取 (Relationships)</span>
                            <div className="space-y-2">
                              {aiExtractionResult.relationships.map((rel:any, i:number) => (
-                                <div key={i} className="text-xs text-gray-300 bg-[#0B2454] p-2 rounded flex flex-col">
-                                   <div><span className="text-gray-400">{rel.source}</span> <span className="text-[#0091DA]">→</span> <span className="text-gray-400">{rel.target}</span></div>
+                                <div key={i} className="text-xs text-gray-300 bg-brand-card p-2 rounded flex flex-col">
+                                   <div><span className="text-gray-400">{rel.source}</span> <span className="text-brand-accent">→</span> <span className="text-gray-400">{rel.target}</span></div>
                                    <div className="text-gray-500 mt-1">[{rel.type}] {rel.evidence}</div>
                                 </div>
                              ))}
@@ -674,8 +686,8 @@ export default function RuleEngine() {
                          </div>
                        )}
                        
-                       <div className="p-3 bg-[#03102A] border border-[#1E4D92] rounded">
-                         <span className="text-[#0091DA] font-semibold block mb-2">底层特征建议 (Suggested Raw Features)</span>
+                       <div className="p-3 bg-brand-bg2 border border-brand-border-medium rounded">
+                         <span className="text-brand-accent font-semibold block mb-2">底层特征建议 (Suggested Raw Features)</span>
                          <pre className="text-xs font-mono text-gray-400 break-all whitespace-pre-wrap">
                            {JSON.stringify(aiExtractionResult.suggestedRawFeatures, null, 2)}
                          </pre>
@@ -692,7 +704,7 @@ export default function RuleEngine() {
       {/* 停用确认弹窗 */}
       {showDisable && selectedRule && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowDisable(false)}>
-            <div className="bg-[#0B2454] border border-[#1E4D92] w-[400px] rounded-lg shadow-2xl p-6 space-y-5 transform transition-all" onClick={e=>e.stopPropagation()}>
+            <div className="bg-brand-card border border-brand-border-medium w-[400px] rounded-lg shadow-2xl p-6 space-y-5 transform transition-all" onClick={e=>e.stopPropagation()}>
                <div className="flex items-center gap-3 text-red-400">
                   <AlertTriangle className="w-6 h-6" />
                   <h3 className="text-lg font-bold">停用规则确认</h3>
@@ -701,7 +713,7 @@ export default function RuleEngine() {
                  确定要停用规则 <span className="font-bold text-white">{selectedRule.name}</span> 吗？停用后该规则将不再参与全局风险评分与预警计算，但会保留在列表中且历史评估记录不受影响。
                </p>
                <div className="pt-4 flex justify-end gap-3">
-                 <button onClick={() => setShowDisable(false)} className="px-4 py-2 border border-[#1E4D92] hover:bg-[#1E4D92] rounded text-gray-300 transition-colors text-sm">取消</button>
+                 <button onClick={() => setShowDisable(false)} className="px-4 py-2 border border-brand-border-medium hover:bg-[rgba(58,183,255,0.12)] rounded text-gray-300 transition-colors text-sm">取消</button>
                  <button onClick={handleConfirmDisable} className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded font-medium shadow-lg transition-colors text-sm">
                    确认停用
                  </button>
