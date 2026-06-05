@@ -29,14 +29,14 @@ export default function ToastContainer() {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
       {toasts.map(t => (
-        <div key={t.id} className="animate-in slide-in-from-right-8 fade-in flex items-center gap-2 px-4 py-3 bg-white border border-[rgba(15,23,42,0.14)] shadow-lg rounded pointer-events-auto text-xs font-medium text-brand-primary min-w-[240px]">
+        <div key={t.id} className="animate-in slide-in-from-right-8 fade-in flex items-center gap-2 px-4 py-3 bg-[#242424] border border-[#333333] shadow-lg rounded pointer-events-auto text-xs font-medium text-gray-200 min-w-[240px]">
           {t.type === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
-          {t.type === 'primary' && <Info className="w-4 h-4 text-brand-blue-light" />}
-          {t.type === 'info' && <Info className="w-4 h-4 text-[#005EB8]" />}
+          {t.type === 'primary' && <Info className="w-4 h-4 text-[#D4AF37]" />}
+          {t.type === 'info' && <Info className="w-4 h-4 text-blue-400" />}
           {t.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-500" />}
           {t.type === 'error' && <AlertTriangle className="w-4 h-4 text-red-500" />}
           <span className="flex-1">{t.message}</span>
-          <button onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))} className="text-brand-muted hover:text-brand-primary">
+          <button onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))} className="text-gray-500 hover:text-gray-300">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>

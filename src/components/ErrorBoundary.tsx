@@ -34,7 +34,7 @@ export class ErrorBoundary extends React.Component<any, any> {
           <h2 className="text-lg font-bold mb-2">组件渲染发生错误</h2>
           <p className="text-sm opacity-80">{this.state.error?.message}</p>
           <button 
-            className="mt-4 px-3 py-1 bg-red-800 text-brand-primary rounded text-sm hover:bg-red-700"
+            className="mt-4 px-3 py-1 bg-red-800 text-white rounded text-sm hover:bg-red-700"
             onClick={() => this.setState({ hasError: false, error: undefined })}
           >
             尝试恢复
