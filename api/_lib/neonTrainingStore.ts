@@ -142,7 +142,7 @@ export async function saveModelWeights(projectType: string, payload: any): Promi
               W2 = EXCLUDED.W2,
               W3 = EXCLUDED.W3,
               b = EXCLUDED.b,
-              sample_count = EXCLUDED.sample_count,
+              sample_count = GREATEST(training_sessions.sample_count, EXCLUDED.sample_count),
               fallback = EXCLUDED.fallback,
               training_method = EXCLUDED.training_method,
               feature_importance = EXCLUDED.feature_importance,

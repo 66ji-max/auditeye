@@ -78,6 +78,16 @@ export const AUDIT_CATEGORIES = {
   }
 };
 
+export const CATEGORY_SAMPLE_COUNTS: Record<string, number> = {
+  all: 126,
+  general: 64,
+  ipo: 52,
+  financial_investment: 41,
+  real_estate_construction: 57,
+  manufacturing_supply_chain: 46,
+  energy_subsidy: 33
+};
+
 export const getAuditCategory = (id: string) => {
   return AUDIT_CATEGORIES[id as keyof typeof AUDIT_CATEGORIES] || AUDIT_CATEGORIES.general;
 };

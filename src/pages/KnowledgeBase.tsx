@@ -186,11 +186,15 @@ export default function KnowledgeBase() {
 
                  <div className="space-y-4">
                     <h4 className="text-gray-300 font-semibold border-b border-[#333333] pb-2">样例分片 (Top 3)</h4>
-                    {[1,2,3].map(i => (
-                      <div key={i} className="bg-[#1A1A1A] border border-[#333333] p-4 rounded relative group">
-                        <div className="absolute top-2 right-2 text-[10px] bg-[#333333] text-gray-400 px-2 py-0.5 rounded">Chunk 00{i}</div>
+                    {[
+                      "根据最新股权结构披露，标的公司实际控制人通过隐蔽的VIE架构持有境外控股平台65%表决权，但未在招股书对应章节中充分说明利益冲突风险。",
+                      "报告期内，公司向主要供应商支付的原材料采购款中，有高达1.2亿元资金疑似通过层层分包和第三方壳公司，最终流向了实控人远亲所持有的咨询机构。",
+                      "监管机构在近期的现场检查中指出，该主体的多个环保处罚记录未及时更新，且与地方政府部门签订的补贴协议存在条款模糊、依赖度过高的问题。"
+                    ].map((chunkText, idx) => (
+                      <div key={idx} className="bg-[#1A1A1A] border border-[#333333] p-4 rounded relative group">
+                        <div className="absolute top-2 right-2 text-[10px] bg-[#333333] text-gray-400 px-2 py-0.5 rounded">Chunk 00{idx + 1}</div>
                         <p className="text-xs text-gray-400 leading-relaxed max-w-[90%]">
-                          这是从文档中自动分割并向量化的测试文本段落。审计文档经过 OCR 与 NLP 模型处理，识别并关联到目标实体与账户信息。此文本段落是进行相似度匹配的最小单元。
+                          {chunkText}
                         </p>
                       </div>
                     ))}

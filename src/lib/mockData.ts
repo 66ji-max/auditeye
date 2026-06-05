@@ -199,6 +199,11 @@ export const demoProjectDetailsMap: Record<string, any> = {
   }
 };
 
+if (demoProjectDetailsMap['1001'] && demoProjectDetailsMap['1001'].riskScoring) {
+  demoProjectDetailsMap['1001'].riskScoring.probabilityPercent = 81;
+  demoProjectDetailsMap['1001'].riskScoring.probability = 0.81;
+}
+
 export function getMockProjectDetail(id: string) {
   return demoProjectDetailsMap[id] || demoProjectDetailsMap['1001'];
 }

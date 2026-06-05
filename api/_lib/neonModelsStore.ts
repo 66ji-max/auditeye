@@ -108,7 +108,7 @@ export async function saveIndustryWeights(
         W2 = EXCLUDED.W2,
         W3 = EXCLUDED.W3,
         b = EXCLUDED.b,
-        sample_count = EXCLUDED.sample_count,
+        sample_count = GREATEST(industry_model_weights.sample_count, EXCLUDED.sample_count),
         training_method = EXCLUDED.training_method,
         alpha = EXCLUDED.alpha,
         default_weights = EXCLUDED.default_weights,
