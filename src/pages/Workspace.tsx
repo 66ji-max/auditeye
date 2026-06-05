@@ -214,6 +214,17 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
   if (!data) return null;
   const { probabilityPercent, riskLevel, threshold, zValue, warning, subIndices, rawFeatures, conclusion, globalWeights, localWeights, industryType, industryName } = data;
   const displayProbabilityPercent = Math.round(Number(probabilityPercent ?? 0) || 0);
+
+  const getRiskVisualLocal = (score: number, riskLvl?: any) => {
+    const label = typeof riskLvl === 'string' ? riskLvl : riskLvl?.label;
+    const s = Math.round(Number(score || 0));
+    if (label === '极高风险' || s >= 75) return { label: label || '极高风险', color: 'text-red-500', border: 'border-red-500/20', bg: 'bg-red-500/10' };
+    if (label === '中高风险' || s >= 50) return { label: label || '中高风险', color: 'text-orange-500', border: 'border-orange-500/20', bg: 'bg-orange-500/10' };
+    if (label === '中等风险' || s >= 30) return { label: label || '中等风险', color: 'text-yellow-500', border: 'border-yellow-500/20', bg: 'bg-yellow-500/10' };
+    return { label: label || '低风险', color: 'text-green-500', border: 'border-green-500/20', bg: 'bg-green-500/10' };
+  };
+
+  const visual = getRiskVisualLocal(displayProbabilityPercent, riskLevel);
   
   const handleSubIndexExpand = (type: 'X1'|'X2'|'X3', title: string, color: string, features: any[], w: number) => {
      if (!setExpandedPanel) return;
@@ -289,16 +300,16 @@ const RiskScoringModule = ({ data, onFeatureClick, onExpand, expanded = false, s
             <Maximize2 className="w-5 h-5" />
           </button>
         )}
-        {displayProbabilityPercent > threshold && <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl"></div>}
+        {displayProbabilityPercent > threshold && <div className={`absolute top-0 right-0 w-32 h-32 ${visual.bg} rounded-full blur-3xl`}></div>}
         <div className={`flex justify-between items-start ${expanded ? 'mb-6' : 'mb-4'} relative z-10`}>
           <div>
             <h3 className={`${expanded ? 'text-sm' : 'text-xs'} text-gray-400 font-medium tracking-wider mb-1`}>审计风险概率 P(Risk)</h3>
             <div className="flex items-end gap-3">
-              <span className={`${expanded ? 'text-6xl' : 'text-4xl'} font-bold tracking-tighter ${displayProbabilityPercent > threshold ? 'text-red-500' : 'text-[#D4AF37]'}`}>
+              <span className={`${expanded ? 'text-6xl' : 'text-4xl'} font-bold tracking-tighter ${visual.color}`}>
                 {displayProbabilityPercent} <span className={`${expanded ? 'text-2xl' : 'text-xl'} text-gray-500 font-normal`}>/100</span>
               </span>
-              <span className={`${expanded ? 'text-sm px-3 py-1.5' : 'text-xs px-2 py-1'} rounded mb-1.5 font-medium border ${displayProbabilityPercent > threshold ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-[#D4AF37]/10 text-[#D4AF37] border-[#D4AF37]/20'}`}>
-                {riskLevel}
+              <span className={`${expanded ? 'text-sm px-3 py-1.5' : 'text-xs px-2 py-1'} rounded mb-1.5 font-medium border ${visual.bg} ${visual.color} ${visual.border}`}>
+                {visual.label}
               </span>
               {warning && (
                 <span className={`${expanded ? 'text-sm px-3 py-1.5' : 'text-xs px-2 py-1'} rounded mb-1.5 font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center gap-1`}>
@@ -768,6 +779,15 @@ function WorkspaceInner() {
     ) || 0);
   };
 
+  const getRiskVisualLocal = (score: number, riskLvl?: any) => {
+    const label = typeof riskLvl === 'string' ? riskLvl : riskLvl?.label;
+    const s = Math.round(Number(score || 0));
+    if (label === '极高风险' || s >= 75) return { label: label || '极高风险', color: 'text-red-500', bg: 'bg-red-500' };
+    if (label === '中高风险' || s >= 50) return { label: label || '中高风险', color: 'text-orange-500', bg: 'bg-orange-500' };
+    if (label === '中等风险' || s >= 30) return { label: label || '中等风险', color: 'text-yellow-500', bg: 'bg-yellow-500' };
+    return { label: label || '低风险', color: 'text-green-500', bg: 'bg-green-500' };
+  };
+
   const displayScore = getDisplayRiskScore(data);
 
   const riskScoring = data.riskScoring
@@ -778,7 +798,8 @@ function WorkspaceInner() {
     : null;
 
   const score = displayScore;
-  const riskLevel = riskScoring ? { label: riskScoring.riskLevel, color: 'text-red-500', bg: 'bg-red-500' } : (data.project.riskLevel || { label: '未评估', color: 'text-gray-500' });
+  const rawRiskLvl = riskScoring ? riskScoring.riskLevel : data.project.riskLevel;
+  const riskLevel = getRiskVisualLocal(score, rawRiskLvl);
   const dimScores = data.project.dimensionScores || { relation: 0, behavior: 0, financial: 0 };
   
   const rulesHit = logs.filter((l: any) => l.action === 'RED_FLAG');

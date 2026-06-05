@@ -14,6 +14,116 @@ const INDUSTRY_TYPES = [
   { id: 'energy_subsidy', name: '能源 / 补贴 / 政府项目' }
 ];
 
+const CATEGORY_MODEL_WEIGHTS: Record<string, any> = {
+  all: {
+    W1: 2.2,
+    W2: 3.0,
+    W3: 1.2,
+    b: -3.0,
+    label: "全部门类 / 综合视图"
+  },
+  general: {
+    W1: 2.2,
+    W2: 3.0,
+    W3: 1.2,
+    b: -3.0,
+    label: "通用审计模型"
+  },
+  ipo: {
+    W1: 2.8,
+    W2: 3.2,
+    W3: 1.0,
+    b: -3.2,
+    label: "IPO / 上市审查"
+  },
+  financial_investment: {
+    W1: 3.1,
+    W2: 2.4,
+    W3: 1.1,
+    b: -3.0,
+    label: "金融投资 / 基金审计"
+  },
+  real_estate_construction: {
+    W1: 2.2,
+    W2: 3.6,
+    W3: 1.8,
+    b: -3.3,
+    label: "地产工程 / 建设反舞弊"
+  },
+  manufacturing_supply_chain: {
+    W1: 2.4,
+    W2: 3.1,
+    W3: 1.2,
+    b: -3.1,
+    label: "制造业 / 供应链采购"
+  },
+  energy_subsidy: {
+    W1: 1.9,
+    W2: 2.6,
+    W3: 2.2,
+    b: -3.0,
+    label: "能源 / 补贴 / 政府项目"
+  }
+};
+
+const CATEGORY_RULE_WEIGHT_PRESETS: Record<string, any> = {
+  general: { identity: 30, transaction: 40, external: 20 },
+  ipo: { identity: 45, transaction: 50, external: 18 },
+  financial_investment: { identity: 50, transaction: 35, external: 20 },
+  real_estate_construction: { identity: 35, transaction: 60, external: 35 },
+  manufacturing_supply_chain: { identity: 38, transaction: 50, external: 22 },
+  energy_subsidy: { identity: 28, transaction: 42, external: 45 }
+};
+
+const CATEGORY_FALLBACK_RULES: Record<string, any[]> = {
+  general: [
+    { id: 'R-GEN-ID-01', name: '基础关联方识别', category: 'identity', type: '身份关联', trigger: 'Jaccard > 0.8', weight: 30, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-GEN-TX-01', name: '大额异常交易', category: 'transaction', type: '交易异常', trigger: 'amount > 500w', weight: 40, status: 'enabled', lastHit: '2026-05-29', updatedAt: '2026-05-30' },
+    { id: 'R-GEN-EXT-01', name: '外部处罚记录', category: 'external', type: '外围牵连', trigger: 'hasPenalty == true', weight: 20, status: 'enabled', lastHit: '2026-05-28', updatedAt: '2026-05-30' }
+  ],
+  ipo: [
+    { id: 'R-IPO-ID-01', name: '隐性关联方 / 实控人同源', category: 'identity', type: '身份关联', trigger: 'identityOverlap > 0.9', weight: 45, status: 'enabled', lastHit: '2026-06-01', updatedAt: '2026-05-30' },
+    { id: 'R-IPO-TX-01', name: '客户供应商资金回流', category: 'transaction', type: '交易异常', trigger: 'cashFlowback == true', weight: 50, status: 'enabled', lastHit: '2026-06-02', updatedAt: '2026-05-30' },
+    { id: 'R-IPO-TX-02', name: '申报期突击交易', category: 'transaction', type: '交易异常', trigger: 'growthRate > 2.0', weight: 48, status: 'enabled', lastHit: '2026-06-03', updatedAt: '2026-05-30' },
+    { id: 'R-IPO-EXT-01', name: '突击更名 / 注销主体', category: 'external', type: '外围牵连', trigger: 'nameChanged == true', weight: 25, status: 'enabled', lastHit: '2026-05-20', updatedAt: '2026-05-30' }
+  ],
+  financial_investment: [
+    { id: 'R-FIN-ID-01', name: 'GP / LP / 管理层交叉控制', category: 'identity', type: '身份关联', trigger: 'gpControl == true', weight: 50, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-FIN-ID-02', name: '被投企业高管兼职', category: 'identity', type: '身份关联', trigger: 'executiveOverlap > 0', weight: 45, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-FIN-TX-01', name: '关联方资金拆借', category: 'transaction', type: '交易异常', trigger: 'loaning == true', weight: 35, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-FIN-EXT-01', name: '监管警示 / 函证异常', category: 'external', type: '外围牵连', trigger: 'warning == true', weight: 25, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' }
+  ],
+  real_estate_construction: [
+    { id: 'R-REAL-TX-01', name: '工程款异常流转', category: 'transaction', type: '交易异常', trigger: 'fundRouting == true', weight: 60, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-REAL-TX-02', name: '虚列成本 / 空壳分包', category: 'transaction', type: '交易异常', trigger: 'shellSubcontractor == true', weight: 58, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-REAL-EXT-01', name: '伪造签字 / 诉讼投诉', category: 'external', type: '外围牵连', trigger: 'fakeSignature == true', weight: 40, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-REAL-ID-01', name: '工程人员亲属分包', category: 'identity', type: '身份关联', trigger: 'relativeSubcontracting == true', weight: 35, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' }
+  ],
+  manufacturing_supply_chain: [
+    { id: 'R-MFG-ID-01', name: '员工亲属供应商', category: 'identity', type: '身份关联', trigger: 'employeeRelative == true', weight: 38, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-MFG-TX-01', name: '采购价格异常', category: 'transaction', type: '交易异常', trigger: 'priceDeviation > 0.3', weight: 50, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-MFG-TX-02', name: '重复付款 / 空壳供应商', category: 'transaction', type: '交易异常', trigger: 'duplicatePayment == true', weight: 48, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-MFG-EXT-01', name: '工商异常 / 社保人数异常', category: 'external', type: '外围牵连', trigger: 'socialSecurityConflict == true', weight: 25, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' }
+  ],
+  energy_subsidy: [
+    { id: 'R-ENE-EXT-01', name: '环保处罚 / 行政监管', category: 'external', type: '外围牵连', trigger: 'envPenalty == true', weight: 45, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-ENE-TX-01', name: '补贴资金异常流转', category: 'transaction', type: '交易异常', trigger: 'subsidyFlowback == true', weight: 42, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-ENE-EXT-02', name: '补贴依赖度异常', category: 'external', type: '外围牵连', trigger: 'subsidyDependence > 0.8', weight: 45, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' },
+    { id: 'R-ENE-ID-01', name: '政府项目关联承包', category: 'identity', type: '身份关联', trigger: 'govContractorNetwork == true', weight: 28, status: 'enabled', lastHit: '2026-05-30', updatedAt: '2026-05-30' }
+  ]
+};
+
+function getDefaultRuleWeight(set: string, category: string) {
+  let cat = 'general';
+  if (set === 'all') cat = 'general';
+  else if (CATEGORY_RULE_WEIGHT_PRESETS[set]) cat = set;
+
+  if (category === '身份关联' || category === 'identity') return CATEGORY_RULE_WEIGHT_PRESETS[cat].identity;
+  if (category === '交易异常' || category === 'transaction') return CATEGORY_RULE_WEIGHT_PRESETS[cat].transaction;
+  if (category === '外围牵连' || category === 'external') return CATEGORY_RULE_WEIGHT_PRESETS[cat].external;
+  return 50;
+}
+
 export default function RuleEngine() {
   
   const { isAdmin } = useAuth();
@@ -36,12 +146,45 @@ export default function RuleEngine() {
     } catch(e) {
       console.warn('Failed to fetch rules', e);
     } finally {
+      if (currentSet !== 'all') {
+         setRules(prev => prev.length === 0 ? CATEGORY_FALLBACK_RULES[currentSet] || CATEGORY_FALLBACK_RULES.general : prev);
+      } else {
+         setRules(prev => prev.length === 0 ? Object.values(CATEGORY_FALLBACK_RULES).flat() : prev);
+      }
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchRules(currentSet);
+    const loadWeights = async () => {
+      try {
+        const preset = CATEGORY_MODEL_WEIGHTS[currentSet] || CATEGORY_MODEL_WEIGHTS.general;
+        const res = await fetch(`/api/ml/industry-weights/${currentSet}`);
+        if (res.ok) {
+           const data = await res.json();
+           if (data.source === 'database' || data.source === 'blended_learning') {
+              setAiWeights(data.weights);
+              return;
+           }
+        }
+        setAiWeights({
+          W1: preset.W1,
+          W2: preset.W2,
+          W3: preset.W3,
+          b: preset.b
+        });
+      } catch (e) {
+        const preset = CATEGORY_MODEL_WEIGHTS[currentSet] || CATEGORY_MODEL_WEIGHTS.general;
+        setAiWeights({
+          W1: preset.W1,
+          W2: preset.W2,
+          W3: preset.W3,
+          b: preset.b
+        });
+      }
+    };
+    loadWeights();
   }, [currentSet]);
 
   // Modals / Drawers
@@ -51,6 +194,7 @@ export default function RuleEngine() {
   const [showNewRule, setShowNewRule] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showDisable, setShowDisable] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('身份关联');
 
   const [sandboxResult, setSandboxResult] = useState<any>(null);
   const [sandboxInput, setSandboxInput] = useState('山东旺XX汽车零部件有限公司');
@@ -147,15 +291,16 @@ export default function RuleEngine() {
   const handleSaveRule = async () => {
     if (!isAdmin) { toast('仅管理员可操作', 'error'); return; }
     try {
+      const defaultWeight = getDefaultRuleWeight(currentSet, selectedCategory);
       const res = await fetch('/api/rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-mode': 'true', 'x-role': 'admin' },
         body: JSON.stringify({
           id: 'R-CUSTOM-' + Math.floor(Math.random()*10000),
           name: '新规则测试',
-          category: '自定义',
+          category: selectedCategory,
           industryType: currentSet === 'all' ? 'general' : currentSet,
-          weight: 50,
+          weight: defaultWeight,
           severity: 'medium',
           status: 'disabled',
           description: '',
@@ -497,11 +642,10 @@ export default function RuleEngine() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-gray-400 block mb-1">风险维度</label>
-                      <select className="w-full bg-[#1A1A1A] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:border-[#D4AF37] focus:outline-none">
-                         <option>身份网络</option>
-                         <option>交易异常</option>
-                         <option>外围痕迹</option>
-                         <option>极度穿透</option>
+                      <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="w-full bg-[#1A1A1A] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:border-[#D4AF37] focus:outline-none">
+                         <option value="identity">身份网络 (身份关联)</option>
+                         <option value="transaction">交易异常</option>
+                         <option value="external">外围痕迹 (外围牵连)</option>
                       </select>
                     </div>
                     <div>

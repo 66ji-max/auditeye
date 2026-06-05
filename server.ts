@@ -419,23 +419,9 @@ async function startServer() {
     }
   });
 
-  app.get("/api/rules", (req, res) => {
-    if (DEMO_MODE) {
-      return res.json([
-        { id: 'R-ADDR-01', name: '高密聚类注册地址重叠', category: '关联控制', weight: 20, status: 'enabled', updatedAt: '2026-04-10', owner: '审计风控组' },
-        { id: 'R-MGMT-02', name: '隐藏高管交叉控股/任职', category: '关联控制', weight: 40, status: 'enabled', updatedAt: '2026-04-12', owner: '审计风控组' },
-        { id: 'R-FUND-09', name: '短期异常资金回路 (72h内)', category: '资金洗售', weight: 50, status: 'enabled', updatedAt: '2026-04-15', owner: '资金合规组' },
-        { id: 'R-TEND-04', name: '供应商与员工电话/邮箱重叠', category: '舞弊围标', weight: 35, status: 'enabled', updatedAt: '2026-03-22', owner: '采购合规组' },
-        { id: 'R-FIN-01', name: '毛利率显著背离行业均值', category: '财务造假', weight: 15, status: 'disabled', updatedAt: '2026-01-05', owner: '数据模型组' }
-      ]);
-    }
-    
-    try {
-      const rules = db.prepare('SELECT * FROM rules').all();
-      res.json(rules);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
+  app.get("/api/rules", (req, res, next) => {
+    // Pass to neonRulesStore handler below
+    next();
   });
 
   app.get("/api/kb", (req, res) => {

@@ -16,6 +16,27 @@ const indNameMap: Record<string, string> = {
   manufacturing_supply_chain: '制造业 / 供应链采购',
   energy_subsidy: '能源 / 补贴 / 政府项目'
 };
+
+function getRiskVisual(score: number, riskLevel?: any) {
+  const label =
+    typeof riskLevel === 'string'
+      ? riskLevel
+      : riskLevel?.label;
+
+  const s = Math.round(Number(score || 0));
+
+  if (label === '极高风险' || s >= 75) {
+    return { label: label || '极高风险', color: 'text-red-500', bg: 'bg-red-500' };
+  }
+  if (label === '中高风险' || s >= 50) {
+    return { label: label || '中高风险', color: 'text-orange-500', bg: 'bg-orange-500' };
+  }
+  if (label === '中等风险' || s >= 30) {
+    return { label: label || '中等风险', color: 'text-yellow-500', bg: 'bg-yellow-500' };
+  }
+  return { label: label || '低风险', color: 'text-green-500', bg: 'bg-green-500' };
+}
+
 export default function ProjectList() {
   const [projects, setProjects] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -388,9 +409,9 @@ export default function ProjectList() {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <div className={`font-bold ${p.riskLevel ? p.riskLevel.color : 'text-gray-500'}`}>
+                        <div className={`font-bold ${getRiskVisual(p.riskScore, p.riskLevel).color}`}>
                           {p.riskScore != null ? Math.round(Number(p.riskScore)) : '-'} <span className="text-[10px] text-gray-500 font-normal">/100</span>
-                          {p.riskLevel && <div className="text-[10px] font-normal leading-none mt-1">{p.riskLevel.label}</div>}
+                          <div className="text-[10px] font-normal leading-none mt-1">{getRiskVisual(p.riskScore, p.riskLevel).label}</div>
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
@@ -416,9 +437,9 @@ export default function ProjectList() {
                          <div className="font-semibold text-gray-200 text-sm mb-1">{p.name}</div>
                          <div className="text-[10px] font-mono text-gray-500">PRJ-{p.id.toString().padStart(4, '0')}</div>
                        </div>
-                       <div className={`text-right font-bold text-lg leading-none ${p.riskLevel ? p.riskLevel.color : 'text-gray-500'}`}>
+                       <div className={`text-right font-bold text-lg leading-none ${getRiskVisual(p.riskScore, p.riskLevel).color}`}>
                          {p.riskScore != null ? Math.round(Number(p.riskScore)) : '-'}
-                         {p.riskLevel && <div className="text-[9px] font-normal mt-1">{p.riskLevel.label}</div>}
+                         <div className="text-[9px] font-normal mt-1">{getRiskVisual(p.riskScore, p.riskLevel).label}</div>
                        </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mb-3">
